@@ -30,7 +30,7 @@ Status: Not Started | In Progress | Blocked | Done
 | 7 | Teacher Dashboard | Done |
 | 8 | Course Management | Done |
 | 9 | Lesson Management | Done |
-| 10 | Student Management | In Progress |
+| 10 | Student Management | Done |
 | 11 | Enrollment | In Progress |
 | 12 | Quiz / Exam System | Not Started |
 | 13 | File Management | Not Started |

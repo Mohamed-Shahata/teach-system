@@ -285,6 +285,36 @@
       "errors": {
         "create": "Could not create this student account.",
         "emailConflict": "An account with this email already exists."
+      },
+      "list": {
+        "columns": {
+          "name": "Name",
+          "email": "Email",
+          "stage": "Stage",
+          "courses": "Courses",
+          "progress": "Avg. progress"
+        },
+        "progressValue": "{percent}%",
+        "viewDetails": "View details",
+        "emptyTitle": "No students yet",
+        "emptyDescription": "Students you create or who enroll in your courses will show up here."
+      },
+      "detail": {
+        "coursesTitle": "Enrolled courses",
+        "emptyTitle": "No enrollments yet",
+        "emptyDescription": "This student is not enrolled in any of your courses yet.",
+        "columns": {
+          "course": "Course",
+          "status": "Status",
+          "progress": "Progress",
+          "enrolledOn": "Enrolled on"
+        },
+        "status": {
+          "active": "Active",
+          "completed": "Completed",
+          "cancelled": "Cancelled"
+        },
+        "progressValue": "{percent}%"
       }
     },
     "payments": {

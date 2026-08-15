@@ -285,6 +285,36 @@
       "errors": {
         "create": "معرفناش ننشئ حساب الطالب ده.",
         "emailConflict": "فيه حساب بالإيميل ده موجود أصلاً."
+      },
+      "list": {
+        "columns": {
+          "name": "الاسم",
+          "email": "البريد الإلكتروني",
+          "stage": "المرحلة",
+          "courses": "الدورات",
+          "progress": "متوسط التقدم"
+        },
+        "progressValue": "{percent}%",
+        "viewDetails": "عرض التفاصيل",
+        "emptyTitle": "لا يوجد طلاب بعد",
+        "emptyDescription": "سيظهر هنا الطلاب الذين أنشأتهم أو المسجّلون في دوراتك."
+      },
+      "detail": {
+        "coursesTitle": "الدورات المسجّل بها",
+        "emptyTitle": "لا توجد تسجيلات بعد",
+        "emptyDescription": "هذا الطالب غير مسجّل في أي من دوراتك حتى الآن.",
+        "columns": {
+          "course": "الدورة",
+          "status": "الحالة",
+          "progress": "التقدم",
+          "enrolledOn": "تاريخ التسجيل"
+        },
+        "status": {
+          "active": "نشط",
+          "completed": "مكتمل",
+          "cancelled": "ملغى"
+        },
+        "progressValue": "{percent}%"
       }
     },
     "payments": {

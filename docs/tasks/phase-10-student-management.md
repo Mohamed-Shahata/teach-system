@@ -40,10 +40,37 @@
 ## TASK-1002: Student list & detail UI
 - Description: List + detail view (enrolled courses, progress, quiz results) for a teacher's students.
 - Dependencies: TASK-1001, TASK-204
-- Status: Not Started
+- Status: Done
 
-> Unblocked by TASK-1101/TASK-1001. Not started this session — quiz
-> results (part of the "detail view" scope) depend on TASK-1201/1202
-> (Phase 12, Not Started), so a first pass would need to either stub
-> that section or scope it down to enrolled courses + progress only.
-> Left for the next turn rather than half-implementing the detail view.
+> Scoped down to enrolled courses + progress, per the note left on this
+> task last session — quiz results still depend on TASK-1201/1202 (Phase
+> 12, Not Started) and are not included; the detail view can grow a quiz
+> results section once those land, without changing today's shape.
+>
+> New `lib/server/services/studentService.ts` (`listStudents` /
+> `getStudentDetail`) derives the list by grouping
+> `enrollmentRepository.listByTeacher` (TASK-1001) by `studentId`, joining
+> `users` for name/email — there's still no `students` collection, per
+> `features/students.md`. Added `userRepository.findByIds` and
+> `courseRepository.findByIds` (chunked `in` queries) for the joins.
+> `getStudentDetail` scopes to the requesting teacher's own enrollments
+> and throws `NotFoundError` for a student with none, so a teacher can't
+> probe another teacher's students by uid.
+>
+> API: `GET /api/teacher/students` (list, added alongside the existing
+> `POST` from TASK-604/1000) and `GET /api/teacher/students/[studentId]`
+> (detail). UI: `components/teacher/student-list.tsx` (table on the
+> existing students page, above `StudentManager`) and
+> `components/teacher/student-detail-view.tsx` + a new
+> `teacher/students/[studentId]/page.tsx`, mirroring the course detail
+> page's `notFound()`-on-`NotFoundError` pattern (TASK-903). Both list and
+> detail are read-only server components — no interactive actions in this
+> task's scope.
+>
+> Tests: `studentService.test.ts` (grouping, joins, uid fallback,
+> teacher-scoping, role gates) and route tests for both new endpoints —
+> full suite green (186/186), `next build` succeeds, `check-translations`
+> / `check-rtl-ltr` / `check-contrast` all pass. i18n added under
+> `teacherDashboard.students.list` and `.detail` in both locales. No
+> component-level UI tests, same as every other teacher-dashboard
+> component in this codebase (Phase 16, Not Started).

@@ -2,13 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requireSession = vi.fn();
 const createStudentByTeacher = vi.fn();
+const listStudents = vi.fn();
 
 vi.mock("@/lib/auth/session", () => ({ requireSession }));
 vi.mock("@/lib/server/services/accountService", () => ({
   accountService: { createStudentByTeacher },
 }));
+vi.mock("@/lib/server/services/studentService", () => ({
+  studentService: { listStudents },
+}));
 
-const { POST } = await import("./route");
+const { GET, POST } = await import("./route");
 const { ForbiddenError } = await import("@/lib/errors");
 
 function makeRequest(body: unknown) {
@@ -17,6 +21,33 @@ function makeRequest(body: unknown) {
     body: JSON.stringify(body),
   });
 }
+
+describe("GET /api/teacher/students", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns the teacher's derived student list", async () => {
+    const session = { uid: "teacher-1", email: "t@b.com", role: "teacher" };
+    requireSession.mockResolvedValue(session);
+    listStudents.mockResolvedValue([{ uid: "student-1", displayName: "Amira", courseCount: 2 }]);
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      students: [{ uid: "student-1", displayName: "Amira", courseCount: 2 }],
+    });
+    expect(listStudents).toHaveBeenCalledWith(session);
+  });
+
+  it("maps role errors", async () => {
+    requireSession.mockResolvedValue({ uid: "student-1", email: "s@b.com", role: "student" });
+    listStudents.mockRejectedValue(new ForbiddenError());
+
+    const res = await GET();
+
+    expect(res.status).toBe(403);
+  });
+});
 
 describe("POST /api/teacher/students", () => {
   beforeEach(() => vi.clearAllMocks());
