@@ -62,7 +62,7 @@ Route Handler / Server Action
 - **Route Handlers / Server Actions**: parse & validate input (Zod), call a
   service, map errors to translated, safe responses. No direct Firestore
   calls here.
-- **Services**: business rules, tenant/ownership checks, orchestration
+- **Services**: business rules, ownership checks, orchestration
   across repositories. No Firestore SDK calls directly — always through a
   repository.
 - **Repositories**: the *only* place allowed to call the Firestore/Admin
@@ -80,7 +80,7 @@ Firestore access centralized and auditable.
   is required (forms, dialogs, canvas-like editors).
 - Data fetching for authenticated pages happens in Server Components via
   services (using Admin SDK on the server) — no client-side Firestore SDK
-  usage for tenant-sensitive data.
+  usage for owner-sensitive data.
 - Client-side Firebase SDK is used only for: sign-in/sign-up forms, auth
   state listening, and reading explicitly public data if ever needed.
 
@@ -93,7 +93,7 @@ Firestore access centralized and auditable.
 - `app/api/**/route.ts` — thin HTTP layer calling services.
 - `lib/validation/*` — Zod schemas shared between client forms and server
   validation.
-- `lib/auth/*` — session verification, role/tenant guards usable in
+- `lib/auth/*` — session verification, role guards usable in
   middleware, route handlers, and server components.
 
 ## Data flow (example: create course)

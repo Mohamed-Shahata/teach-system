@@ -71,7 +71,7 @@ i18n/
   config.ts
   request.ts           # next-intl request config
 
-middleware.ts
+proxy.ts               # formerly middleware.ts (renamed in Next.js 16)
 
 docs/                   # this documentation tree
 

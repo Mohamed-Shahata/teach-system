@@ -22,11 +22,11 @@ Status: Not Started | In Progress | Blocked | Done
 | Phase | Name | Status |
 |---|---|---|
 | 1 | Project Foundation | Done |
-| 2 | Design System | In Progress |
-| 3 | Internationalization | Not Started |
-| 4 | Authentication | Not Started |
+| 2 | Design System | Done |
+| 3 | Internationalization | Done |
+| 4 | Authentication | Done |
 | 5 | Authorization | Not Started |
-| 6 | Multi-Tenant Architecture | Not Started |
+| 6 | Ownership & Access Rules (Single Teacher) | Not Started |
 | 7 | Teacher Dashboard | Not Started |
 | 8 | Course Management | Not Started |
 | 9 | Lesson Management | Not Started |

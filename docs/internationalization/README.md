@@ -26,6 +26,10 @@ messages/
 - `middleware.ts` (using `next-intl`'s middleware, composed with the auth
   middleware) resolves the locale from the URL, falling back to
   `Accept-Language` only on the root `/` redirect.
+
+> Implementation note: as of Next.js 16 the file is named `proxy.ts`
+> (the `middleware.ts` convention is deprecated in favor of `proxy.ts`,
+> same API). This project uses `proxy.ts`.
 - A logged-in user's `users/{uid}.locale` preference is used to redirect
   `/` → `/{locale}` on first visit; afterwards the URL is authoritative.
 

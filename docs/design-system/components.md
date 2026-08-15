@@ -1,5 +1,8 @@
 # Component Catalogue
 
+> Status: all primitives below are implemented in `components/ui/*`
+> (TASK-204, Phase 2). Import from `components/ui` (barrel export).
+
 Shared primitives, built once in `components/ui/*`, reused across all
 features. Each entry lists the component, its states, and its i18n/RTL
 notes. This is the checklist consulted before creating any new UI element

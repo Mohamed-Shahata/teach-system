@@ -1,59 +1,56 @@
-# Multi-Tenant Architecture
+# Ownership Model (Single Teacher)
 
-## Tenant model
+> Note: this project was originally scoped as a multi-tenant platform
+> (one workspace per teacher). It has been re-scoped as a **private
+> system for a single teacher**. There is no tenant concept and no
+> cross-teacher isolation requirement — this doc replaces the old
+> "Multi-Tenant Architecture" doc.
 
-Each **teacher** is a tenant. The tenant identifier is the teacher's own
-Firebase Auth `uid`, exposed in application code as `teacherId`.
+## Owner model
+
+The whole system belongs to one teacher (the owner). The owner's
+Firebase Auth `uid` is still stored as `teacherId` on owned documents,
+but only as a simple ownership/audit field, not as a security
+boundary between multiple teachers — there is only one.
 
 ```text
-teacherId = Firebase Auth uid of the teacher user
+teacherId = Firebase Auth uid of the single owner
 ```
 
-We use `teacherId` rather than a separate `tenantId` because in this MVP
-a tenant *is* a teacher 1:1. If institutions/organizations are introduced
-later, a `tenantId` field can be added alongside `teacherId` without
-breaking existing documents (see `decisions/0003-tenant-id-strategy.md`).
+## Rule: teacher-owned documents still carry `teacherId`
 
-## Rule: every teacher-owned document carries `teacherId`
+Collections such as `courses`, `lessons`, `students` link records,
+`enrollments`, `quizzes`, `questions`, `files`, and `teacherSettings`
+keep a top-level `teacherId` field, set once at creation. This is kept
+for consistency, auditing, and to avoid a larger rewrite of the data
+model — not because multiple teachers share the system.
 
-Collections owned by a tenant (`courses`, `lessons`, `students` link
-records, `enrollments`, `quizzes`, `questions`, `files`, `teacherSettings`)
-MUST include a top-level `teacherId` field, set once at creation and never
-editable by the client.
+## Enforcement layers
 
-## Enforcement layers (defense in depth)
+1. **Firestore Security Rules** — restrict all data access to the
+   single authenticated owner account (`request.auth.uid ==
+   OWNER_UID` or equivalently `resource.data.teacherId ==
+   request.auth.uid`, since there is only one teacher).
+2. **Service layer** — services still take the verified session's
+   `teacherId`/uid, mainly to keep the code shape stable and make a
+   future multi-teacher expansion easier, not because isolation
+   between teachers is currently a requirement.
+3. **Repository layer** — unchanged shape; queries can still be
+   scoped by `teacherId`, but there is no "other tenant" to guard
+   against.
 
-1. **Firestore Security Rules** (`firebase/security-rules.md`) — the real
-   boundary. Every read/write rule checks
-   `resource.data.teacherId == request.auth.uid` (or, for creates,
-   `request.resource.data.teacherId == request.auth.uid`).
-2. **Service layer** — every service method that reads/writes a
-   tenant-owned resource requires an explicit `teacherId` argument derived
-   from the verified session, and repositories always filter/scope queries
-   by it. Server code never trusts a `teacherId` coming from the request
-   body.
-3. **Repository layer** — query builders always require `teacherId` as a
-   parameter for list/get operations on tenant-owned collections; there is
-   no "get by id only" method exposed for these collections.
+## Access patterns
 
-Frontend filtering is explicitly **not** considered a security boundary —
-it only improves UX.
-
-## Cross-tenant access patterns (explicitly allowed)
-
-- **Students** may read course/lesson content only for courses they are
-  enrolled in (checked via the `enrollments` collection, not by trusting a
-  client flag).
+- **Students** may read course/lesson content only for courses they
+  are enrolled in (checked via the `enrollments` collection).
 - **Public pages** (`/teachers/[slug]`, `/courses/[slug]`) expose a
-  deliberately limited, explicitly public subset of a teacher's data
-  (published courses only), served via a dedicated public repository
-  method that never returns unpublished or student data.
+  deliberately limited, public subset of the teacher's data
+  (published courses only).
 
-## Adding a new teacher-owned collection (checklist)
+## Adding a new collection (checklist)
 
-1. Add `teacherId: string` to the document shape.
-2. Add Security Rules requiring `request.auth.uid == resource.data.teacherId`.
-3. Add repository methods scoped by `teacherId`.
-4. Add a Firestore composite index if querying by `teacherId` + another
-   field.
+1. Add `teacherId: string` to the document shape (ownership/audit).
+2. Add Security Rules requiring `request.auth.uid == OWNER_UID`.
+3. Add repository methods.
+4. Add a Firestore composite index if needed.
 5. Document the collection in `database/collections.md`.

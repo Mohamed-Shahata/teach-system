@@ -13,10 +13,10 @@
 | Context | SDK | Purpose |
 |---|---|---|
 | Client components (auth forms) | Firebase Client SDK | sign-in/up, `onAuthStateChanged`, password reset |
-| Middleware, Route Handlers, Server Components | Firebase Admin SDK | session verification, all Firestore reads/writes for tenant data |
+| Middleware, Route Handlers, Server Components | Firebase Admin SDK | session verification, all Firestore reads/writes for owner data |
 
 The client SDK is **not** used to read/write Firestore directly for
-tenant-owned collections in the MVP — all such access goes through the
+owner-owned collections in the MVP — all such access goes through the
 server (Admin SDK), which keeps Security Rules as a pure defense-in-depth
 layer rather than the primary access path, and avoids exposing Firestore
 query shape/business logic to the client bundle.

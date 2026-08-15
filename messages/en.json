@@ -1,0 +1,94 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading",
+    "comingSoon": "Coming soon"
+  },
+  "layout": {
+    "title": "Teacher's Private Platform",
+    "description": "A private educational platform: courses, lessons, students, enrollments, quizzes, and files."
+  },
+  "locale": {
+    "en": "English",
+    "ar": "Arabic",
+    "switchLabel": "Language"
+  },
+  "theme": {
+    "toggleLabel": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "validation": {
+    "required": "This field is required"
+  },
+  "auth": {
+    "register": {
+      "title": "Create an account",
+      "subtitle": "Sign up as a teacher or a student",
+      "fields": {
+        "displayName": "Full name",
+        "email": "Email",
+        "password": "Password",
+        "confirmPassword": "Confirm password",
+        "role": "I am a"
+      },
+      "roles": {
+        "teacher": "Teacher",
+        "student": "Student"
+      },
+      "submit": "Create account",
+      "errors": {
+        "emailInUse": "An account with this email already exists.",
+        "passwordMismatch": "Passwords do not match."
+      }
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Sign in to your account",
+      "fields": {
+        "email": "Email",
+        "password": "Password"
+      },
+      "submit": "Sign in",
+      "forgotPassword": "Forgot your password?",
+      "errors": {
+        "invalidCredentials": "Incorrect email or password."
+      }
+    },
+    "logout": {
+      "label": "Sign out"
+    },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a reset link",
+      "fields": {
+        "email": "Email"
+      },
+      "submit": "Send reset link",
+      "sentMessage": "If an account exists for that email, a reset link is on its way.",
+      "errors": {
+        "invalidEmail": "Enter a valid email address."
+      }
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "subtitle": "Enter a new password for your account",
+      "fields": {
+        "password": "New password",
+        "confirmPassword": "Confirm new password"
+      },
+      "submit": "Save new password",
+      "successMessage": "Your password has been updated.",
+      "invalidLink": "This reset link is invalid or has expired. Please request a new one."
+    }
+  },
+  "errors": {
+    "notFound": "Not found.",
+    "forbidden": "You don't have permission to do that.",
+    "validation": "Please check the information you entered.",
+    "conflict": "This conflicts with an existing record.",
+    "unauthorized": "Please sign in again.",
+    "unexpected": "Something went wrong. Please try again."
+  }
+}

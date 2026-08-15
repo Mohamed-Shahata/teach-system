@@ -46,7 +46,7 @@ export function assertRole(user: SessionUser, role: Role): void
 | Upload file to a course | ✅ | ✅ | ❌ | ❌ | ❌ |
 | View public teacher page | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-## Never trust client-supplied role/tenant data
+## Never trust client-supplied role/owner data
 
 Any request body field named `role`, `teacherId`, `isAdmin`, etc. is
 ignored for authorization decisions; the server always derives these from

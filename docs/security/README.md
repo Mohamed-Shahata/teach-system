@@ -14,7 +14,7 @@ above all other concerns per the project's engineering principles.
 | Secrets leaking to client bundle | `CLOUDINARY_API_SECRET`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_CLIENT_EMAIL` are never in `NEXT_PUBLIC_*` vars; verified by `scripts/check-env-exposure.ts` (Phase 15 task) |
 | Session hijacking | `HttpOnly`, `Secure`, `SameSite=Lax` session cookie; short expiry + revocation on logout/password change |
 | Injection via unvalidated input | All external input validated with Zod server-side, regardless of client-side validation |
-| Enumeration of other users' data via IDs | List/get methods for tenant-owned collections always additionally filter by `teacherId`/`studentId` — a guessed document ID alone is insufficient |
+| Enumeration of other users' data via IDs | List/get methods for owner-owned collections always additionally filter by `teacherId`/`studentId` — a guessed document ID alone is insufficient |
 
 ## Firestore Security Rules
 

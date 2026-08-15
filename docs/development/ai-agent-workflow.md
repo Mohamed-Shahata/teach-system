@@ -13,7 +13,7 @@ sequence **before** writing code:
    criteria).
 6. Identify affected modules.
 7. Check security implications (`security/README.md`).
-8. Check tenant isolation (`architecture/multi-tenancy.md`).
+8. Check owner-only access control (`architecture/multi-tenancy.md`).
 9. Check i18n requirements (`internationalization/README.md`).
 10. Check RTL/LTR implications (`internationalization/rtl-ltr.md`).
 11. Check light/dark theme implications (`design-system/theming.md`).
@@ -43,7 +43,7 @@ Test
     ↓
 Verify security
     ↓
-Verify tenant isolation
+Verify owner-only access control
     ↓
 Verify i18n
     ↓

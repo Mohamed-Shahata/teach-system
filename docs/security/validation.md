@@ -27,7 +27,7 @@ export type CreateCourseInput = z.infer<typeof createCourseSchema>;
 ## What is always server-validated regardless of client state
 
 - Form data, query params, URL params, request bodies.
-- Role and tenant identifiers — never read from the body; always derived
+- Role and role identifiers — never read from the body; always derived
   from the verified session (see `authorization/README.md`).
 - File metadata after upload (size/type re-checked against
   Cloudinary's returned data, not just the client's pre-upload claim).

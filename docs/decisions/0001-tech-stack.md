@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-Need a stack that supports a bilingual, multi-tenant educational SaaS,
+Need a stack that supports a bilingual, private educational platform,
 deployable on Vercel, buildable quickly by a solo/small team without
 managing custom backend infrastructure.
 

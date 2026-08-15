@@ -1,21 +1,22 @@
-# ADR 0003: teacherId as Tenant Identifier
+# ADR 0003: teacherId as Owner Identifier (Superseded multi-tenant framing)
 
 ## Status
-Accepted
+Accepted (re-scoped: single teacher, not a multi-teacher platform)
 
 ## Context
-Need a tenant identifier strategy for a multi-tenant SaaS where, in the
-MVP, a tenant is always exactly one teacher.
+Originally written for a platform where each teacher had their own
+tenant/workspace. The project has since been re-scoped as a private system for
+a single teacher, so there is no tenant concept to strategize about —
+but the `teacherId` field convention is kept.
 
 ## Decision
-Use the teacher's Firebase Auth `uid` directly as `teacherId` on every
-tenant-owned document, rather than introducing a separate `tenantId`
-concept up front.
+Keep the owner's Firebase Auth `uid` stored as `teacherId` on owned
+documents, as a simple ownership/audit field, rather than reworking
+the data model now that multi-tenancy isn't a requirement.
 
 ## Consequences
-- Simpler MVP: no extra indirection/collection for "organizations".
-- Future-proofed: if institutions/multi-teacher organizations are added,
-  a `tenantId` field can be introduced alongside `teacherId` (an
-  organization owning many teachers) without migrating existing
-  `teacherId`-scoped documents or rules — `teacherId` keeps meaning "who
-  created/owns this specific resource" even inside an org.
+- Simpler system: no "tenant"/"organization" concept at all.
+- `teacherId` still marks who owns a resource, useful for audit logs
+  and for keeping repository/service code shapes unchanged.
+- If this ever needs to support more than one teacher in the future,
+  the existing `teacherId` field can be reused as-is.

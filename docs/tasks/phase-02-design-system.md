@@ -25,7 +25,7 @@
 - Dependencies: TASK-102
 - Affected modules: `app/[locale]/layout.tsx`, `app/globals.css`
 - Acceptance criteria: matches `design-system/typography.md`
-- Status: Not Started
+- Status: Done
 
 ## TASK-204: Build core UI primitives
 - Description: Implement the components listed in `design-system/components.md` (Button, Input, Select, Checkbox, Radio, Switch, Dialog, Dropdown, Tooltip, Card, Badge, Alert, Table, Pagination, Tabs, Breadcrumb, Skeleton, Empty/Loading/Error states).
@@ -35,4 +35,4 @@
 - Acceptance criteria: each primitive passes the checklist in `design-system/README.md` (tokens, both themes, both directions, responsive, AA contrast, visible focus).
 - Testing requirements: Storybook or equivalent visual check per component; RTL/LTR + light/dark snapshot each
 - Documentation requirements: fill in `docs/components/README.md` entries as built
-- Status: Not Started
+- Status: Done

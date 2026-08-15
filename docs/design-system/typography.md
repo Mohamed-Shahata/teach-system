@@ -11,6 +11,14 @@ Both loaded via `next/font` (self-hosted, no external request at
 runtime), swapped via a CSS variable (`--font-sans`) set per-locale in the
 root layout — components never hardcode a font family.
 
+Implementation note (TASK-203): fonts are self-hosted via the
+`@fontsource-variable/inter` and `@fontsource/ibm-plex-sans-arabic` npm
+packages (imported in `app/[locale]/layout.tsx`) rather than
+`next/font/google`, since the latter fetches from Google's font CDN at
+build time — unavailable in network-restricted build environments. The
+result is equivalent: fonts are bundled at build time and served from
+`/_next/static`, with zero runtime requests to any font CDN.
+
 ## Scale (Tailwind theme tokens)
 
 | Token | Size | Usage |

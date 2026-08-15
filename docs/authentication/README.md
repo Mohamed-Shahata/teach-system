@@ -67,7 +67,9 @@ sequenceDiagram
 
 ## Protected routes
 
-`middleware.ts` runs on all `app/[locale]/(protected)/**` routes:
+`proxy.ts` (the `middleware.ts` file convention is deprecated as of
+Next.js 16 — same API, new name/export) runs on all
+`app/[locale]/(protected)/**` routes:
 
 1. Reads the session cookie.
 2. Verifies it via Admin SDK (`verifySessionCookie`, checking revocation).

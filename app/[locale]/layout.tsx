@@ -1,35 +1,60 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { parseTheme, THEME_COOKIE_NAME } from "@/lib/theme";
+import { isSupportedLocale, isRtl, locales } from "@/i18n/config";
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource/ibm-plex-sans-arabic/400.css";
+import "@fontsource/ibm-plex-sans-arabic/500.css";
+import "@fontsource/ibm-plex-sans-arabic/600.css";
+import "@fontsource/ibm-plex-sans-arabic/700.css";
 import "./globals.css";
 
-// TODO(TASK-2xx - Design System): swap for self-hosted Inter / IBM Plex
-// Sans Arabic via next/font/local, per `design-system/typography.md`.
-// Plain system stack for now — out of scope for the foundation skeleton.
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
 
-export const metadata: Metadata = {
-  title: "Teacher SaaS Platform",
-  description:
-    "Multi-tenant educational platform for teachers: courses, lessons, students, enrollments, quizzes, and files.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("layout");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
-// TODO(TASK-301 - Internationalization): read `params.locale`, validate it
-// against the supported locale list, and set `lang`/`dir` accordingly via
-// next-intl. Hardcoded to `en`/`ltr` until that phase.
-export default async function LocaleLayout({ children }: LayoutProps<"/[locale]">) {
+export default async function LocaleLayout({
+  children,
+  params,
+}: LayoutProps<"/[locale]">) {
+  const { locale } = await params;
+
+  if (!isSupportedLocale(locale)) {
+    notFound();
+  }
+
+  // Enables static rendering for this locale (next-intl requirement).
+  setRequestLocale(locale);
+
+  const messages = await getMessages();
+  const rtl = isRtl(locale);
+
   const cookieStore = await cookies();
   const initialTheme = parseTheme(cookieStore.get(THEME_COOKIE_NAME)?.value);
 
   return (
     <html
-      lang="en"
-      dir="ltr"
+      lang={locale}
+      dir={rtl ? "rtl" : "ltr"}
       data-theme={initialTheme ?? undefined}
       className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">
-        <ThemeProvider initialTheme={initialTheme}>{children}</ThemeProvider>
+        <NextIntlClientProvider messages={messages}>
+          <ThemeProvider initialTheme={initialTheme}>{children}</ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

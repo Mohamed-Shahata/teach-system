@@ -35,7 +35,7 @@ which is server-write-only).
 
 ## `teacherProfiles/{teacherId}`
 
-Purpose: public + private profile data for a teacher (the tenant record).
+Purpose: public + private profile data for a teacher (the owner record).
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
@@ -56,7 +56,7 @@ Relationships: 1:1 with `users/{teacherId}` where `role == "teacher"`.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| teacherId | string | yes | tenant owner |
+| teacherId | string | yes | data owner |
 | slug | string | yes | unique per teacher |
 | title | map `{ en, ar }` | yes | localized |
 | description | map `{ en, ar }` | no | localized |

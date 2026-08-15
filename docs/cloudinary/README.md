@@ -35,7 +35,7 @@ The signing route (`/api/uploads/sign`) is the enforcement point for
 ```
 
 Folder paths always begin with the owning `teacherId`, which keeps
-tenant media naturally isolated and makes bulk cleanup (e.g. on account
+owner media naturally isolated and makes bulk cleanup (e.g. on account
 deletion) a single folder-delete API call.
 
 ## Image optimization

@@ -16,9 +16,9 @@
 
 | Environment | Branch | Firebase project | Notes |
 |---|---|---|---|
-| Production | `main` | `teacher-saas-prod` | |
-| Preview | any PR branch | `teacher-saas-staging` | Vercel preview deployments use a shared staging Firebase project |
-| Local development | — | `teacher-saas-dev` (or emulators) | Firebase Local Emulator Suite recommended for Firestore + Auth |
+| Production | `main` | `teacher-app-prod` | |
+| Preview | any PR branch | `teacher-app-staging` | Vercel preview deployments use a shared staging Firebase project |
+| Local development | — | `teacher-app-dev` (or emulators) | Firebase Local Emulator Suite recommended for Firestore + Auth |
 
 ## Build
 

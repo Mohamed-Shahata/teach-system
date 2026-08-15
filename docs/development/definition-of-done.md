@@ -6,7 +6,7 @@ A feature is complete only when **all** of the following are true:
 - [ ] TypeScript passes with no errors (`tsc --noEmit`)
 - [ ] Input validation exists (Zod, server-side, per `security/validation.md`)
 - [ ] Authorization checks exist (role + ownership, per `authorization/README.md`)
-- [ ] Tenant isolation is verified (`architecture/multi-tenancy.md`)
+- [ ] owner-only access control is verified (`architecture/multi-tenancy.md`)
 - [ ] Error handling follows `security/error-handling.md`
 - [ ] All user-facing text uses translations (no hardcoded strings)
 - [ ] English and Arabic translations both exist and are complete

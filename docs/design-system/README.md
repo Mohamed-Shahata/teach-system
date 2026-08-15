@@ -3,7 +3,7 @@
 ## Principles
 
 Education-appropriate: trustworthy, calm, professional, focused. Avoid
-generic "startup SaaS" gradients and neon accents. Should feel credible
+generic "startup private platform" gradients and neon accents. Should feel credible
 enough for a teacher to present to students and parents.
 
 ## Contents

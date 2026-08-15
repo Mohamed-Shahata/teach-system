@@ -86,3 +86,30 @@ body {
   color: var(--color-foreground);
 }
 
+/*
+ * Fonts per docs/design-system/typography.md.
+ * Self-hosted via @fontsource (npm packages bundled at build time — no
+ * runtime request to any font CDN), imported in app/[locale]/layout.tsx.
+ * `--font-sans` switches per locale via `:lang()`, driven by the `lang`
+ * attribute the layout sets from the `[locale]` segment.
+ */
+:root {
+  --font-sans-en: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans-ar: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-sans-en);
+}
+
+:lang(ar) {
+  --font-sans: var(--font-sans-ar);
+  /* Larger line-height for Arabic diacritics/descenders, vs 1.5 default. */
+  line-height: 1.65;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
