@@ -53,6 +53,33 @@ interface ProvisionAccountParams {
   createdBy: { uid: string; role: "admin" | "teacher" };
 }
 
+function slugify(value: string): string {
+  const slug = value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || "teacher";
+}
+
+/**
+ * `teacherProfiles.slug` is unique across all teachers (docs/database/
+ * collections.md), unlike a course's per-teacher slug — so a collision
+ * appends `-2`, `-3`, ... instead of rejecting, since there is no
+ * "current teacher's own slugs" the caller could pick a different one
+ * from; two teachers can share a `displayName`.
+ */
+async function uniqueTeacherSlug(displayName: string): Promise<string> {
+  const base = slugify(displayName);
+  let candidate = base;
+  let suffix = 2;
+  while (await teacherProfileRepository.findBySlug(candidate)) {
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
+}
+
 function isEmailAlreadyExists(err: unknown): boolean {
   return (
     typeof err === "object" &&
@@ -107,6 +134,7 @@ async function provisionAccount(params: ProvisionAccountParams): Promise<Created
     if (params.role === "teacher") {
       await teacherProfileRepository.create({
         teacherId: uid,
+        slug: await uniqueTeacherSlug(params.displayName),
         displayName: params.displayName,
         isPublic: false,
         stats: { ...EMPTY_TEACHER_PROFILE_STATS },

@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getDoc = vi.fn();
 const doc = vi.fn(() => ({ get: getDoc }));
-const collection = vi.fn(() => ({ doc }));
+const getQuery = vi.fn();
+const limit = vi.fn(() => ({ get: getQuery }));
+const where = vi.fn(() => ({ limit }));
+const collection = vi.fn(() => ({ doc, where }));
 
 vi.mock("@/lib/server/firebaseAdmin", () => ({
   adminDb: { collection },
@@ -60,5 +63,38 @@ describe("teacherProfileRepository.findStatsByTeacherId", () => {
     await expect(teacherProfileRepository.findStatsByTeacherId("teacher-1")).resolves.toEqual(
       EMPTY_TEACHER_PROFILE_STATS,
     );
+  });
+});
+
+describe("teacherProfileRepository.findBySlug", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("looks up teacherProfiles by slug (global, not teacher-scoped)", async () => {
+    getQuery.mockResolvedValue({
+      docs: [
+        {
+          id: "teacher-1",
+          data: () => ({ displayName: "Mona", slug: "mona", isPublic: true, createdAt: 100 }),
+        },
+      ],
+    });
+
+    await expect(teacherProfileRepository.findBySlug("mona")).resolves.toEqual({
+      teacherId: "teacher-1",
+      slug: "mona",
+      displayName: "Mona",
+      isPublic: true,
+      stats: EMPTY_TEACHER_PROFILE_STATS,
+      createdAt: 100,
+    });
+    expect(where).toHaveBeenCalledWith("slug", "==", "mona");
+  });
+
+  it("returns null when no profile matches the slug", async () => {
+    getQuery.mockResolvedValue({ docs: [] });
+
+    await expect(teacherProfileRepository.findBySlug("missing")).resolves.toBeNull();
   });
 });

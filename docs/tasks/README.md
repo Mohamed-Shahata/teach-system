@@ -34,7 +34,7 @@ Status: Not Started | In Progress | Blocked | Done
 | 11 | Enrollment | In Progress |
 | 12 | Quiz / Exam System | Done |
 | 13 | File Management | Done |
-| 14 | Public Pages | Not Started |
+| 14 | Public Pages | Done |
 | 15 | Security | Not Started |
 | 16 | Testing | Not Started |
 | 17 | Deployment | Not Started |

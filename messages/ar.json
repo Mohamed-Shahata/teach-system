@@ -535,5 +535,18 @@
         }
       }
     }
+  },
+  "publicPages": {
+    "teacherProfile": {
+      "coursesHeading": "الكورسات",
+      "emptyCourses": "لسه المعلم مانشرش أي كورسات.",
+      "notFoundTitle": "المعلم غير موجود",
+      "notFoundDescription": "بروفايل المعلم ده مش موجود أو مش متاح للعامة."
+    },
+    "coursePage": {
+      "byTeacher": "بواسطة {name}",
+      "notFoundTitle": "الكورس غير موجود",
+      "notFoundDescription": "الكورس ده مش موجود أو لسه مانشرش."
+    }
   }
 }

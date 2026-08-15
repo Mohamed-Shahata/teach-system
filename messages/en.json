@@ -535,5 +535,18 @@
         }
       }
     }
+  },
+  "publicPages": {
+    "teacherProfile": {
+      "coursesHeading": "Courses",
+      "emptyCourses": "This teacher hasn't published any courses yet.",
+      "notFoundTitle": "Teacher not found",
+      "notFoundDescription": "This teacher profile doesn't exist or isn't public."
+    },
+    "coursePage": {
+      "byTeacher": "By {name}",
+      "notFoundTitle": "Course not found",
+      "notFoundDescription": "This course doesn't exist or isn't published."
+    }
   }
 }

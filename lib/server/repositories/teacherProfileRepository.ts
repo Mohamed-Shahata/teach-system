@@ -4,7 +4,10 @@ import { adminDb } from "@/lib/server/firebaseAdmin";
 
 export interface TeacherProfileDoc {
   teacherId: string;
+  slug: string;
   displayName: string;
+  bio?: string;
+  avatarUrl?: string;
   isPublic: boolean;
   stats?: TeacherProfileStats;
   createdAt: number;
@@ -55,6 +58,24 @@ export const teacherProfileRepository = {
   async findStatsByTeacherId(teacherId: string): Promise<TeacherProfileStats> {
     const snap = await adminDb.collection(COLLECTION).doc(teacherId).get();
     return normalizeStats(snap.exists ? snap.data()?.stats : null);
+  },
+
+  /** `slug` is unique across all teachers (docs/database/collections.md), so this is a global lookup, not teacher-scoped. */
+  async findBySlug(slug: string): Promise<TeacherProfileDoc | null> {
+    const snap = await adminDb.collection(COLLECTION).where("slug", "==", slug).limit(1).get();
+    const first = snap.docs[0];
+    if (!first) return null;
+    const data = first.data();
+    return {
+      teacherId: first.id,
+      slug: String(data.slug),
+      displayName: String(data.displayName),
+      ...(data.bio ? { bio: String(data.bio) } : {}),
+      ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
+      isPublic: Boolean(data.isPublic),
+      stats: normalizeStats(data.stats),
+      createdAt: Number(data.createdAt),
+    };
   },
 
   async incrementStats(teacherId: string, patch: Partial<TeacherProfileStats>): Promise<void> {

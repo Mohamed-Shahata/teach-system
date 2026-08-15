@@ -5,6 +5,7 @@ const deleteUser = vi.fn();
 const generatePasswordResetLink = vi.fn();
 const createUserDoc = vi.fn();
 const createTeacherProfile = vi.fn();
+const findTeacherProfileBySlug = vi.fn();
 
 vi.mock("@/lib/server/firebaseAdmin", () => ({
   adminAuth: { createUser, deleteUser, generatePasswordResetLink },
@@ -23,7 +24,7 @@ vi.mock("@/lib/server/repositories/teacherProfileRepository", () => ({
     totalLessons: 0,
     totalEnrollments: 0,
   },
-  teacherProfileRepository: { create: createTeacherProfile },
+  teacherProfileRepository: { create: createTeacherProfile, findBySlug: findTeacherProfileBySlug },
 }));
 
 const { accountService } = await import("./accountService");
@@ -40,6 +41,7 @@ describe("accountService.createAccountByAdmin", () => {
     deleteUser.mockResolvedValue(undefined);
     createUserDoc.mockResolvedValue(undefined);
     createTeacherProfile.mockResolvedValue(undefined);
+    findTeacherProfileBySlug.mockResolvedValue(null);
     generatePasswordResetLink.mockResolvedValue("https://example.com/reset?oobCode=abc");
   });
 
@@ -63,7 +65,7 @@ describe("accountService.createAccountByAdmin", () => {
       }),
     );
     expect(createTeacherProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ teacherId: "new-uid", displayName: "Mona" }),
+      expect.objectContaining({ teacherId: "new-uid", displayName: "Mona", slug: "mona" }),
     );
     expect(result).toEqual({
       uid: "new-uid",
@@ -72,6 +74,21 @@ describe("accountService.createAccountByAdmin", () => {
       role: "teacher",
       resetLink: "https://example.com/reset?oobCode=abc",
     });
+  });
+
+  it("appends a numeric suffix when the slugified display name is already taken", async () => {
+    const session = makeSession("admin", "admin-1");
+    findTeacherProfileBySlug.mockImplementation(async (slug: string) =>
+      slug === "mona" ? { teacherId: "someone-else", slug: "mona" } : null,
+    );
+
+    await accountService.createAccountByAdmin(session, {
+      role: "teacher",
+      email: "mona2@example.com",
+      displayName: "Mona",
+    });
+
+    expect(createTeacherProfile).toHaveBeenCalledWith(expect.objectContaining({ slug: "mona-2" }));
   });
 
   it("creates a student account without a teacherProfile, with createdBy = admin", async () => {
