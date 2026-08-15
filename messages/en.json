@@ -152,6 +152,140 @@
         "save": "Could not save this schedule slot.",
         "delete": "Could not delete this schedule slot."
       }
+    },
+    "courses": {
+      "title": "Courses",
+      "subtitle": "Create and manage the courses you teach.",
+      "newCourse": "New course",
+      "emptyTitle": "No courses yet",
+      "emptyDescription": "Create your first course to start building lessons and enrolling students.",
+      "createTitle": "Create course",
+      "editTitle": "Edit course",
+      "formSubtitle": "Course details are shown to students in both languages.",
+      "columns": {
+        "title": "Title",
+        "subject": "Subject",
+        "stage": "Stage",
+        "status": "Status",
+        "enrollment": "Enrollment",
+        "actions": "Actions"
+      },
+      "status": {
+        "draft": "Draft",
+        "published": "Published"
+      },
+      "enrollmentType": {
+        "free": "Free",
+        "paid": "Paid"
+      },
+      "fields": {
+        "titleEn": "Title (English)",
+        "titleAr": "Title (Arabic)",
+        "descriptionEn": "Description (English)",
+        "descriptionAr": "Description (Arabic)",
+        "subjectId": "Subject ID",
+        "stageId": "Stage ID",
+        "thumbnailUrl": "Thumbnail URL",
+        "enrollmentType": "Enrollment type",
+        "price": "Price",
+        "currency": "Currency",
+        "uploadThumbnail": "Upload image",
+        "replaceThumbnail": "Replace image",
+        "removeThumbnail": "Remove",
+        "noThumbnail": "No image"
+      },
+      "hints": {
+        "thumbnailUrl": "JPG or PNG, up to 5 MB."
+      },
+      "create": "Create course",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "delete": "Delete",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "deleteConfirmTitle": "Delete this course?",
+      "deleteConfirmDescription": "This removes the course and its lesson order. This can't be undone.",
+      "confirmDelete": "Delete course",
+      "errors": {
+        "load": "Could not load your courses.",
+        "save": "Could not save this course.",
+        "delete": "Could not delete this course.",
+        "publish": "Could not update the publish status.",
+        "slugConflict": "You already have a course with a similar title.",
+        "thumbnailType": "Please choose an image file.",
+        "thumbnailSize": "Image must be 5 MB or smaller.",
+        "thumbnailUpload": "Could not upload the image. Please try again."
+      },
+      "manageLessons": "Manage lessons"
+    },
+    "lessons": {
+      "title": "Lessons",
+      "subtitle": "Add, edit, and reorder the lessons in this course.",
+      "newLesson": "New lesson",
+      "emptyTitle": "No lessons yet",
+      "emptyDescription": "Add your first lesson to start building this course.",
+      "createTitle": "Create lesson",
+      "editTitle": "Edit lesson",
+      "formSubtitle": "Lesson details are shown to students in both languages.",
+      "dragHandle": "Drag to reorder",
+      "fields": {
+        "titleEn": "Title (English)",
+        "titleAr": "Title (Arabic)",
+        "descriptionEn": "Description (English)",
+        "descriptionAr": "Description (Arabic)",
+        "videoProvider": "Video provider",
+        "videoProviderPlaceholder": "No video",
+        "videoUrl": "Video URL",
+        "videoPublicId": "Video public ID"
+      },
+      "videoProvider": {
+        "youtube": "YouTube",
+        "cloudinary": "Cloudinary",
+        "external": "External link"
+      },
+      "hints": {
+        "video": "Optional. Paste a YouTube or external video link, or a Cloudinary public ID for uploaded video."
+      },
+      "create": "Create lesson",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete this lesson?",
+      "deleteConfirmDescription": "This removes the lesson from the course. This can't be undone.",
+      "confirmDelete": "Delete lesson",
+      "errors": {
+        "load": "Could not load lessons.",
+        "save": "Could not save this lesson.",
+        "delete": "Could not delete this lesson.",
+        "reorder": "Could not save the new order."
+      },
+      "preview": "Preview",
+      "hidePreview": "Hide preview"
+    },
+    "students": {
+      "title": "Students",
+      "subtitle": "Create student accounts for your classes.",
+      "createTitle": "Add a student",
+      "formSubtitle": "The student gets a one-time link to set their own password — nothing is emailed automatically yet.",
+      "fields": {
+        "displayName": "Full name",
+        "email": "Email",
+        "stageId": "Stage ID"
+      },
+      "create": "Create student",
+      "success": {
+        "title": "Student account created",
+        "description": "{name} ({email}) can now sign in. Send them this link to set their password:",
+        "resetLinkLabel": "Password setup link",
+        "copy": "Copy link",
+        "copied": "Copied"
+      },
+      "errors": {
+        "create": "Could not create this student account.",
+        "emailConflict": "An account with this email already exists."
+      }
     }
   }
 }

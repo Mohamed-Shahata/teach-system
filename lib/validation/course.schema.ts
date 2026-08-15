@@ -1,14 +1,5 @@
 import { z } from "zod";
-
-const localizedRequiredTextSchema = z.object({
-  en: z.string().trim().min(3).max(120),
-  ar: z.string().trim().min(3).max(120),
-});
-
-const localizedOptionalTextSchema = z.object({
-  en: z.string().trim().max(2000).optional(),
-  ar: z.string().trim().max(2000).optional(),
-});
+import { localizedOptionalTextSchema, localizedRequiredTextSchema } from "@/lib/validation/common.schema";
 
 export const courseStatusSchema = z.enum(["draft", "published"]);
 export type CourseStatus = z.infer<typeof courseStatusSchema>;

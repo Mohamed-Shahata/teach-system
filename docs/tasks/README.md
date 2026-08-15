@@ -28,10 +28,10 @@ Status: Not Started | In Progress | Blocked | Done
 | 5 | Authorization | Done |
 | 6 | Ownership & Access Rules (Center: Admin + Teachers) | In Progress |
 | 7 | Teacher Dashboard | In Progress |
-| 8 | Course Management | In Progress |
-| 9 | Lesson Management | Not Started |
-| 10 | Student Management | Not Started |
-| 11 | Enrollment | Not Started |
+| 8 | Course Management | Done |
+| 9 | Lesson Management | In Progress |
+| 10 | Student Management | In Progress |
+| 11 | Enrollment | In Progress |
 | 12 | Quiz / Exam System | Not Started |
 | 13 | File Management | Not Started |
 | 14 | Public Pages | Not Started |

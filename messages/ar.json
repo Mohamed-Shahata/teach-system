@@ -152,6 +152,140 @@
         "save": "تعذر حفظ هذا الموعد.",
         "delete": "تعذر حذف هذا الموعد."
       }
+    },
+    "courses": {
+      "title": "الكورسات",
+      "subtitle": "أنشئ وأدر الكورسات اللي بتدرّسها.",
+      "newCourse": "كورس جديد",
+      "emptyTitle": "لسه مفيش كورسات",
+      "emptyDescription": "أنشئ أول كورس عشان تبدأ تضيف الدروس وتسجل الطلاب.",
+      "createTitle": "إنشاء كورس",
+      "editTitle": "تعديل الكورس",
+      "formSubtitle": "بيانات الكورس بتظهر للطلاب باللغتين.",
+      "columns": {
+        "title": "العنوان",
+        "subject": "المادة",
+        "stage": "المرحلة",
+        "status": "الحالة",
+        "enrollment": "التسجيل",
+        "actions": "إجراءات"
+      },
+      "status": {
+        "draft": "مسودة",
+        "published": "منشور"
+      },
+      "enrollmentType": {
+        "free": "مجاني",
+        "paid": "مدفوع"
+      },
+      "fields": {
+        "titleEn": "العنوان (إنجليزي)",
+        "titleAr": "العنوان (عربي)",
+        "descriptionEn": "الوصف (إنجليزي)",
+        "descriptionAr": "الوصف (عربي)",
+        "subjectId": "معرّف المادة",
+        "stageId": "معرّف المرحلة",
+        "thumbnailUrl": "رابط الصورة المصغّرة",
+        "enrollmentType": "نوع التسجيل",
+        "price": "السعر",
+        "currency": "العملة",
+        "uploadThumbnail": "رفع صورة",
+        "replaceThumbnail": "تغيير الصورة",
+        "removeThumbnail": "إزالة",
+        "noThumbnail": "لا توجد صورة"
+      },
+      "hints": {
+        "thumbnailUrl": "JPG أو PNG، بحد أقصى 5 ميجابايت."
+      },
+      "create": "إنشاء الكورس",
+      "save": "حفظ التعديلات",
+      "cancel": "إلغاء",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "publish": "نشر",
+      "unpublish": "إلغاء النشر",
+      "deleteConfirmTitle": "حذف هذا الكورس؟",
+      "deleteConfirmDescription": "هيتم حذف الكورس وترتيب دروسه. الإجراء ده مينفعش يترجع.",
+      "confirmDelete": "حذف الكورس",
+      "errors": {
+        "load": "تعذّر تحميل الكورسات.",
+        "save": "تعذّر حفظ الكورس.",
+        "delete": "تعذّر حذف الكورس.",
+        "publish": "تعذّر تحديث حالة النشر.",
+        "slugConflict": "عندك بالفعل كورس بعنوان مشابه.",
+        "thumbnailType": "من فضلك اختر ملف صورة.",
+        "thumbnailSize": "لازم الصورة تكون 5 ميجابايت أو أقل.",
+        "thumbnailUpload": "تعذّر رفع الصورة. حاول تاني."
+      },
+      "manageLessons": "إدارة الدروس"
+    },
+    "lessons": {
+      "title": "الدروس",
+      "subtitle": "أضف الدروس ورتّبها داخل هذا الكورس.",
+      "newLesson": "درس جديد",
+      "emptyTitle": "لا توجد دروس بعد",
+      "emptyDescription": "أضف أول درس لتبدأ في بناء هذا الكورس.",
+      "createTitle": "إنشاء درس",
+      "editTitle": "تعديل الدرس",
+      "formSubtitle": "بيانات الدرس تظهر للطلاب باللغتين.",
+      "dragHandle": "اسحب لإعادة الترتيب",
+      "fields": {
+        "titleEn": "العنوان (إنجليزي)",
+        "titleAr": "العنوان (عربي)",
+        "descriptionEn": "الوصف (إنجليزي)",
+        "descriptionAr": "الوصف (عربي)",
+        "videoProvider": "مصدر الفيديو",
+        "videoProviderPlaceholder": "بدون فيديو",
+        "videoUrl": "رابط الفيديو",
+        "videoPublicId": "معرّف الفيديو على Cloudinary"
+      },
+      "videoProvider": {
+        "youtube": "يوتيوب",
+        "cloudinary": "Cloudinary",
+        "external": "رابط خارجي"
+      },
+      "hints": {
+        "video": "اختياري. الصق رابط يوتيوب أو رابط خارجي، أو معرّف الفيديو على Cloudinary."
+      },
+      "create": "إنشاء الدرس",
+      "save": "حفظ التعديلات",
+      "cancel": "إلغاء",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleteConfirmTitle": "حذف هذا الدرس؟",
+      "deleteConfirmDescription": "سيتم حذف الدرس من الكورس. لا يمكن التراجع عن هذا الإجراء.",
+      "confirmDelete": "حذف الدرس",
+      "errors": {
+        "load": "تعذر تحميل الدروس.",
+        "save": "تعذر حفظ هذا الدرس.",
+        "delete": "تعذر حذف هذا الدرس.",
+        "reorder": "تعذر حفظ الترتيب الجديد."
+      },
+      "preview": "معاينة",
+      "hidePreview": "إخفاء المعاينة"
+    },
+    "students": {
+      "title": "الطلاب",
+      "subtitle": "أنشئ حسابات للطلاب اللي بتدرّسلهم.",
+      "createTitle": "إضافة طالب",
+      "formSubtitle": "الطالب هياخد لينك لمرة واحدة عشان يظبط الباسورد بتاعه — لسه مفيش إيميل بيتبعت تلقائي.",
+      "fields": {
+        "displayName": "الاسم كامل",
+        "email": "البريد الإلكتروني",
+        "stageId": "معرف المرحلة"
+      },
+      "create": "إنشاء الطالب",
+      "success": {
+        "title": "تم إنشاء حساب الطالب",
+        "description": "{name} ({email}) يقدر يسجل دخول دلوقتي. ابعتله اللينك ده عشان يظبط الباسورد:",
+        "resetLinkLabel": "لينك ضبط الباسورد",
+        "copy": "نسخ اللينك",
+        "copied": "اتنسخ"
+      },
+      "errors": {
+        "create": "معرفناش ننشئ حساب الطالب ده.",
+        "emailConflict": "فيه حساب بالإيميل ده موجود أصلاً."
+      }
     }
   }
 }
