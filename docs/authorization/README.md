@@ -37,14 +37,23 @@ export function assertRole(user: SessionUser, role: Role): void
 
 | Action | Admin | Teacher (own resource) | Teacher (other's resource) | Student (enrolled) | Student (not enrolled) |
 |---|---|---|---|---|---|
+| Create teacher account | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Create student account | ✅ | ✅ (their own students) | ❌ | ❌ | ❌ |
 | Create/edit/delete course | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Manage own weekly schedule | ✅ | ✅ | ❌ | ❌ | ❌ |
 | View course content | ✅ | ✅ | ❌ (unless published) | ✅ | ❌ |
 | Manage lessons | ✅ | ✅ | ❌ | ❌ | ❌ |
 | View own enrollment/progress | ✅ | ✅ (as owner, read-only aggregate) | ❌ | ✅ (own only) | ❌ |
 | Create/edit quiz | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Take quiz | ❌ | ❌ | ❌ | ✅ | ❌ |
 | Upload file to a course | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Record/confirm a manual payment | ✅ | ✅ (for their own courses only) | ❌ | ❌ | ❌ |
+| View own payment history | ✅ (all) | ✅ (their courses only) | ❌ | ✅ (own only) | ❌ |
 | View public teacher page | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+A Teacher creating a Student account may only enroll that student in
+**their own** courses at creation time — they cannot enroll a student in
+another teacher's course.
 
 ## Never trust client-supplied role/owner data
 

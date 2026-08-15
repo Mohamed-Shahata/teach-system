@@ -1,5 +1,16 @@
 # Phase 4 — Authentication
 
+> **Scope change (re-scope to Admin + multi-teacher center):** TASK-402
+> below (open self-registration) is superseded. The system no longer has
+> public sign-up — accounts are created by an Admin or Teacher instead.
+> See Phase 6 `TASK-604` (new account-creation endpoints) and `TASK-605`
+> (removes the code this task built: `app/[locale]/(public)/register/*`,
+> `app/api/auth/register/*`, `components/auth/register-form.tsx`, and
+> related tests). TASK-402's status below is left as `Done` for history,
+> but its code path is being removed in Phase 6, not carried forward.
+> Login, session, logout, password reset, and middleware (TASK-403–406)
+> are unaffected and stay as-is.
+
 ## TASK-401: Firebase Admin SDK bootstrap
 - Description: Implement `lib/server/firebaseAdmin.ts` per `firebase/README.md` (serverless-safe init).
 - Goal: Reusable, memoized Admin app instance.

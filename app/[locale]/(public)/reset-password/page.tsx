@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { Spinner } from "@/components/ui/states";
 
 export async function generateMetadata() {
@@ -11,20 +11,25 @@ export async function generateMetadata() {
 
 export default async function ResetPasswordPage() {
   const t = await getTranslations("auth.resetPassword");
+  const tLayout = await getTranslations("layout");
 
   return (
-    <div className="flex min-h-full flex-1 items-center justify-center p-6">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>{t("title")}</CardTitle>
-          <CardDescription>{t("subtitle")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Suspense fallback={<div className="flex justify-center py-4"><Spinner /></div>}>
-            <ResetPasswordForm />
-          </Suspense>
-        </CardContent>
-      </Card>
-    </div>
+    <AuthShell
+      brandTitle={tLayout("title")}
+      tagline={t("tagline")}
+      illustrationVariant="shield"
+      heading={t("title")}
+      subtitle={t("subtitle")}
+    >
+      <Suspense
+        fallback={
+          <div className="flex justify-center py-4">
+            <Spinner />
+          </div>
+        }
+      >
+        <ResetPasswordForm />
+      </Suspense>
+    </AuthShell>
   );
 }

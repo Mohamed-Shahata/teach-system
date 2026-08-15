@@ -20,9 +20,10 @@ Error:
 
 | Method | Path | Purpose | Auth |
 |---|---|---|---|
-| POST | `/api/auth/register` | create user + role record | public |
 | POST | `/api/auth/session` | exchange ID token for session cookie | public |
 | POST | `/api/auth/logout` | clear session | authenticated |
+| POST | `/api/admin/accounts` | create a teacher or student account | admin |
+| POST | `/api/teacher/students` | create a student account | teacher |
 | GET/POST | `/api/courses` | list/create teacher's courses | teacher |
 | GET/PATCH/DELETE | `/api/courses/[courseId]` | manage one course | teacher (owner) |
 | GET/POST | `/api/courses/[courseId]/lessons` | list/create lessons | teacher (owner) / student (enrolled, read) |

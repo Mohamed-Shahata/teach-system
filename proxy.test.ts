@@ -90,4 +90,35 @@ describe("proxy", () => {
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toBe("https://example.com/en/login");
   });
+
+  it("redirects a signed-in user with the wrong role to their own area instead of login", async () => {
+    verifySessionCookieValue.mockResolvedValue({ uid: "uid-1", email: "s@x.com", role: "student" });
+    const request = makeRequest("/en/teacher/dashboard", "valid-cookie");
+
+    const res = await proxy(request);
+
+    expect(intlMiddlewareImpl).not.toHaveBeenCalled();
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("https://example.com/en/student");
+  });
+
+  it("preserves locale when redirecting a role mismatch", async () => {
+    verifySessionCookieValue.mockResolvedValue({ uid: "uid-2", email: "a@x.com", role: "admin" });
+    const request = makeRequest("/ar/student/dashboard", "valid-cookie");
+
+    const res = await proxy(request);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("https://example.com/ar/admin");
+  });
+
+  it("allows an admin into any protected area matching their own role segment", async () => {
+    verifySessionCookieValue.mockResolvedValue({ uid: "uid-3", email: "a@x.com", role: "admin" });
+    const request = makeRequest("/en/admin/settings", "valid-cookie");
+
+    const res = await proxy(request);
+
+    expect(intlMiddlewareImpl).toHaveBeenCalledWith(request);
+    expect(res.headers.get("x-user-role")).toBe("admin");
+  });
 });

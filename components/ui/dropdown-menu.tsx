@@ -20,7 +20,8 @@ export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
   React.useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -28,14 +29,19 @@ export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
 
   return (
     <div className="relative inline-block text-start" ref={ref}>
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
         {trigger}
       </button>
       {open && (
         <div
           role="menu"
           className={cn(
-            "absolute start-0 z-20 mt-1 min-w-[10rem] rounded-md border border-border bg-surface py-1 shadow-lg"
+            "absolute inset-s-0 z-20 mt-1 min-w-40 rounded-md border border-border bg-surface py-1 shadow-lg",
           )}
         >
           {items.map((item, i) => (
@@ -50,7 +56,7 @@ export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
               className={cn(
                 "block w-full px-3 py-2 text-start text-sm text-foreground hover:bg-surface-muted",
                 "focus-visible:outline-none focus-visible:bg-surface-muted",
-                item.disabled && "opacity-50 pointer-events-none"
+                item.disabled && "opacity-50 pointer-events-none",
               )}
             >
               {item.label}

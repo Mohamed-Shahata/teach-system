@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { z } from "zod";
 import { clientAuth } from "@/lib/client/firebaseClient";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,46 @@ function resolveErrorKey(err: unknown): string {
   if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
     return "auth.login.errors.invalidCredentials";
   }
+  if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+    return "";
+  }
   return "errors.unexpected";
+}
+
+async function createSession(idToken: string) {
+  const res = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw body?.error ?? new Error("session_failed");
+  }
+}
+
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 18 18" className="h-4 w-4 shrink-0" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62Z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.94v2.33A9 9 0 0 0 9 18Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.94A9 9 0 0 0 0 9c0 1.45.35 2.83.94 4.03l3.01-2.33Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .94 4.97l3.01 2.33C4.66 5.17 6.65 3.58 9 3.58Z"
+      />
+    </svg>
+  );
 }
 
 export function LoginForm() {
@@ -32,6 +71,7 @@ export function LoginForm() {
   const locale = useLocale();
   const router = useRouter();
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
 
   const {
     register,
@@ -44,17 +84,7 @@ export function LoginForm() {
     try {
       const credential = await signInWithEmailAndPassword(clientAuth, data.email, data.password);
       const idToken = await credential.user.getIdToken();
-
-      const res = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw body?.error ?? new Error("session_failed");
-      }
+      await createSession(idToken);
 
       router.push("/dashboard");
       router.refresh();
@@ -63,36 +93,80 @@ export function LoginForm() {
     }
   };
 
+  const onGoogleSignIn = async () => {
+    setFormError(null);
+    setGoogleLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const credential = await signInWithPopup(clientAuth, provider);
+      const idToken = await credential.user.getIdToken();
+      await createSession(idToken);
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      const key = resolveErrorKey(err);
+      if (key) setFormError(key);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {formError && <Alert variant="error">{t(formError)}</Alert>}
 
-      <Input
-        type="email"
-        label={t("auth.login.fields.email")}
-        autoComplete="email"
-        error={errors.email && t("validation.required")}
-        {...register("email")}
-      />
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <Input
+          type="email"
+          label={t("auth.login.fields.email")}
+          autoComplete="email"
+          error={errors.email && t("validation.required")}
+          {...register("email")}
+        />
 
-      <Input
-        type="password"
-        label={t("auth.login.fields.password")}
-        autoComplete="current-password"
-        error={errors.password && t("validation.required")}
-        {...register("password")}
-      />
+        <Input
+          type="password"
+          label={t("auth.login.fields.password")}
+          autoComplete="current-password"
+          error={errors.password && t("validation.required")}
+          {...register("password")}
+        />
 
-      <Link
-        href={`/${locale}/forgot-password`}
-        className="self-start text-sm text-primary hover:underline"
+        <Link
+          href={`/${locale}/forgot-password`}
+          className="self-start text-sm text-primary hover:underline"
+        >
+          {t("auth.login.forgotPassword")}
+        </Link>
+
+        <Button type="submit" loading={isSubmitting} className="mt-2">
+          {t("auth.login.submit")}
+        </Button>
+      </form>
+
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs text-foreground/50">{t("auth.login.divider")}</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        loading={googleLoading}
+        onClick={onGoogleSignIn}
+        startIcon={!googleLoading ? <GoogleIcon /> : undefined}
       >
-        {t("auth.login.forgotPassword")}
-      </Link>
-
-      <Button type="submit" loading={isSubmitting} className="mt-2">
-        {t("auth.login.submit")}
+        {t("auth.login.continueWithGoogle")}
       </Button>
-    </form>
+
+      <p className="text-center text-sm text-foreground/60">
+        {t("auth.login.noAccount")}{" "}
+        <Link href={`/${locale}/register`} className="font-medium text-primary hover:underline">
+          {t("auth.login.signUp")}
+        </Link>
+      </p>
+    </div>
   );
 }

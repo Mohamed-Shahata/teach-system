@@ -59,10 +59,13 @@ deployed via `firebase deploy --only firestore:indexes`):
 | enrollments | `teacherId asc, courseId asc` |
 | quizAttempts | `studentId asc, quizId asc` |
 
-## Security Rules (summary)
+## Security Rules
 
-Full rules live in `firestore.rules` at the project root once
-implemented. Structure:
+Full rules live in `firestore.rules` at the project root (TASK-601 —
+covers `users`, `teacherProfiles`, `educationStages`, `subjects`,
+`courses`; later phases extend the same pattern to `lessons`,
+`schedule`, `enrollments`, `quizzes`, `questions`, `quizAttempts`,
+`files`, `payments`). Structure:
 
 ```js
 rules_version = '2';
@@ -72,19 +75,26 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-    function isOwner(teacherId) {
-      return isSignedIn() && request.auth.uid == teacherId;
+    function callerRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
-    function isRole(role) {
-      return isSignedIn() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    function isAdmin() {
+      return isSignedIn() && callerRole() == 'admin';
+    }
+    function isTeacher() {
+      return isSignedIn() && callerRole() == 'teacher';
+    }
+    function isOwner(teacherId) {
+      return isAdmin() || (isSignedIn() && callerRole() == 'teacher' && request.auth.uid == teacherId);
     }
 
     match /users/{uid} {
-      allow read: if isSignedIn() && request.auth.uid == uid;
-      allow update: if isSignedIn() && request.auth.uid == uid
-                    && request.resource.data.role == resource.data.role; // role immutable
-      allow create: if false; // only Admin SDK creates users
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow create: if false; // only the Admin SDK creates users — no public sign-up
+      allow update: if (isAdmin() || (isSignedIn() && request.auth.uid == uid))
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.createdBy == resource.data.createdBy; // role/createdBy immutable
+      allow delete: if false;
     }
 
     match /teacherProfiles/{teacherId} {
@@ -92,15 +102,20 @@ service cloud.firestore {
       allow write: if isOwner(teacherId);
     }
 
+    match /educationStages/{stageId} { allow read: if true; allow write: if isAdmin(); }
+    match /subjects/{subjectId}      { allow read: if true; allow write: if isAdmin(); }
+
     match /courses/{courseId} {
       allow read: if resource.data.status == 'published' || isOwner(resource.data.teacherId);
-      allow create: if isRole('teacher') && request.resource.data.teacherId == request.auth.uid;
-      allow update, delete: if isOwner(resource.data.teacherId);
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.teacherId)
+        && request.resource.data.teacherId == resource.data.teacherId; // ownership can't be reassigned
     }
 
-    // lessons, enrollments, quizzes, questions, files follow the same
-    // isOwner(resource.data.teacherId) pattern; enrollments additionally
-    // check studentId == request.auth.uid for student-scoped reads.
+    // lessons, schedule, enrollments, quizzes, questions, files, payments
+    // follow the same isOwner(resource.data.teacherId) pattern, added in
+    // their own phases; enrollments/payments additionally check
+    // studentId == request.auth.uid for student-scoped reads/writes.
   }
 }
 ```
@@ -108,7 +123,9 @@ service cloud.firestore {
 Since the MVP routes almost all Firestore access through the Admin SDK on
 the server (which bypasses rules), these rules exist primarily as a
 safety net against future direct-client-access features and must be kept
-in sync with the service-layer authorization logic.
+in sync with the service-layer authorization logic
+(`lib/auth/guards.ts`) and the repository-layer scoping helpers
+(`lib/server/repositories/base.ts`, TASK-602).
 
 ## Environment variables
 

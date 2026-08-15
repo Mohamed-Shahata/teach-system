@@ -1,11 +1,12 @@
-# Teacher's Private Platform
+# Center Platform (Admin + Multiple Teachers)
 
-A private educational platform built for a **single teacher** — not a
-multi-tenant product used by many teachers. It covers courses, lessons, students,
-enrollments, quizzes, files, and a public profile page for that one
-teacher. Built with Next.js (App Router) + Firebase + Cloudinary,
-deployed on Vercel, fully bilingual (English/Arabic, LTR/RTL), with
-light/dark themes.
+A private educational-**center** platform — **not** a multi-tenant SaaS
+product. One Admin runs the center and creates Teacher and Student
+accounts (no public sign-up); each Teacher manages their own subject(s),
+paid recorded-video courses, weekly class schedule, students, exams, and
+files, covering every stage from nursery to Grade 3 Secondary. Built
+with Next.js (App Router) + Firebase + Cloudinary, deployed on Vercel,
+fully bilingual (English/Arabic, LTR/RTL), with light/dark themes.
 
 ## Status
 
@@ -14,9 +15,9 @@ light/dark themes.
 | 1 | Project Foundation | Done |
 | 2 | Design System | Done |
 | 3 | Internationalization | Done |
-| 4 | Authentication | Done |
+| 4 | Authentication | Done (self-registration part being replaced — see Phase 6) |
 | 5 | Authorization | Not Started |
-| 6 | Ownership & Access Rules (Single Teacher) | Not Started |
+| 6 | Ownership & Access Rules (Center: Admin + Teachers) | In Progress |
 | 7 | Teacher Dashboard | Not Started |
 | 8 | Course Management | Not Started |
 | 9 | Lesson Management | Not Started |
@@ -79,11 +80,11 @@ Route Handler / Server Action
 
 - Server Components by default; Client Components only where
   interactivity is required.
-- The whole system belongs to **one owner** (the teacher). A
-  `teacherId` field is still kept on owned documents as an
-  ownership/audit field, and Firestore Security Rules restrict access
-  to that single account — there is no multi-teacher isolation logic.
-  Details: [`docs/architecture/multi-tenancy.md`](./docs/architecture/multi-tenancy.md).
+- The whole system belongs to **one center**, run by one Admin, with
+  many Teachers and Students. A `teacherId` field on owned documents is
+  a real access boundary between teachers (not just audit), enforced in
+  Firestore Security Rules and the service layer; the Admin bypasses it.
+  Details: [`docs/architecture/ownership-model.md`](./docs/architecture/ownership-model.md).
 - Students can only read course/lesson content for courses they're
   enrolled in; public pages expose a deliberately limited, published-only
   subset of data.
@@ -143,7 +144,7 @@ Key sections:
 
 | Folder | Contents |
 |---|---|
-| `architecture/` | System, frontend, and single-teacher ownership architecture, data flow |
+| `architecture/` | System, frontend, and ownership-model (Admin + multi-teacher) architecture, data flow |
 | `database/` | Firestore collections, fields, relationships, indexes |
 | `authentication/` | Firebase Auth flows, session handling, protected routes |
 | `authorization/` | Roles, permissions, owner-only access enforcement |

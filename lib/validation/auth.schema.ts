@@ -1,7 +1,17 @@
 import { z } from "zod";
 
-export const userRoleSchema = z.enum(["teacher", "student"]);
-export type UserRole = z.infer<typeof userRoleSchema>;
+/**
+ * Full set of roles a `users/{uid}` doc can carry, per
+ * docs/database/collections.md. `admin` accounts are provisioned directly
+ * (Firestore/Admin SDK), never through self-registration — see
+ * `registrationRoleSchema` below for the registration-time subset.
+ */
+export const roleSchema = z.enum(["admin", "teacher", "student"]);
+export type UserRole = z.infer<typeof roleSchema>;
+
+/** The subset of roles a user may request for themselves at sign-up. */
+export const registrationRoleSchema = z.enum(["teacher", "student"]);
+export type RegistrationRole = z.infer<typeof registrationRoleSchema>;
 
 /**
  * What the client submits to POST /api/auth/register.
@@ -14,7 +24,7 @@ export type UserRole = z.infer<typeof userRoleSchema>;
  */
 export const registerSchema = z.object({
   idToken: z.string().min(1),
-  role: userRoleSchema,
+  role: registrationRoleSchema,
   displayName: z.string().trim().min(2).max(80),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -26,7 +36,7 @@ export const registerFormSchema = z
     email: z.string().trim().email().max(254),
     password: z.string().min(8).max(128),
     confirmPassword: z.string(),
-    role: userRoleSchema,
+    role: registrationRoleSchema,
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "auth.register.errors.passwordMismatch",

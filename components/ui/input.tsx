@@ -26,7 +26,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={!!error || undefined}
           aria-describedby={cn(errorId, hintId).split(" ").filter(Boolean).join(" ") || undefined}
           className={cn(
-            "h-10 rounded-md border bg-surface px-3 text-sm text-foreground text-start placeholder:text-foreground/50",
+            "h-10 rounded-full border bg-surface px-4 text-sm text-foreground text-start placeholder:text-foreground/50",
             "border-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             error && "border-error focus-visible:ring-error",
             disabled && "opacity-50 pointer-events-none",

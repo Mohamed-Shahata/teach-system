@@ -38,6 +38,9 @@
         "student": "Student"
       },
       "submit": "Create account",
+      "tagline": "Learning, teaching, and progress — all in one place.",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
       "errors": {
         "emailInUse": "An account with this email already exists.",
         "passwordMismatch": "Passwords do not match."
@@ -52,6 +55,12 @@
       },
       "submit": "Sign in",
       "forgotPassword": "Forgot your password?",
+      "divider": "Or",
+      "continueWithGoogle": "Continue with Google",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "welcomeBack": "Welcome back",
+      "tagline": "Learning, teaching, and progress — all in one place.",
       "errors": {
         "invalidCredentials": "Incorrect email or password."
       }
@@ -66,6 +75,8 @@
         "email": "Email"
       },
       "submit": "Send reset link",
+      "tagline": "We'll help you get back into your account safely.",
+      "backToLogin": "Back to sign in",
       "sentMessage": "If an account exists for that email, a reset link is on its way.",
       "errors": {
         "invalidEmail": "Enter a valid email address."
@@ -79,6 +90,7 @@
         "confirmPassword": "Confirm new password"
       },
       "submit": "Save new password",
+      "tagline": "Choose a strong password to keep your account secure.",
       "successMessage": "Your password has been updated.",
       "invalidLink": "This reset link is invalid or has expired. Please request a new one."
     }

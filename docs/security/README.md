@@ -7,7 +7,7 @@ above all other concerns per the project's engineering principles.
 
 | Threat | Mitigation |
 |---|---|
-| Teacher A reading/modifying Teacher B's data | `teacherId` scoping enforced at service, repository, and Firestore Security Rules layers (see `architecture/multi-tenancy.md`) |
+| Teacher A reading/modifying Teacher B's data | `teacherId` scoping enforced at service, repository, and Firestore Security Rules layers (see `architecture/ownership-model.md`) |
 | Student accessing unpurchased/unenrolled course content | Enrollment check in `CourseAccessService` before returning lesson content/files; never inferred from client state |
 | Student tampering with quiz answers/score | Score always computed server-side from stored `correctOptionIds`; client never receives correct answers before submission |
 | Client sending a forged `role`/`teacherId`/`isAdmin` | Ignored; server derives identity from verified session only |

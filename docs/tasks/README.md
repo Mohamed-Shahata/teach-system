@@ -25,8 +25,8 @@ Status: Not Started | In Progress | Blocked | Done
 | 2 | Design System | Done |
 | 3 | Internationalization | Done |
 | 4 | Authentication | Done |
-| 5 | Authorization | Not Started |
-| 6 | Ownership & Access Rules (Single Teacher) | Not Started |
+| 5 | Authorization | Done |
+| 6 | Ownership & Access Rules (Center: Admin + Teachers) | In Progress |
 | 7 | Teacher Dashboard | Not Started |
 | 8 | Course Management | Not Started |
 | 9 | Lesson Management | Not Started |

@@ -39,10 +39,14 @@ function splitLocaleAndPath(pathname: string): { locale: string; segments: strin
  * - For requests entering a `(protected)/*` area, verifies the session
  *   cookie (re-checking revocation, same as `getSession()`) and redirects
  *   unauthenticated visitors to the localized `/login` page.
+ * - Role-gates each protected top segment against its matching role
+ *   (`teacher`, `student`, `admin`): a signed-in user whose role doesn't
+ *   match is redirected to their own area rather than the login page —
+ *   this is the coarse-grained layer from docs/authorization/README.md;
+ *   fine-grained ownership checks (TASK-501's guards) still apply inside
+ *   each route/service.
  * - Attaches the resolved `uid`/`role` to the (locale-handled) response as
  *   headers, so downstream code can read them without re-verifying.
- *   Role-based route gating (`(protected)/teacher|student|admin/*`) is
- *   TASK-501, not this task.
  */
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -55,6 +59,13 @@ export default async function proxy(request: NextRequest) {
 
     if (!session) {
       return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
+    }
+
+    if (topSegment !== session.role) {
+      // Signed in, but this area belongs to a different role (e.g. a
+      // student hitting `/teacher/...`) — send them to their own area
+      // rather than login, since they *are* authenticated.
+      return NextResponse.redirect(new URL(`/${locale}/${session.role}`, request.url));
     }
 
     const response = intlMiddleware(request);

@@ -2,7 +2,7 @@
   "name": "teach_system",
   "version": "0.1.0",
   "private": true,
-  "description": "Private single-teacher educational platform (Next.js + Firebase + Cloudinary).",
+  "description": "Private educational center platform — Admin + multiple teachers (Next.js + Firebase + Cloudinary).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

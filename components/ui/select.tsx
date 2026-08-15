@@ -29,7 +29,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           disabled={disabled}
           aria-invalid={!!error || undefined}
           className={cn(
-            "h-10 rounded-md border bg-surface ps-3 pe-8 text-sm text-foreground text-start",
+            "h-10 rounded-full border bg-surface ps-4 pe-8 text-sm text-foreground text-start",
             "border-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             error && "border-error focus-visible:ring-error",
             disabled && "opacity-50 pointer-events-none",

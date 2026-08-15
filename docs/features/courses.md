@@ -4,8 +4,10 @@
 Let a teacher create, edit, publish, and organize courses.
 
 ## User stories
-- As a teacher, I can create a course with a title/description in both
-  languages so it renders correctly for any visitor's locale.
+- As a teacher, I can create a course for one of my subjects/stages,
+  with a title/description in both languages so it renders correctly for
+  any visitor's locale, and a price (courses are paid by default — see
+  `features/payments.md`).
 - As a teacher, I can upload a thumbnail via Cloudinary.
 - As a teacher, I can reorder lessons within a course.
 - As a teacher, I can publish/unpublish a course.

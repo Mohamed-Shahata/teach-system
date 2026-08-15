@@ -1,0 +1,120 @@
+rules_version = '2';
+
+// Firestore Security Rules v1 — TASK-601.
+//
+// Scope (per docs/tasks/phase-06-ownership-access.md TASK-601): users,
+// teacherProfiles, educationStages, subjects, courses. Later phases add
+// rules for lessons, schedule, enrollments, quizzes, questions,
+// quizAttempts, files, payments — following the same isOwner(teacherId)
+// pattern documented in docs/architecture/ownership-model.md.
+//
+// Model recap (docs/architecture/ownership-model.md):
+//   admin   — full read/write everywhere.
+//   teacher — read/write only documents where teacherId == their own uid.
+//   student — read-only for public/enrolled content, read/write only
+//             their own users/{uid} doc (role/createdBy excluded).
+//
+// The MVP routes almost all Firestore access through the Admin SDK on the
+// server (which bypasses these rules) — see docs/firebase/README.md. These
+// rules exist as a defense-in-depth safety net and must be kept in sync
+// with the service-layer authorization logic in lib/auth/guards.ts.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Looks up the caller's role from their own users/{uid} doc. Every
+    // authenticated user has exactly one users/{uid} doc (created by the
+    // Admin SDK at account-creation time — see
+    // docs/authentication/README.md), so this get() is safe to rely on
+    // wherever a role check is needed.
+    function callerRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && callerRole() == 'admin';
+    }
+
+    function isTeacher() {
+      return isSignedIn() && callerRole() == 'teacher';
+    }
+
+    // True for the Admin, or for a teacher who owns the resource
+    // (resource.data.teacherId == their own uid) — the one bypass of the
+    // teacher-to-teacher isolation boundary, per
+    // docs/architecture/ownership-model.md.
+    function isOwner(teacherId) {
+      return isAdmin() || (isSignedIn() && callerRole() == 'teacher' && request.auth.uid == teacherId);
+    }
+
+    // ---------------------------------------------------------------
+    // users/{uid} — base identity + role record for every account.
+    // ---------------------------------------------------------------
+    match /users/{uid} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+
+      // No client-facing create: accounts are provisioned server-side via
+      // the Admin SDK only (see docs/authentication/README.md —
+      // "no public self-registration").
+      allow create: if false;
+
+      // A user may update their own doc, but never their own role or
+      // createdBy — those are server-write-only and immutable after
+      // creation (per docs/database/collections.md). An Admin may update
+      // any user doc (e.g. deactivating an account in a later phase), but
+      // still may not change role/createdBy this way — role changes, if
+      // ever needed, go through a dedicated server-side flow, not a plain
+      // document update.
+      allow update: if (isAdmin() || (isSignedIn() && request.auth.uid == uid))
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.createdBy == resource.data.createdBy;
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // teacherProfiles/{teacherId} — public + private teacher profile.
+    // ---------------------------------------------------------------
+    match /teacherProfiles/{teacherId} {
+      allow read: if resource.data.isPublic == true || isOwner(teacherId);
+      allow create: if isOwner(teacherId) && request.resource.data.teacherId == teacherId;
+      allow update, delete: if isOwner(teacherId);
+    }
+
+    // ---------------------------------------------------------------
+    // educationStages/{stageId} — fixed reference list (nursery ->
+    // secondary 3). Seeded by an Admin setup script, not user-editable
+    // in the MVP UI, but still Admin-only to write for future flexibility.
+    // ---------------------------------------------------------------
+    match /educationStages/{stageId} {
+      allow read: if true; // public reference data, needed for browsing.
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // subjects/{subjectId} — reference list of subjects taught.
+    // ---------------------------------------------------------------
+    match /subjects/{subjectId} {
+      allow read: if true; // public reference data.
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // courses/{courseId} — teacher-owned, isolated per teacher.
+    // ---------------------------------------------------------------
+    match /courses/{courseId} {
+      allow read: if resource.data.status == 'published' || isOwner(resource.data.teacherId);
+
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+
+      allow update, delete: if isOwner(resource.data.teacherId)
+        // teacherId is set once at creation and can never be reassigned
+        // to another teacher via a later update.
+        && request.resource.data.teacherId == resource.data.teacherId;
+    }
+  }
+}

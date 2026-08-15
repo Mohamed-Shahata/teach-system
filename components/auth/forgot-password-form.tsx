@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { z } from "zod";
 import { clientAuth } from "@/lib/client/firebaseClient";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 export function ForgotPasswordForm() {
   const t = useTranslations("auth.forgotPassword");
+  const locale = useLocale();
   const [sent, setSent] = React.useState(false);
 
   const {
@@ -39,22 +41,41 @@ export function ForgotPasswordForm() {
   };
 
   if (sent) {
-    return <Alert variant="success">{t("sentMessage")}</Alert>;
+    return (
+      <div className="flex flex-col gap-4">
+        <Alert variant="success">{t("sentMessage")}</Alert>
+        <Link
+          href={`/${locale}/login`}
+          className="self-center text-sm font-medium text-primary hover:underline"
+        >
+          {t("backToLogin")}
+        </Link>
+      </div>
+    );
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-      <Input
-        type="email"
-        label={t("fields.email")}
-        autoComplete="email"
-        error={errors.email && t("errors.invalidEmail")}
-        {...register("email")}
-      />
+    <div className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <Input
+          type="email"
+          label={t("fields.email")}
+          autoComplete="email"
+          error={errors.email && t("errors.invalidEmail")}
+          {...register("email")}
+        />
 
-      <Button type="submit" loading={isSubmitting} className="mt-2">
-        {t("submit")}
-      </Button>
-    </form>
+        <Button type="submit" loading={isSubmitting} className="mt-2">
+          {t("submit")}
+        </Button>
+      </form>
+
+      <Link
+        href={`/${locale}/login`}
+        className="self-center text-sm font-medium text-primary hover:underline"
+      >
+        {t("backToLogin")}
+      </Link>
+    </div>
   );
 }

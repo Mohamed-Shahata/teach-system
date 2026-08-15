@@ -7,16 +7,48 @@ providers later without architecture changes).
 
 ## Flows
 
-### Registration (teacher or student)
+### No public self-registration
 
-1. Client calls Firebase Auth `createUserWithEmailAndPassword`.
-2. Client calls `POST /api/auth/register` with the new user's ID token and
-   `role` (`teacher` | `student`) + profile fields.
-3. Server verifies the ID token with the Admin SDK, creates `users/{uid}`
-   (role is set **server-side only**, never trusted from the client body
-   beyond the initial registration intent, and re-validated), and for
-   teachers also creates `teacherProfiles/{uid}`.
-4. Server issues a session (see "Session strategy" below).
+There is **no open sign-up page** and no `POST /api/auth/register` open
+to unauthenticated clients. Every account is created by someone already
+authenticated as Admin or Teacher — see "Account creation" below. This
+is a deliberate change from the earlier single-teacher scope (which had
+open teacher/student registration): the system is a private center, and
+the Admin controls who gets an account.
+
+### Account creation (Admin or Teacher, server-side)
+
+1. An authenticated Admin (creating a teacher or student) or Teacher
+   (creating a student only) submits the new user's profile
+   (`email`, `displayName`, `role`, and for students `stageId`) to
+   `POST /api/admin/accounts` (Admin) or `POST /api/teacher/students`
+   (Teacher).
+2. Server verifies the caller's session and role first (`assertRole`
+   guard) — a Teacher calling with `role: "teacher"` or `role: "admin"`
+   is rejected regardless of the request body.
+3. Server creates the Firebase Auth user via the **Admin SDK**
+   (`admin.auth().createUser(...)`) with a long random password nobody
+   ever uses, then creates `users/{uid}` with `role`,
+   `createdBy: { uid, role }`, and for teachers also
+   `teacherProfiles/{uid}`. If the Firestore write fails, the Auth user
+   is rolled back (`admin.auth().deleteUser(uid)`) so no orphaned
+   Auth-only account is left behind.
+4. Server generates a one-time password-reset link
+   (`admin.auth().generatePasswordResetLink(email)`) and returns it in
+   the response. The Admin/Teacher relays it to the new user directly
+   (message, in person, etc.); the new user opens it, sets their own
+   real password on `/[locale]/reset-password`, and logs in normally
+   from then on — no separate "activate account" flow needed. See
+   `decisions/0005-account-creation-credential-delivery.md` for why
+   (no email provider is configured; this reuses the existing
+   password-reset flow).
+
+Implemented as `POST /api/admin/accounts` (Admin) and
+`POST /api/teacher/students` (Teacher) — `lib/server/services/accountService.ts`.
+A teacher optionally pre-enrolling a new student in one of their own
+courses (`features/students.md`) is not part of this endpoint; per
+`features/enrollment.md` an enrollment is only ever created as a side
+effect of the payments flow, which doesn't exist yet (Phase 11).
 
 ### Login
 
@@ -78,6 +110,13 @@ Next.js 16 — same API, new name/export) runs on all
 4. Redirects unauthenticated users to `/[locale]/login`.
 5. Redirects authenticated users with the wrong role away from
    role-specific areas (e.g. a student hitting `/dashboard/teacher/*`).
+
+## Login page
+
+There is a **single, shared login page** (`/[locale]/login`) for Admin,
+Teacher, and Student — no separate login URLs per role. After
+authentication, the resolved `role` from `users/{uid}` decides which
+dashboard the user is redirected to (`/admin`, `/teacher`, `/student`).
 
 ## Authentication state on the client
 

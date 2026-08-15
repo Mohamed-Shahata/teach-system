@@ -11,6 +11,6 @@
 - Status: Not Started
 
 ## TASK-1803: Future roadmap review
-- Description: Confirm `architecture/multi-tenancy.md`, course `enrollmentType`, and quiz `question.type` extensibility points are genuinely ready for the Phase 46-style future features (payments, branding, live classes, etc.) without rewrites.
+- Description: Confirm `architecture/ownership-model.md`, course `enrollmentType`, and quiz `question.type` extensibility points are genuinely ready for the Phase 46-style future features (payments, branding, live classes, etc.) without rewrites.
 - Dependencies: TASK-1801
 - Status: Not Started

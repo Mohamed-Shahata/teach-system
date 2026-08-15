@@ -7,8 +7,10 @@ data touched, authorization rules, i18n/RTL notes, and edge cases.
 - `teacher-dashboard.md`
 - `courses.md`
 - `lessons.md`
+- `schedule.md`
 - `students.md`
 - `enrollment.md`
+- `payments.md`
 - `quizzes.md`
 - `files.md`
 - `public-pages.md`
