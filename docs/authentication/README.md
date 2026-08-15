@@ -43,6 +43,18 @@ the Admin controls who gets an account.
    (no email provider is configured; this reuses the existing
    password-reset flow).
 
+### Bootstrapping the first Admin (local/dev only)
+
+Account creation always requires an already-authenticated Admin caller
+(step 2 above), so the very first Admin account has no API path that
+can create it. `scripts/seed-dev-accounts.ts`
+(`npm run seed:dev-accounts`) is the one sanctioned exception: it talks
+to the Admin SDK directly to create one Admin and one Teacher account
+for local login, reusing `userRepository`/`teacherProfileRepository` so
+the resulting documents are shaped exactly like a real
+`accountService`-created account. It is a local script, not an HTTP
+endpoint — there is no in-app "create the first Admin" flow, by design.
+
 Implemented as `POST /api/admin/accounts` (Admin) and
 `POST /api/teacher/students` (Teacher) — `lib/server/services/accountService.ts`.
 A teacher optionally pre-enrolling a new student in one of their own

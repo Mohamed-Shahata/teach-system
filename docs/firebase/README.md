@@ -54,6 +54,8 @@ deployed via `firebase deploy --only firestore:indexes`):
 |---|---|
 | courses | `teacherId asc, status asc` |
 | courses | `teacherId asc, createdAt desc` |
+| schedule | `teacherId asc, dayOfWeek asc` |
+| schedule | `stageId asc, subjectId asc, dayOfWeek asc` |
 | lessons | `courseId asc, order asc` |
 | enrollments | `studentId asc, status asc` |
 | enrollments | `teacherId asc, courseId asc` |
@@ -61,10 +63,10 @@ deployed via `firebase deploy --only firestore:indexes`):
 
 ## Security Rules
 
-Full rules live in `firestore.rules` at the project root (TASK-601 —
-covers `users`, `teacherProfiles`, `educationStages`, `subjects`,
-`courses`; later phases extend the same pattern to `lessons`,
-`schedule`, `enrollments`, `quizzes`, `questions`, `quizAttempts`,
+Full rules live in `firestore.rules` at the project root (TASK-601 plus
+later feature phases). They currently cover `users`, `teacherProfiles`,
+`educationStages`, `subjects`, `courses`, and `schedule`; later phases
+extend the same pattern to `lessons`, `enrollments`, `quizzes`, `questions`, `quizAttempts`,
 `files`, `payments`). Structure:
 
 ```js

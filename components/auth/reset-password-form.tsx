@@ -19,7 +19,7 @@ const resetPasswordSchema = z
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "auth.register.errors.passwordMismatch",
+    message: "auth.resetPassword.errors.passwordMismatch",
     path: ["confirmPassword"],
   });
 type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
@@ -32,7 +32,7 @@ export function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const oobCode = searchParams.get("oobCode");
 
-  const [codeState, setCodeState] = React.useState<CodeState>("checking");
+  const [codeState, setCodeState] = React.useState<CodeState>(() => (oobCode ? "checking" : "invalid"));
   const [formError, setFormError] = React.useState<string | null>(null);
 
   const {
@@ -43,7 +43,6 @@ export function ResetPasswordForm() {
 
   React.useEffect(() => {
     if (!oobCode) {
-      setCodeState("invalid");
       return;
     }
     verifyPasswordResetCode(clientAuth, oobCode)

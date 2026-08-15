@@ -11,7 +11,8 @@ export interface SwitchProps {
 }
 
 export function Switch({ checked, onCheckedChange, disabled, label, id }: SwitchProps) {
-  const switchId = id ?? React.useId();
+  const generatedId = React.useId();
+  const switchId = id ?? generatedId;
   return (
     <div className="inline-flex items-center">
       <button

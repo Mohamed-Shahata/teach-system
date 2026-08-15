@@ -30,7 +30,7 @@ function resolveErrorKey(err: unknown): string {
   return "errors.unexpected";
 }
 
-async function createSession(idToken: string) {
+async function createSession(idToken: string): Promise<{ role: "admin" | "teacher" | "student" | null }> {
   const res = await fetch("/api/auth/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -41,6 +41,9 @@ async function createSession(idToken: string) {
     const body = await res.json().catch(() => null);
     throw body?.error ?? new Error("session_failed");
   }
+
+  const body = await res.json();
+  return { role: body.role ?? null };
 }
 
 function GoogleIcon() {
@@ -84,9 +87,9 @@ export function LoginForm() {
     try {
       const credential = await signInWithEmailAndPassword(clientAuth, data.email, data.password);
       const idToken = await credential.user.getIdToken();
-      await createSession(idToken);
+      const { role } = await createSession(idToken);
 
-      router.push("/dashboard");
+      router.push(`/${locale}/${role ?? ""}`);
       router.refresh();
     } catch (err) {
       setFormError(resolveErrorKey(err));
@@ -100,9 +103,9 @@ export function LoginForm() {
       const provider = new GoogleAuthProvider();
       const credential = await signInWithPopup(clientAuth, provider);
       const idToken = await credential.user.getIdToken();
-      await createSession(idToken);
+      const { role } = await createSession(idToken);
 
-      router.push("/dashboard");
+      router.push(`/${locale}/${role ?? ""}`);
       router.refresh();
     } catch (err) {
       const key = resolveErrorKey(err);
@@ -160,13 +163,6 @@ export function LoginForm() {
       >
         {t("auth.login.continueWithGoogle")}
       </Button>
-
-      <p className="text-center text-sm text-foreground/60">
-        {t("auth.login.noAccount")}{" "}
-        <Link href={`/${locale}/register`} className="font-medium text-primary hover:underline">
-          {t("auth.login.signUp")}
-        </Link>
-      </p>
     </div>
   );
 }

@@ -6,7 +6,7 @@ app/
     (public)/
       page.tsx                      # marketing/landing
       login/page.tsx
-      register/page.tsx
+      forgot-password/page.tsx
       reset-password/page.tsx
       teachers/[slug]/page.tsx      # public teacher profile
       courses/[slug]/page.tsx       # public course page
@@ -29,7 +29,9 @@ app/
         ...
     layout.tsx                      # sets <html lang dir>, providers
   api/
-    auth/{register,session,logout}/route.ts
+    auth/{session,logout}/route.ts
+    admin/accounts/route.ts         # Admin creates teacher/student accounts
+    teacher/students/route.ts       # Teacher creates student accounts
     courses/route.ts
     courses/[courseId]/route.ts
     lessons/route.ts

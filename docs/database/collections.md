@@ -80,6 +80,9 @@ Purpose: public + private profile data for a teacher.
 | isPublic | boolean | yes | default true |
 | stats.totalStudents | number | yes | denormalized counter |
 | stats.totalCourses | number | yes | denormalized counter |
+| stats.totalPublishedCourses | number | yes | denormalized counter |
+| stats.totalLessons | number | yes | denormalized counter |
+| stats.totalEnrollments | number | yes | denormalized counter |
 | createdAt / updatedAt | timestamp | yes | |
 
 Relationships: 1:1 with `users/{teacherId}` where `role == "teacher"`.

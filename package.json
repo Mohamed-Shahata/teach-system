@@ -11,6 +11,7 @@
     "check-contrast": "tsx scripts/check-contrast.ts",
     "check-translations": "tsx scripts/check-translations.ts",
     "check-rtl": "tsx scripts/check-rtl-ltr.ts",
+    "seed:dev-accounts": "tsx scripts/seed-dev-accounts.ts",
     "test": "vitest run"
   },
   "dependencies": {

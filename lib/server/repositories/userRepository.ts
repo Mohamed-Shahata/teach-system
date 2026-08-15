@@ -9,13 +9,11 @@ export interface UserDoc {
   role: UserRole;
   /**
    * Who created this account — an Admin (any role) or a Teacher (student
-   * accounts only), per `database/collections.md`. Optional on the type
-   * only because `authService.registerUser` (self-registration) doesn't
-   * set it yet; that code path is being removed in TASK-605, at which
-   * point this can become required. Every account created via TASK-604's
-   * `accountService` always sets it.
+   * accounts only), per `database/collections.md`. There is no
+   * self-registration path (removed in TASK-605), so every account is
+   * created via TASK-604's `accountService`, which always sets this.
    */
-  createdBy?: { uid: string; role: "admin" | "teacher" };
+  createdBy: { uid: string; role: "admin" | "teacher" };
   /** ref into `educationStages` — required for students, optional otherwise. */
   stageId?: string;
   createdAt: number;

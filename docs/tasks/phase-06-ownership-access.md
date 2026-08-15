@@ -95,4 +95,43 @@
 ## TASK-605: Remove public self-registration
 - Description: Delete the open sign-up page and route from Phase 4 (`app/[locale]/(public)/register/*`, `app/api/auth/register/*`, `components/auth/register-form.tsx`) and any registration-specific validation/tests, since account creation is now admin/teacher-only (TASK-604). Update `authService`/`userRepository` tests accordingly.
 - Dependencies: TASK-604
-- Status: Not Started
+- Status: Done
+
+> Note: `app/[locale]/(public)/register/*`, `app/api/auth/register/*`, and
+> `components/auth/register-form.tsx` were already absent from the tree
+> when this task was picked up — only the dependent code was left behind:
+> - Removed `lib/server/services/authService.ts` (only export was
+>   `registerUser`, unused by anything else) and its test file.
+> - Removed `registerSchema`/`registerFormSchema`/`registrationRoleSchema`
+>   and their inferred types from `lib/validation/auth.schema.ts`, keeping
+>   only `roleSchema`/`UserRole`.
+> - `lib/server/repositories/userRepository.ts`: `UserDoc.createdBy` is now
+>   required (was optional only for `authService.registerUser`'s sake,
+>   per that field's own TODO). `accountService.provisionAccount` — the
+>   only remaining caller of `userRepository.create` — always sets it, so
+>   no data-shape change is needed elsewhere.
+> - `components/auth/login-form.tsx`: removed the "Don't have an account?
+>   Sign up" link to the now-nonexistent `/register` route.
+> - `components/auth/reset-password-form.tsx` was pointing its
+>   password-mismatch validation message at `auth.register.errors.*`
+>   (leftover cross-reference); repointed to a new
+>   `auth.resetPassword.errors.passwordMismatch` key.
+> - `messages/en.json` / `messages/ar.json`: removed the `auth.register`
+>   namespace and `auth.login.noAccount`/`auth.login.signUp`; added
+>   `auth.resetPassword.errors.passwordMismatch` (en + ar).
+> - `docs/architecture/folder-structure.md` updated: dropped
+>   `register/page.tsx` and `auth/register/route.ts` from the tree,
+>   listed `forgot-password/page.tsx` (existed but was missing from the
+>   doc) and the real `admin/accounts` / `teacher/students` routes from
+>   TASK-604.
+> - `docs/authentication/README.md` and `docs/features/authentication.md`
+>   already documented the no-self-registration state correctly; no
+>   change needed there.
+> No dedicated `userRepository.test.ts` exists to update (repository has
+> no tests file in this codebase yet). Could not run `npm test` /
+> `check-translations` / typecheck — no `node_modules` and no network in
+> this sandbox (same limitation noted on TASK-601/402/603); all removals
+> were verified by exhaustive `grep` for `register`/`authService`/the
+> removed schema and type names across `app`, `components`, `lib`, and
+> `messages`, with none left dangling. Recommend running the full test
+> suite and `npm run check-translations` in CI/locally before merge.

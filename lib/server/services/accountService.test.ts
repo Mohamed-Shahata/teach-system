@@ -16,6 +16,13 @@ vi.mock("@/lib/server/repositories/userRepository", () => ({
 }));
 
 vi.mock("@/lib/server/repositories/teacherProfileRepository", () => ({
+  EMPTY_TEACHER_PROFILE_STATS: {
+    totalStudents: 0,
+    totalCourses: 0,
+    totalPublishedCourses: 0,
+    totalLessons: 0,
+    totalEnrollments: 0,
+  },
   teacherProfileRepository: { create: createTeacherProfile },
 }));
 

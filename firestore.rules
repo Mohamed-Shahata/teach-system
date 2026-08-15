@@ -3,8 +3,8 @@ rules_version = '2';
 // Firestore Security Rules v1 — TASK-601.
 //
 // Scope (per docs/tasks/phase-06-ownership-access.md TASK-601): users,
-// teacherProfiles, educationStages, subjects, courses. Later phases add
-// rules for lessons, schedule, enrollments, quizzes, questions,
+// teacherProfiles, educationStages, subjects, courses. TASK-703 adds
+// schedule. Later phases add rules for lessons, enrollments, quizzes, questions,
 // quizAttempts, files, payments — following the same isOwner(teacherId)
 // pattern documented in docs/architecture/ownership-model.md.
 //
@@ -114,6 +114,18 @@ service cloud.firestore {
       allow update, delete: if isOwner(resource.data.teacherId)
         // teacherId is set once at creation and can never be reassigned
         // to another teacher via a later update.
+        && request.resource.data.teacherId == resource.data.teacherId;
+    }
+
+    // ---------------------------------------------------------------
+    // schedule/{scheduleId} — recurring weekly slots, teacher-owned.
+    // ---------------------------------------------------------------
+    match /schedule/{scheduleId} {
+      allow read: if true;
+
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+
+      allow update, delete: if isOwner(resource.data.teacherId)
         && request.resource.data.teacherId == resource.data.teacherId;
     }
   }

@@ -76,7 +76,6 @@ export function handleApiError(err: unknown): NextResponse<ApiErrorBody> {
   }
 
   const requestId = crypto.randomUUID();
-  // eslint-disable-next-line no-console -- intentional server-side error log
   console.error(`[${requestId}] Unhandled error:`, err);
 
   return NextResponse.json(

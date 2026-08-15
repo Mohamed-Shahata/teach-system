@@ -27,8 +27,8 @@ Status: Not Started | In Progress | Blocked | Done
 | 4 | Authentication | Done |
 | 5 | Authorization | Done |
 | 6 | Ownership & Access Rules (Center: Admin + Teachers) | In Progress |
-| 7 | Teacher Dashboard | Not Started |
-| 8 | Course Management | Not Started |
+| 7 | Teacher Dashboard | In Progress |
+| 8 | Course Management | In Progress |
 | 9 | Lesson Management | Not Started |
 | 10 | Student Management | Not Started |
 | 11 | Enrollment | Not Started |
@@ -39,5 +39,6 @@ Status: Not Started | In Progress | Blocked | Done
 | 16 | Testing | Not Started |
 | 17 | Deployment | Not Started |
 | 18 | MVP Finalization | Not Started |
+| 19 | Admin Dashboard & System Analytics | Not Started |
 
 Before starting any task, follow `development/ai-agent-workflow.md`.

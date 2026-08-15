@@ -1,7 +1,10 @@
 import "server-only";
 import { adminAuth } from "@/lib/server/firebaseAdmin";
 import { userRepository } from "@/lib/server/repositories/userRepository";
-import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
+import {
+  EMPTY_TEACHER_PROFILE_STATS,
+  teacherProfileRepository,
+} from "@/lib/server/repositories/teacherProfileRepository";
 import { assertRole } from "@/lib/auth/guards";
 import { ConflictError } from "@/lib/errors";
 import type { Session } from "@/lib/auth/session";
@@ -106,13 +109,13 @@ async function provisionAccount(params: ProvisionAccountParams): Promise<Created
         teacherId: uid,
         displayName: params.displayName,
         isPublic: false,
+        stats: { ...EMPTY_TEACHER_PROFILE_STATS },
         createdAt,
       });
     }
   } catch (err) {
     // Roll back the Auth-only account so a failed Firestore write doesn't
-    // leave an orphaned account nobody can see or recreate — same pattern
-    // as authService.registerUser's rollback.
+    // leave an orphaned account nobody can see or recreate.
     await adminAuth.deleteUser(uid).catch(() => {});
     throw err;
   }

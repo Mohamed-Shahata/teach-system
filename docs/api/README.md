@@ -24,6 +24,7 @@ Error:
 | POST | `/api/auth/logout` | clear session | authenticated |
 | POST | `/api/admin/accounts` | create a teacher or student account | admin |
 | POST | `/api/teacher/students` | create a student account | teacher |
+| GET/POST/PATCH/DELETE | `/api/teacher/schedule` | manage recurring weekly schedule slots | teacher |
 | GET/POST | `/api/courses` | list/create teacher's courses | teacher |
 | GET/PATCH/DELETE | `/api/courses/[courseId]` | manage one course | teacher (owner) |
 | GET/POST | `/api/courses/[courseId]/lessons` | list/create lessons | teacher (owner) / student (enrolled, read) |

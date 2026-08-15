@@ -23,29 +23,6 @@
     "required": "This field is required"
   },
   "auth": {
-    "register": {
-      "title": "Create an account",
-      "subtitle": "Sign up as a teacher or a student",
-      "fields": {
-        "displayName": "Full name",
-        "email": "Email",
-        "password": "Password",
-        "confirmPassword": "Confirm password",
-        "role": "I am a"
-      },
-      "roles": {
-        "teacher": "Teacher",
-        "student": "Student"
-      },
-      "submit": "Create account",
-      "tagline": "Learning, teaching, and progress — all in one place.",
-      "haveAccount": "Already have an account?",
-      "signIn": "Sign in",
-      "errors": {
-        "emailInUse": "An account with this email already exists.",
-        "passwordMismatch": "Passwords do not match."
-      }
-    },
     "login": {
       "title": "Sign in",
       "subtitle": "Sign in to your account",
@@ -57,8 +34,6 @@
       "forgotPassword": "Forgot your password?",
       "divider": "Or",
       "continueWithGoogle": "Continue with Google",
-      "noAccount": "Don't have an account?",
-      "signUp": "Sign up",
       "welcomeBack": "Welcome back",
       "tagline": "Learning, teaching, and progress — all in one place.",
       "errors": {
@@ -92,15 +67,91 @@
       "submit": "Save new password",
       "tagline": "Choose a strong password to keep your account secure.",
       "successMessage": "Your password has been updated.",
-      "invalidLink": "This reset link is invalid or has expired. Please request a new one."
+      "invalidLink": "This reset link is invalid or has expired. Please request a new one.",
+      "errors": {
+        "passwordMismatch": "Passwords do not match."
+      }
     }
   },
   "errors": {
-    "notFound": "Not found.",
+    "notFound": "Page not found.",
+    "notFoundDescription": "The page you're looking for doesn't exist or may have been moved.",
+    "backHome": "Back to home",
+    "tryAgain": "Try again",
     "forbidden": "You don't have permission to do that.",
     "validation": "Please check the information you entered.",
     "conflict": "This conflicts with an existing record.",
     "unauthorized": "Please sign in again.",
     "unexpected": "Something went wrong. Please try again."
+  },
+  "teacherDashboard": {
+    "nav": {
+      "landmark": "Teacher dashboard navigation",
+      "brand": "Teacher Hub",
+      "subtitle": "Academic Portal",
+      "overview": "Overview",
+      "courses": "Courses",
+      "students": "Students",
+      "exams": "Exams",
+      "files": "Files",
+      "settings": "Settings",
+      "createCourse": "Create Course"
+    },
+    "greeting": "Hi, {name}",
+    "topbarTitle": "Teacher Dashboard",
+    "openMenu": "Open menu",
+    "searchLabel": "Search dashboard",
+    "searchPlaceholder": "Search...",
+    "overviewSubtitle": "A quick snapshot of your students, courses, lessons, and enrollments.",
+    "stats": {
+      "students": "Students",
+      "courses": "Courses",
+      "publishedCourses": "Published courses",
+      "lessons": "Lessons",
+      "enrollments": "Enrollments"
+    },
+    "statsCaptions": {
+      "students": "Across your classes",
+      "courses": "Active outlines",
+      "publishedCourses": "Visible to learners",
+      "lessons": "Total materials",
+      "enrollments": "Across all courses"
+    },
+    "schedule": {
+      "title": "Weekly schedule",
+      "subtitle": "Manage your recurring class slots.",
+      "empty": "No schedule slots yet.",
+      "emptyTitle": "No upcoming classes",
+      "emptyDescription": "Your schedule is looking a bit empty. Add a new slot to start filling up your week.",
+      "addTitle": "Add Schedule Slot",
+      "editTitle": "Edit Schedule Slot",
+      "formSubtitle": "Create or update a recurring session.",
+      "add": "Add slot",
+      "update": "Update slot",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "duration": "{count} min",
+      "columns": {
+        "when": "When",
+        "subject": "Subject",
+        "stage": "Stage",
+        "actions": "Actions"
+      },
+      "fields": {
+        "dayOfWeek": "Day",
+        "startTime": "Start time",
+        "durationMinutes": "Duration minutes",
+        "subjectId": "Subject ID",
+        "stageId": "Stage ID",
+        "courseId": "Course ID",
+        "labelEn": "English note",
+        "labelAr": "Arabic note"
+      },
+      "errors": {
+        "save": "Could not save this schedule slot.",
+        "delete": "Could not delete this schedule slot."
+      }
+    }
   }
 }
