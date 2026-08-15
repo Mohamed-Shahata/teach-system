@@ -1,7 +1,9 @@
 import "server-only";
-import { assertRole } from "@/lib/auth/guards";
+import { assertRole, assertTeacherOwnsResource } from "@/lib/auth/guards";
 import type { Session } from "@/lib/auth/session";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 import { courseService } from "@/lib/server/services/courseService";
+import { lessonRepository } from "@/lib/server/repositories/lessonRepository";
 import { signCloudinaryUpload, type CloudinarySignature } from "@/lib/server/cloudinary";
 import type { SignUploadInput } from "@/lib/validation/upload.schema";
 
@@ -23,9 +25,8 @@ export const uploadService = {
 };
 
 async function resolveFolder(session: Session, input: SignUploadInput): Promise<string> {
-  // Only one target exists today; a switch keeps this ready to extend
-  // (lesson video/files, avatar, ...) in later phases without reshaping
-  // the function.
+  // A switch keeps this ready to extend (avatar, ...) in later phases
+  // without reshaping the function.
   switch (input.target) {
     case "course-thumbnail": {
       if (input.courseId) {
@@ -39,6 +40,24 @@ async function resolveFolder(session: Session, input: SignUploadInput): Promise<
       // on the course once created; nothing here depends on the final
       // courseId.
       return `teachers/${session.uid}/courses/_pending/thumbnail`;
+    }
+    case "lesson-file": {
+      if (!input.lessonId) {
+        throw new ValidationError();
+      }
+      // The lesson must already exist (a file is always attached to an
+      // existing lesson) — its own `courseId` is used to build the
+      // folder rather than trusting a client-supplied one.
+      const lesson = await lessonRepository.findById(input.lessonId);
+      if (!lesson) {
+        throw new NotFoundError();
+      }
+      assertTeacherOwnsResource(session, lesson);
+      return `teachers/${session.uid}/courses/${lesson.courseId}/lessons/${lesson.id}/files`;
+    }
+    default: {
+      const _exhaustive: never = input.target;
+      throw new ValidationError();
     }
   }
 }

@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Alert, Badge, Button, Dialog, EmptyState, Input, Select, Textarea } from "@/components/ui";
 import { VideoPlayer } from "@/components/lesson/video-player";
+import { LessonFileManager } from "@/components/lesson/lesson-file-manager";
 import type { LessonDoc } from "@/lib/server/repositories/lessonRepository";
 import type { VideoProvider } from "@/lib/validation/lesson.schema";
 
@@ -80,6 +81,7 @@ export function LessonManager({ courseId, initialLessons }: LessonManagerProps) 
   const [dragId, setDragId] = React.useState<string | null>(null);
   const [dragOverId, setDragOverId] = React.useState<string | null>(null);
   const [previewId, setPreviewId] = React.useState<string | null>(null);
+  const [filesOpenId, setFilesOpenId] = React.useState<string | null>(null);
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -246,6 +248,14 @@ export function LessonManager({ courseId, initialLessons }: LessonManagerProps) 
                       {previewId === lesson.id ? t("hidePreview") : t("preview")}
                     </Button>
                   )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFilesOpenId((current) => (current === lesson.id ? null : lesson.id))}
+                  >
+                    {filesOpenId === lesson.id ? t("files.hide") : t("files.title")}
+                  </Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(lesson)}>
                     {t("edit")}
                   </Button>
@@ -257,6 +267,7 @@ export function LessonManager({ courseId, initialLessons }: LessonManagerProps) 
               {previewId === lesson.id && lesson.video && (
                 <VideoPlayer video={lesson.video} title={lesson.title.en || lesson.title.ar} className="max-w-xl" />
               )}
+              {filesOpenId === lesson.id && <LessonFileManager lessonId={lesson.id} />}
             </li>
           ))}
         </ul>

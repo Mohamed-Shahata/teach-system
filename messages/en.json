@@ -263,7 +263,24 @@
         "reorder": "Could not save the new order."
       },
       "preview": "Preview",
-      "hidePreview": "Hide preview"
+      "hidePreview": "Hide preview",
+      "files": {
+        "title": "Files",
+        "hide": "Hide files",
+        "upload": "Upload file",
+        "empty": "No files attached yet.",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "deleteConfirmTitle": "Delete this file?",
+        "deleteConfirmDescription": "This removes the file from Cloudinary and the lesson. This can't be undone.",
+        "confirmDelete": "Delete file",
+        "errors": {
+          "load": "Could not load files.",
+          "upload": "Could not upload this file.",
+          "delete": "Could not delete this file.",
+          "tooLarge": "This file is too large (max 20 MB)."
+        }
+      }
     },
     "students": {
       "title": "Students",

@@ -11,17 +11,38 @@ export interface UploadImageResult {
   publicId: string;
 }
 
+/** Cloudinary's own `resource_type` values — mirrors `resourceTypeFromMimeType` in `lib/server/cloudinary.ts`, kept as a separate small copy so the client bundle never pulls in the `server-only` module. */
+export function resourceTypeForMimeType(mimeType: string): "image" | "video" | "raw" {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  return "raw";
+}
+
+interface SignAndUploadOptions {
+  target: UploadTarget;
+  courseId?: string;
+  lessonId?: string;
+  file: File;
+  resourceType: "image" | "video" | "raw";
+}
+
 /**
  * Client-side half of the signed-upload flow (docs/cloudinary/README.md):
  * ask our server for a signature scoped to an authorized folder, then
  * upload the file bytes directly to Cloudinary — never through our own
  * server. `CLOUDINARY_API_SECRET` is never present in this module.
  */
-export async function uploadImage({ target, courseId, file }: UploadImageOptions): Promise<UploadImageResult> {
+async function signAndUpload({
+  target,
+  courseId,
+  lessonId,
+  file,
+  resourceType,
+}: SignAndUploadOptions): Promise<UploadImageResult> {
   const signRes = await fetch("/api/uploads/sign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ target, ...(courseId ? { courseId } : {}) }),
+    body: JSON.stringify({ target, ...(courseId ? { courseId } : {}), ...(lessonId ? { lessonId } : {}) }),
   });
   if (!signRes.ok) {
     throw new Error("sign-failed");
@@ -41,7 +62,7 @@ export async function uploadImage({ target, courseId, file }: UploadImageOptions
   formData.append("signature", signature);
   formData.append("folder", folder);
 
-  const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+  const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
     method: "POST",
     body: formData,
   });
@@ -50,4 +71,37 @@ export async function uploadImage({ target, courseId, file }: UploadImageOptions
   }
   const body = (await uploadRes.json()) as { secure_url: string; public_id: string };
   return { secureUrl: body.secure_url, publicId: body.public_id };
+}
+
+export async function uploadImage({ target, courseId, file }: UploadImageOptions): Promise<UploadImageResult> {
+  return signAndUpload({ target, courseId, file, resourceType: "image" });
+}
+
+export interface UploadLessonFileOptions {
+  lessonId: string;
+  file: File;
+}
+
+export interface UploadLessonFileResult extends UploadImageResult {
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+}
+
+/**
+ * Signs + uploads a lesson attachment (any MIME type — PDF, image,
+ * video, ...) to Cloudinary, resolving `resource_type` from the file's
+ * own MIME type. Callers still need to `POST /api/files` with the
+ * result to persist the metadata (see `fileService.createFile`,
+ * TASK-1302) — this function only performs the Cloudinary half.
+ */
+export async function uploadLessonFile({ lessonId, file }: UploadLessonFileOptions): Promise<UploadLessonFileResult> {
+  const fileType = file.type || "application/octet-stream";
+  const { secureUrl, publicId } = await signAndUpload({
+    target: "lesson-file",
+    lessonId,
+    file,
+    resourceType: resourceTypeForMimeType(fileType),
+  });
+  return { secureUrl, publicId, fileName: file.name, fileType, fileSize: file.size };
 }

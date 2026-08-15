@@ -47,3 +47,59 @@ export function signCloudinaryUpload({ folder, timestamp }: CloudinarySignatureP
 
   return { signature, timestamp, apiKey, cloudName, folder };
 }
+
+/** Cloudinary's own `resource_type` values, per the Admin `destroy` API. */
+export type CloudinaryResourceType = "image" | "video" | "raw";
+
+/**
+ * Deletes an uploaded asset from Cloudinary via the Admin `destroy`
+ * endpoint (docs/cloudinary/README.md "Deletion strategy") — used before
+ * removing the corresponding Firestore document so a Cloudinary failure
+ * never leaves an orphaned Firestore reference (docs/security/error-handling.md
+ * "Cloudinary/Firestore compound operations").
+ *
+ * Cloudinary treats destroying an already-gone `publicId` as success
+ * (`result: "not found"`), which this treats as success too — deletion is
+ * idempotent from the caller's point of view.
+ */
+export async function destroyCloudinaryUpload(
+  publicId: string,
+  resourceType: CloudinaryResourceType,
+): Promise<void> {
+  const apiSecret = getEnv("CLOUDINARY_API_SECRET");
+  const apiKey = getEnv("CLOUDINARY_API_KEY");
+  const cloudName = getEnv("CLOUDINARY_CLOUD_NAME");
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const paramsToSign = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+  const signature = createHash("sha1").update(paramsToSign).digest("hex");
+
+  const body = new URLSearchParams({
+    public_id: publicId,
+    timestamp: String(timestamp),
+    api_key: apiKey,
+    signature,
+  });
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/destroy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Cloudinary destroy failed: HTTP ${res.status}`);
+  }
+
+  const data = (await res.json()) as { result?: string };
+  if (data.result !== "ok" && data.result !== "not found") {
+    throw new Error(`Cloudinary destroy failed: result=${data.result ?? "unknown"}`);
+  }
+}
+
+/** Maps a stored MIME type (`files.fileType`) to Cloudinary's `resource_type`. */
+export function resourceTypeFromMimeType(mimeType: string): CloudinaryResourceType {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  return "raw";
+}

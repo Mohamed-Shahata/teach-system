@@ -2,9 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCourse = vi.fn();
 const signCloudinaryUpload = vi.fn();
+const findLessonById = vi.fn();
 
 vi.mock("@/lib/server/services/courseService", () => ({
   courseService: { getCourse },
+}));
+
+vi.mock("@/lib/server/repositories/lessonRepository", () => ({
+  lessonRepository: { findById: findLessonById },
 }));
 
 vi.mock("@/lib/server/cloudinary", () => ({
@@ -56,7 +61,7 @@ describe("uploadService.signUpload", () => {
     expect(result.folder).toBe("teachers/teacher-7/courses/course-1/thumbnail");
   });
 
-  it("propagates a not-found/forbidden error from the ownership check instead of signing", async () => {
+  it("propagates a not-found/forbidden error from the course ownership check instead of signing", async () => {
     const session = makeSession("teacher", "teacher-7");
     getCourse.mockRejectedValue(new NotFoundError());
 
@@ -64,5 +69,40 @@ describe("uploadService.signUpload", () => {
       uploadService.signUpload(session, { target: "course-thumbnail", courseId: "someone-elses-course" }),
     ).rejects.toBeInstanceOf(NotFoundError);
     expect(signCloudinaryUpload).not.toHaveBeenCalled();
+  });
+
+  it("rejects a lesson-file target without a lessonId", async () => {
+    const session = makeSession("teacher", "teacher-7");
+    await expect(uploadService.signUpload(session, { target: "lesson-file" })).rejects.toThrow();
+    expect(signCloudinaryUpload).not.toHaveBeenCalled();
+  });
+
+  it("throws NotFoundError for a lesson-file target with an unknown lessonId", async () => {
+    findLessonById.mockResolvedValue(null);
+    await expect(
+      uploadService.signUpload(makeSession("teacher", "teacher-7"), {
+        target: "lesson-file",
+        lessonId: "nope",
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("rejects a lesson-file target for another teacher's lesson", async () => {
+    findLessonById.mockResolvedValue({ id: "lesson-1", teacherId: "teacher-1", courseId: "course-1" });
+    await expect(
+      uploadService.signUpload(makeSession("teacher", "teacher-7"), {
+        target: "lesson-file",
+        lessonId: "lesson-1",
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("signs into the lesson's own course/lesson folder, derived from the lesson itself", async () => {
+    findLessonById.mockResolvedValue({ id: "lesson-1", teacherId: "teacher-7", courseId: "course-1" });
+    const session = makeSession("teacher", "teacher-7");
+
+    const result = await uploadService.signUpload(session, { target: "lesson-file", lessonId: "lesson-1" });
+
+    expect(result.folder).toBe("teachers/teacher-7/courses/course-1/lessons/lesson-1/files");
   });
 });

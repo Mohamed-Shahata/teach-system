@@ -33,7 +33,7 @@ Status: Not Started | In Progress | Blocked | Done
 | 10 | Student Management | Done |
 | 11 | Enrollment | In Progress |
 | 12 | Quiz / Exam System | Done |
-| 13 | File Management | Not Started |
+| 13 | File Management | Done |
 | 14 | Public Pages | Not Started |
 | 15 | Security | Not Started |
 | 16 | Testing | Not Started |
