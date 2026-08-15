@@ -3,8 +3,10 @@ import { assertRole } from "@/lib/auth/guards";
 import { requireSession } from "@/lib/auth/session";
 import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
 import { scheduleService } from "@/lib/server/services/scheduleService";
+import { paymentService } from "@/lib/server/services/paymentService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScheduleManager } from "@/components/teacher/schedule-manager";
+import { PaymentsQueue } from "@/components/teacher/payments-queue";
 
 /**
  * Teacher overview stats for TASK-702. Counters are denormalized on
@@ -19,6 +21,9 @@ export default async function TeacherDashboardPage() {
 
   const stats = await teacherProfileRepository.findStatsByTeacherId(session.uid);
   const scheduleSlots = await scheduleService.listSchedule(session);
+  const pendingPayments = (await paymentService.listForTeacher(session, "pending")).filter(
+    (payment) => payment.method === "vodafone_cash" || payment.method === "bank_transfer",
+  );
   const cards = [
     { key: "students", value: stats.totalStudents, tone: "bg-blue-50 text-blue-700" },
     { key: "courses", value: stats.totalCourses, tone: "bg-indigo-50 text-indigo-700" },
@@ -54,6 +59,8 @@ export default async function TeacherDashboardPage() {
       </div>
 
       <ScheduleManager initialSlots={scheduleSlots} />
+
+      <PaymentsQueue initialPayments={pendingPayments} />
     </div>
   );
 }

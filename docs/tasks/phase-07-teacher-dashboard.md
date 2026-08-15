@@ -68,9 +68,28 @@
 ## TASK-704: Pending manual payments queue
 - Description: List of `pending` manual (`vodafone_cash`/`bank_transfer`) payments for the teacher's own courses, with confirm/reject actions, per `features/payments.md`.
 - Dependencies: TASK-602, TASK-701, TASK-1104 (payments service)
-- Status: Blocked
+- Status: Done
 
-> Note: reached after TASK-703, but this queue cannot be implemented
-> honestly yet because its backing payments repository/service/state
-> machine is TASK-1104 and remains Not Started. Revisit immediately after
-> TASK-1104 lands; the teacher dashboard shell is ready to host it.
+> Note: unblocked now that TASK-1104 is Done. Added
+> `GET /api/teacher/payments` (optional `?status=` filter, backed by
+> `paymentService.listForTeacher`) and
+> `PATCH /api/teacher/payments/[paymentId]` (`{ status: "confirmed" |
+> "rejected" }`, dispatching to `paymentService.confirmManualPayment` /
+> `rejectManualPayment`). Role/ownership/state-machine checks all live in
+> the service (TASK-1104); the routes only authenticate and validate the
+> body shape, matching the existing route convention (see
+> `app/api/courses/route.ts`). `components/teacher/payments-queue.tsx`
+> (`PaymentsQueue`) renders the queue with confirm/reject actions and is
+> mounted on the teacher dashboard page, scoped client-side to
+> `vodafone_cash`/`bank_transfer` (the only methods that can be `pending`
+> until the online gateway from TASK-1105 exists). Route tests added
+> (`route.test.ts` for both routes, mocking `paymentService`, same
+> pattern as `app/api/teacher/schedule/route.test.ts`). i18n strings added
+> under `teacherDashboard.payments` in both `messages/en.json` and
+> `messages/ar.json` (`check-translations` passes, 222 keys in sync).
+> `check-rtl-ltr` passes. Not covered: a component-level test for
+> `PaymentsQueue` itself (none of the sibling manager components have one
+> either — `schedule-manager.tsx`/`course-manager.tsx` are untested at
+> the component level in this codebase) and the Admin "confirm on any
+> teacher's behalf" view mentioned in `features/payments.md`, which isn't
+> in scope for this task (no Admin dashboard yet — see Phase 19).

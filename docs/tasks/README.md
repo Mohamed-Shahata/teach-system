@@ -27,9 +27,9 @@ Status: Not Started | In Progress | Blocked | Done
 | 4 | Authentication | Done |
 | 5 | Authorization | Done |
 | 6 | Ownership & Access Rules (Center: Admin + Teachers) | In Progress |
-| 7 | Teacher Dashboard | In Progress |
+| 7 | Teacher Dashboard | Done |
 | 8 | Course Management | Done |
-| 9 | Lesson Management | In Progress |
+| 9 | Lesson Management | Done |
 | 10 | Student Management | In Progress |
 | 11 | Enrollment | In Progress |
 | 12 | Quiz / Exam System | Not Started |

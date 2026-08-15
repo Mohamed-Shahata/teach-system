@@ -286,6 +286,29 @@
         "create": "Could not create this student account.",
         "emailConflict": "An account with this email already exists."
       }
+    },
+    "payments": {
+      "title": "Pending payments",
+      "subtitle": "Manual Vodafone Cash / bank transfer payments awaiting your review.",
+      "emptyTitle": "No pending payments",
+      "emptyDescription": "You are all caught up — manual payments awaiting review will show up here.",
+      "columns": {
+        "student": "Student",
+        "method": "Method",
+        "amount": "Amount",
+        "actions": "Actions"
+      },
+      "methods": {
+        "vodafoneCash": "Vodafone Cash",
+        "bankTransfer": "Bank transfer",
+        "other": "Manual"
+      },
+      "confirm": "Confirm",
+      "reject": "Reject",
+      "errors": {
+        "confirm": "Could not confirm this payment.",
+        "reject": "Could not reject this payment."
+      }
     }
   }
 }
