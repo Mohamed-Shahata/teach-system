@@ -1,10 +1,12 @@
 import "server-only";
 import { assertRole } from "@/lib/auth/guards";
 import type { Session } from "@/lib/auth/session";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { courseRepository } from "@/lib/server/repositories/courseRepository";
 import { assertWritableByTeacher } from "@/lib/server/repositories/base";
 import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
+import { subjectRepository } from "@/lib/server/repositories/subjectRepository";
+import { educationStageRepository } from "@/lib/server/repositories/educationStageRepository";
 import type { CreateCourseInput, UpdateCourseInput } from "@/lib/validation/course.schema";
 
 function slugify(value: string): string {
@@ -27,6 +29,30 @@ async function assertSlugAvailable(teacherId: string, slug: string, existingCour
   }
 }
 
+/**
+ * Guards against a `subjectId`/`stageId` that doesn't reference a real
+ * `subjects`/`educationStages` document (TASK-1905's lookup collections —
+ * see `docs/database/collections.md`). The teacher-facing UI only ever
+ * sends ids from a `Select` populated by `centerConfigService`'s own
+ * lists, so this mainly protects a direct API call (or a stale client)
+ * from silently creating a course with a dangling reference — same
+ * "never trust client-supplied ids without a lookup" reasoning as the
+ * ownership guards in `lib/auth/guards.ts`. Runs both checks concurrently
+ * since they're independent reads.
+ */
+async function assertSubjectAndStageExist(subjectId?: string, stageId?: string) {
+  const [subject, stage] = await Promise.all([
+    subjectId ? subjectRepository.findById(subjectId) : Promise.resolve(undefined),
+    stageId ? educationStageRepository.findById(stageId) : Promise.resolve(undefined),
+  ]);
+  if (subjectId && !subject) {
+    throw new ValidationError("errors.validation");
+  }
+  if (stageId && !stage) {
+    throw new ValidationError("errors.validation");
+  }
+}
+
 export const courseService = {
   async listCourses(session: Session) {
     assertRole(session, "teacher");
@@ -45,6 +71,7 @@ export const courseService = {
 
   async createCourse(session: Session, input: CreateCourseInput) {
     assertRole(session, "teacher");
+    await assertSubjectAndStageExist(input.subjectId, input.stageId);
     const slug = slugify(input.title.en);
     await assertSlugAvailable(session.uid, slug);
     const now = Date.now();
@@ -76,6 +103,7 @@ export const courseService = {
     if (!existing) {
       throw new NotFoundError();
     }
+    await assertSubjectAndStageExist(input.subjectId, input.stageId);
     const slug = input.title ? slugify(input.title.en) : undefined;
     if (slug) {
       await assertSlugAvailable(existing.teacherId, slug, id);

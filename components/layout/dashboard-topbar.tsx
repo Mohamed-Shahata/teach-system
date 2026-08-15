@@ -81,7 +81,7 @@ export function DashboardTopbar({ displayName, onMenuClick }: DashboardTopbarPro
           </span>
           <LogoutButton
             size="sm"
-            className="text-error hover:bg-error hover:text-black"
+            className="border border-error/40 text-error hover:border-error hover:bg-error hover:text-white"
           />
         </div>
       </div>

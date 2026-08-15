@@ -5,8 +5,10 @@ import { requireSession } from "@/lib/auth/session";
 import { NotFoundError } from "@/lib/errors";
 import { courseService } from "@/lib/server/services/courseService";
 import { lessonService } from "@/lib/server/services/lessonService";
+import { quizService } from "@/lib/server/services/quizService";
 import { Breadcrumb } from "@/components/ui";
 import { LessonManager } from "@/components/teacher/lesson-manager";
+import { QuizManager } from "@/components/teacher/quiz-manager";
 
 /**
  * TASK-903: course detail page — currently just the lesson manager
@@ -29,6 +31,7 @@ export default async function TeacherCourseDetailPage({
     throw err;
   }
   const lessons = await lessonService.listLessons(session, courseId);
+  const quizzes = await quizService.listQuizzes(session, courseId);
 
   return (
     <div className="flex flex-col gap-4">
@@ -40,6 +43,7 @@ export default async function TeacherCourseDetailPage({
       />
       <h1 className="text-2xl font-semibold text-foreground">{course.title.en || course.title.ar}</h1>
       <LessonManager courseId={courseId} initialLessons={lessons} />
+      <QuizManager courseId={courseId} initialQuizzes={quizzes} />
     </div>
   );
 }

@@ -192,7 +192,8 @@
         "uploadThumbnail": "Upload image",
         "replaceThumbnail": "Replace image",
         "removeThumbnail": "Remove",
-        "noThumbnail": "No image"
+        "noThumbnail": "No image",
+        "selectPlaceholder": "Select..."
       },
       "hints": {
         "thumbnailUrl": "JPG or PNG, up to 5 MB."
@@ -338,6 +339,183 @@
       "errors": {
         "confirm": "Could not confirm this payment.",
         "reject": "Could not reject this payment."
+      }
+    },
+    "quizzes": {
+      "title": "Quizzes",
+      "subtitle": "Add, edit, and publish quizzes for this course.",
+      "newQuiz": "New quiz",
+      "emptyTitle": "No quizzes yet",
+      "emptyDescription": "Add your first quiz to start testing students on this course.",
+      "createTitle": "Create quiz",
+      "editTitle": "Edit quiz",
+      "formSubtitle": "Quiz titles are shown to students in both languages.",
+      "manageQuestions": "Manage questions",
+      "published": "Published",
+      "questionCount": "{count, plural, =0 {No questions} one {# question} other {# questions}}",
+      "status": {
+        "draft": "Draft",
+        "published": "Published"
+      },
+      "fields": {
+        "titleEn": "Title (English)",
+        "titleAr": "Title (Arabic)"
+      },
+      "create": "Create quiz",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete this quiz?",
+      "deleteConfirmDescription": "This removes the quiz and all of its questions. This can't be undone.",
+      "confirmDelete": "Delete quiz",
+      "errors": {
+        "load": "Could not load quizzes.",
+        "save": "Could not save this quiz.",
+        "delete": "Could not delete this quiz.",
+        "publish": "Could not update the quiz's status."
+      },
+      "questions": {
+        "title": "Questions",
+        "subtitle": "Add, edit, and reorder the questions in this quiz.",
+        "newQuestion": "New question",
+        "emptyTitle": "No questions yet",
+        "emptyDescription": "Add your first question to this quiz.",
+        "createTitle": "Create question",
+        "editTitle": "Edit question",
+        "formSubtitle": "Question text is shown to students in both languages.",
+        "correct": "Correct",
+        "removeOption": "Remove",
+        "addOption": "Add option",
+        "type": {
+          "multiple_choice": "Multiple choice",
+          "true_false": "True / False"
+        },
+        "fields": {
+          "type": "Question type",
+          "promptEn": "Question (English)",
+          "promptAr": "Question (Arabic)",
+          "options": "Answer options",
+          "optionEn": "Option (English)",
+          "optionAr": "Option (Arabic)"
+        },
+        "create": "Create question",
+        "save": "Save changes",
+        "cancel": "Cancel",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirmTitle": "Delete this question?",
+        "deleteConfirmDescription": "This removes the question from the quiz. This can't be undone.",
+        "confirmDelete": "Delete question",
+        "errors": {
+          "load": "Could not load questions.",
+          "save": "Could not save this question.",
+          "delete": "Could not delete this question.",
+          "reorder": "Could not save the new order.",
+          "correctAnswerRequired": "Select at least one correct answer."
+        }
+      }
+    }
+  },
+  "studentDashboard": {
+    "nav": {
+      "brand": "Student Hub",
+      "subtitle": "Learning Portal",
+      "landmark": "Student navigation",
+      "myCourses": "My courses"
+    },
+    "title": "My courses",
+    "subtitle": "Your enrolled courses and how far along you are in each one.",
+    "emptyTitle": "No courses yet",
+    "emptyDescription": "Courses you enroll in will show up here, along with your progress.",
+    "unknownCourse": "Course unavailable",
+    "progressLabel": "Course progress",
+    "progressCaption": "{percent}% complete — {completed} {completed, plural, one {lesson} other {lessons}} done",
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "studentQuiz": {
+    "breadcrumbCourses": "My courses",
+    "subtitle": "Answer every question, then submit to see your score.",
+    "scoreBadge": "Score: {score}%",
+    "resultSubtitle": "This is your most recent attempt.",
+    "previousAttempts": "Previous attempts",
+    "retake": "Retake quiz",
+    "submit": "Submit answers",
+    "errors": {
+      "incomplete": "Answer every question before submitting.",
+      "submit": "Could not submit your answers. Please try again."
+    }
+  },
+  "adminDashboard": {
+    "nav": {
+      "landmark": "Admin dashboard navigation",
+      "brand": "Admin Console",
+      "subtitle": "Center Management",
+      "overview": "Overview",
+      "education": "Education Setup"
+    },
+    "education": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save",
+      "create": "Create",
+      "confirmDelete": "Delete",
+      "errors": {
+        "save": "Couldn't save. Please try again.",
+        "delete": "Couldn't delete. Please try again."
+      },
+      "stages": {
+        "title": "Education Stages",
+        "subtitle": "Grade levels/stages taught at the center, used to filter and tag courses.",
+        "newStage": "New Stage",
+        "emptyTitle": "No stages yet",
+        "emptyDescription": "Add the center's grade levels so teachers can assign them to courses.",
+        "createTitle": "New Education Stage",
+        "editTitle": "Edit Education Stage",
+        "formSubtitle": "Stages appear in the course subject/stage selectors.",
+        "deleteConfirmTitle": "Delete this stage?",
+        "deleteConfirmDescription": "Courses already using this stage will keep the old id until updated.",
+        "columns": {
+          "order": "Order",
+          "name": "Name",
+          "category": "Category"
+        },
+        "fields": {
+          "nameEn": "Name (English)",
+          "nameAr": "Name (Arabic)",
+          "category": "Category",
+          "order": "Order"
+        },
+        "category": {
+          "nursery": "Nursery",
+          "primary": "Primary",
+          "prep": "Prep",
+          "secondary": "Secondary"
+        }
+      },
+      "subjects": {
+        "title": "Subjects",
+        "subtitle": "Subjects/specialties taught at the center, used to tag courses and teachers.",
+        "newSubject": "New Subject",
+        "emptyTitle": "No subjects yet",
+        "emptyDescription": "Add the center's subjects so teachers can assign them to courses.",
+        "createTitle": "New Subject",
+        "editTitle": "Edit Subject",
+        "formSubtitle": "Subjects appear in the course subject selector.",
+        "deleteConfirmTitle": "Delete this subject?",
+        "deleteConfirmDescription": "Courses already using this subject will keep the old id until updated.",
+        "columns": {
+          "name": "Name"
+        },
+        "fields": {
+          "nameEn": "Name (English)",
+          "nameAr": "Name (Arabic)"
+        }
       }
     }
   }

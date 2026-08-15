@@ -192,7 +192,8 @@
         "uploadThumbnail": "رفع صورة",
         "replaceThumbnail": "تغيير الصورة",
         "removeThumbnail": "إزالة",
-        "noThumbnail": "لا توجد صورة"
+        "noThumbnail": "لا توجد صورة",
+        "selectPlaceholder": "اختر..."
       },
       "hints": {
         "thumbnailUrl": "JPG أو PNG، بحد أقصى 5 ميجابايت."
@@ -338,6 +339,183 @@
       "errors": {
         "confirm": "تعذّر تأكيد هذه الدفعة.",
         "reject": "تعذّر رفض هذه الدفعة."
+      }
+    },
+    "quizzes": {
+      "title": "الاختبارات",
+      "subtitle": "أضف اختبارات هذه الدورة وعدّلها وانشرها.",
+      "newQuiz": "اختبار جديد",
+      "emptyTitle": "لا توجد اختبارات بعد",
+      "emptyDescription": "أضف أول اختبار لبدء تقييم الطلاب في هذه الدورة.",
+      "createTitle": "إنشاء اختبار",
+      "editTitle": "تعديل الاختبار",
+      "formSubtitle": "يظهر عنوان الاختبار للطلاب باللغتين.",
+      "manageQuestions": "إدارة الأسئلة",
+      "published": "منشور",
+      "questionCount": "{count, plural, =0 {لا توجد أسئلة} one {سؤال واحد} two {سؤالان} few {# أسئلة} many {# سؤالًا} other {# سؤال}}",
+      "status": {
+        "draft": "مسودة",
+        "published": "منشور"
+      },
+      "fields": {
+        "titleEn": "العنوان (إنجليزي)",
+        "titleAr": "العنوان (عربي)"
+      },
+      "create": "إنشاء اختبار",
+      "save": "حفظ التغييرات",
+      "cancel": "إلغاء",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleteConfirmTitle": "حذف هذا الاختبار؟",
+      "deleteConfirmDescription": "سيؤدي هذا إلى حذف الاختبار وجميع أسئلته. لا يمكن التراجع عن هذا الإجراء.",
+      "confirmDelete": "حذف الاختبار",
+      "errors": {
+        "load": "تعذّر تحميل الاختبارات.",
+        "save": "تعذّر حفظ هذا الاختبار.",
+        "delete": "تعذّر حذف هذا الاختبار.",
+        "publish": "تعذّر تحديث حالة الاختبار."
+      },
+      "questions": {
+        "title": "الأسئلة",
+        "subtitle": "أضف أسئلة هذا الاختبار وعدّلها وأعد ترتيبها.",
+        "newQuestion": "سؤال جديد",
+        "emptyTitle": "لا توجد أسئلة بعد",
+        "emptyDescription": "أضف أول سؤال إلى هذا الاختبار.",
+        "createTitle": "إنشاء سؤال",
+        "editTitle": "تعديل السؤال",
+        "formSubtitle": "يظهر نص السؤال للطلاب باللغتين.",
+        "correct": "صحيح",
+        "removeOption": "إزالة",
+        "addOption": "إضافة خيار",
+        "type": {
+          "multiple_choice": "اختيار من متعدد",
+          "true_false": "صواب / خطأ"
+        },
+        "fields": {
+          "type": "نوع السؤال",
+          "promptEn": "السؤال (إنجليزي)",
+          "promptAr": "السؤال (عربي)",
+          "options": "خيارات الإجابة",
+          "optionEn": "الخيار (إنجليزي)",
+          "optionAr": "الخيار (عربي)"
+        },
+        "create": "إنشاء سؤال",
+        "save": "حفظ التغييرات",
+        "cancel": "إلغاء",
+        "edit": "تعديل",
+        "delete": "حذف",
+        "deleteConfirmTitle": "حذف هذا السؤال؟",
+        "deleteConfirmDescription": "سيؤدي هذا إلى إزالة السؤال من الاختبار. لا يمكن التراجع عن هذا الإجراء.",
+        "confirmDelete": "حذف السؤال",
+        "errors": {
+          "load": "تعذّر تحميل الأسئلة.",
+          "save": "تعذّر حفظ هذا السؤال.",
+          "delete": "تعذّر حذف هذا السؤال.",
+          "reorder": "تعذّر حفظ الترتيب الجديد.",
+          "correctAnswerRequired": "اختر إجابة صحيحة واحدة على الأقل."
+        }
+      }
+    }
+  },
+  "studentDashboard": {
+    "nav": {
+      "brand": "مركز الطالب",
+      "subtitle": "بوابة التعلم",
+      "landmark": "قائمة تنقل الطالب",
+      "myCourses": "كورساتي"
+    },
+    "title": "كورساتي",
+    "subtitle": "الكورسات المسجل فيها ومدى تقدمك في كل واحد منها.",
+    "emptyTitle": "لا توجد كورسات بعد",
+    "emptyDescription": "الكورسات اللي هتسجل فيها هتظهر هنا مع نسبة تقدمك.",
+    "unknownCourse": "الكورس غير متاح",
+    "progressLabel": "تقدم الكورس",
+    "progressCaption": "{percent}% مكتمل — {completed} {completed, plural, one {درس} other {دروس}} تم إنهاؤها",
+    "status": {
+      "active": "نشط",
+      "completed": "مكتمل",
+      "cancelled": "ملغي"
+    }
+  },
+  "studentQuiz": {
+    "breadcrumbCourses": "كورساتي",
+    "subtitle": "أجب عن كل الأسئلة، ثم أرسل الإجابات لمعرفة نتيجتك.",
+    "scoreBadge": "النتيجة: {score}%",
+    "resultSubtitle": "هذه نتيجة آخر محاولة لك.",
+    "previousAttempts": "المحاولات السابقة",
+    "retake": "إعادة المحاولة",
+    "submit": "إرسال الإجابات",
+    "errors": {
+      "incomplete": "أجب عن كل الأسئلة قبل الإرسال.",
+      "submit": "تعذر إرسال إجاباتك. حاول مرة أخرى."
+    }
+  },
+  "adminDashboard": {
+    "nav": {
+      "landmark": "قائمة تنقل لوحة تحكم الأدمن",
+      "brand": "لوحة الأدمن",
+      "subtitle": "إدارة المركز",
+      "overview": "نظرة عامة",
+      "education": "إعداد المواد والمراحل"
+    },
+    "education": {
+      "edit": "تعديل",
+      "delete": "حذف",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "create": "إنشاء",
+      "confirmDelete": "حذف",
+      "errors": {
+        "save": "تعذر الحفظ، حاول مرة أخرى.",
+        "delete": "تعذر الحذف، حاول مرة أخرى."
+      },
+      "stages": {
+        "title": "المراحل الدراسية",
+        "subtitle": "المراحل/الصفوف الدراسية بالمركز، تُستخدم لتصنيف الكورسات.",
+        "newStage": "مرحلة جديدة",
+        "emptyTitle": "لا توجد مراحل بعد",
+        "emptyDescription": "أضف المراحل الدراسية بالمركز حتى يقدر المعلمون يربطوها بالكورسات.",
+        "createTitle": "مرحلة دراسية جديدة",
+        "editTitle": "تعديل مرحلة دراسية",
+        "formSubtitle": "المراحل تظهر في قوائم اختيار المادة/المرحلة عند إنشاء كورس.",
+        "deleteConfirmTitle": "حذف هذه المرحلة؟",
+        "deleteConfirmDescription": "الكورسات المرتبطة بهذه المرحلة هتفضل بالـ id القديم لحد ما يتحدث.",
+        "columns": {
+          "order": "الترتيب",
+          "name": "الاسم",
+          "category": "الفئة"
+        },
+        "fields": {
+          "nameEn": "الاسم (إنجليزي)",
+          "nameAr": "الاسم (عربي)",
+          "category": "الفئة",
+          "order": "الترتيب"
+        },
+        "category": {
+          "nursery": "حضانة",
+          "primary": "ابتدائي",
+          "prep": "إعدادي",
+          "secondary": "ثانوي"
+        }
+      },
+      "subjects": {
+        "title": "المواد الدراسية",
+        "subtitle": "المواد/التخصصات اللي بتُدرّس بالمركز، تُستخدم لتصنيف الكورسات والمعلمين.",
+        "newSubject": "مادة جديدة",
+        "emptyTitle": "لا توجد مواد بعد",
+        "emptyDescription": "أضف مواد المركز حتى يقدر المعلمون يربطوها بالكورسات.",
+        "createTitle": "مادة جديدة",
+        "editTitle": "تعديل مادة",
+        "formSubtitle": "المواد تظهر في قائمة اختيار المادة عند إنشاء كورس.",
+        "deleteConfirmTitle": "حذف هذه المادة؟",
+        "deleteConfirmDescription": "الكورسات المرتبطة بهذه المادة هتفضل بالـ id القديم لحد ما يتحدث.",
+        "columns": {
+          "name": "الاسم"
+        },
+        "fields": {
+          "nameEn": "الاسم (إنجليزي)",
+          "nameAr": "الاسم (عربي)"
+        }
       }
     }
   }

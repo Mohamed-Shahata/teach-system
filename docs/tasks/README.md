@@ -32,7 +32,7 @@ Status: Not Started | In Progress | Blocked | Done
 | 9 | Lesson Management | Done |
 | 10 | Student Management | Done |
 | 11 | Enrollment | In Progress |
-| 12 | Quiz / Exam System | Not Started |
+| 12 | Quiz / Exam System | Done |
 | 13 | File Management | Not Started |
 | 14 | Public Pages | Not Started |
 | 15 | Security | Not Started |

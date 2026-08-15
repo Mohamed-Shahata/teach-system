@@ -7,6 +7,8 @@ const create = vi.fn();
 const update = vi.fn();
 const deleteCourse = vi.fn();
 const incrementStats = vi.fn();
+const subjectFindById = vi.fn();
+const stageFindById = vi.fn();
 
 vi.mock("@/lib/server/repositories/courseRepository", () => ({
   courseRepository: { list, findById, findByTeacherAndSlug, create, update, delete: deleteCourse },
@@ -16,8 +18,16 @@ vi.mock("@/lib/server/repositories/teacherProfileRepository", () => ({
   teacherProfileRepository: { incrementStats },
 }));
 
+vi.mock("@/lib/server/repositories/subjectRepository", () => ({
+  subjectRepository: { findById: subjectFindById },
+}));
+
+vi.mock("@/lib/server/repositories/educationStageRepository", () => ({
+  educationStageRepository: { findById: stageFindById },
+}));
+
 const { courseService } = await import("./courseService");
-const { ConflictError, ForbiddenError, NotFoundError } = await import("@/lib/errors");
+const { ConflictError, ForbiddenError, NotFoundError, ValidationError } = await import("@/lib/errors");
 
 function makeSession(role: "admin" | "teacher" | "student", uid = "teacher-1") {
   return { uid, email: `${uid}@example.com`, role };
@@ -42,6 +52,8 @@ describe("courseService", () => {
     update.mockImplementation(async (_session, id, patch) => ({ id, teacherId: "teacher-1", status: "draft", ...patch }));
     deleteCourse.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "draft" });
     incrementStats.mockResolvedValue(undefined);
+    subjectFindById.mockResolvedValue({ id: "physics", name: { en: "Physics", ar: "فيزياء" }, createdAt: 1 });
+    stageFindById.mockResolvedValue({ id: "secondary-3", order: 12, name: { en: "Grade 3", ar: "3" }, category: "secondary" });
   });
 
   it("creates a draft course with a per-teacher slug and increments totalCourses", async () => {
@@ -90,6 +102,34 @@ describe("courseService", () => {
     await expect(courseService.updateCourse(makeSession("teacher"), "missing", { subjectId: "math" })).rejects.toBeInstanceOf(
       NotFoundError,
     );
+  });
+
+  it("rejects creating a course with a subjectId that doesn't exist", async () => {
+    subjectFindById.mockResolvedValue(null);
+
+    await expect(courseService.createCourse(makeSession("teacher"), createInput)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("rejects creating a course with a stageId that doesn't exist", async () => {
+    stageFindById.mockResolvedValue(null);
+
+    await expect(courseService.createCourse(makeSession("teacher"), createInput)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("rejects updating a course with a subjectId that doesn't exist", async () => {
+    findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "draft" });
+    subjectFindById.mockResolvedValue(null);
+
+    await expect(
+      courseService.updateCourse(makeSession("teacher"), "course-1", { subjectId: "unknown-subject" }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("increments published counter only on draft to published transition", async () => {

@@ -140,7 +140,7 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
                 src="/illustrations/empty-schedule.jpg"
                 alt=""
                 aria-hidden="true"
-                className="mb-6 w-full max-w-xs rounded-lg object-contain"
+                className="empty-schedule-illustration mb-6 aspect-square w-48 max-w-full rounded-full object-cover"
               />
               <h3 className="text-base font-semibold text-foreground">{t("emptyTitle")}</h3>
               <p className="mt-2 max-w-xs text-sm leading-6 text-foreground/60">{t("emptyDescription")}</p>

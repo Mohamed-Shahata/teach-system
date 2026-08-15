@@ -17,12 +17,18 @@ import {
 } from "@/components/ui";
 import type { Column } from "@/components/ui/table";
 import type { CourseDoc } from "@/lib/server/repositories/courseRepository";
+import type { SubjectDoc } from "@/lib/server/repositories/subjectRepository";
+import type { EducationStageDoc } from "@/lib/server/repositories/educationStageRepository";
 import { uploadImage } from "@/lib/client/upload";
 
 const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
 
 interface CourseManagerProps {
   initialCourses: CourseDoc[];
+  /** From `centerConfigService.listSubjects` (TASK-1905) — populates the subject `Select`. */
+  subjects: SubjectDoc[];
+  /** From `centerConfigService.listEducationStages` (TASK-1905) — populates the stage `Select`. */
+  stages: EducationStageDoc[];
 }
 
 interface FormState {
@@ -88,9 +94,17 @@ function toRequestBody(form: FormState) {
   };
 }
 
-export function CourseManager({ initialCourses }: CourseManagerProps) {
+export function CourseManager({ initialCourses, subjects, stages }: CourseManagerProps) {
   const t = useTranslations("teacherDashboard.courses");
   const locale = useLocale();
+  const subjectName = React.useCallback(
+    (subjectId: string) => subjects.find((subject) => subject.id === subjectId)?.name[locale as "en" | "ar"] ?? subjectId,
+    [subjects, locale],
+  );
+  const stageName = React.useCallback(
+    (stageId: string) => stages.find((stage) => stage.id === stageId)?.name[locale as "en" | "ar"] ?? stageId,
+    [stages, locale],
+  );
   const [courses, setCourses] = React.useState(initialCourses);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [form, setForm] = React.useState<FormState>(EMPTY_FORM);
@@ -217,8 +231,8 @@ export function CourseManager({ initialCourses }: CourseManagerProps) {
 
   const columns: Column<CourseDoc>[] = [
     { key: "title", header: t("columns.title"), render: (course) => course.title.en || course.title.ar },
-    { key: "subjectId", header: t("columns.subject") },
-    { key: "stageId", header: t("columns.stage") },
+    { key: "subjectId", header: t("columns.subject"), render: (course) => subjectName(course.subjectId) },
+    { key: "stageId", header: t("columns.stage"), render: (course) => stageName(course.stageId) },
     {
       key: "status",
       header: t("columns.status"),
@@ -316,14 +330,24 @@ export function CourseManager({ initialCourses }: CourseManagerProps) {
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Input
+            <Select
               label={t("fields.subjectId")}
+              placeholder={t("fields.selectPlaceholder")}
+              options={subjects.map((subject) => ({
+                value: subject.id,
+                label: subject.name[locale as "en" | "ar"] || subject.name.en,
+              }))}
               value={form.subjectId}
               onChange={(event) => updateField("subjectId", event.target.value)}
               required
             />
-            <Input
+            <Select
               label={t("fields.stageId")}
+              placeholder={t("fields.selectPlaceholder")}
+              options={stages.map((stage) => ({
+                value: stage.id,
+                label: stage.name[locale as "en" | "ar"] || stage.name.en,
+              }))}
               value={form.stageId}
               onChange={(event) => updateField("stageId", event.target.value)}
               required
