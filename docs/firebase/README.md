@@ -113,3 +113,9 @@ in sync with the service-layer authorization logic.
 ## Environment variables
 
 See `deployment/environment-variables.md` for the full list.
+
+## Project
+
+Firebase project id: `teach-system-601ce` (Auth + Firestore enabled).
+Credentials live only in local `.env.local` / Vercel env vars — never in
+the repo (see TASK-104).

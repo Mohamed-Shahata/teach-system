@@ -21,8 +21,8 @@ Status: Not Started | In Progress | Blocked | Done
 
 | Phase | Name | Status |
 |---|---|---|
-| 1 | Project Foundation | Not Started |
-| 2 | Design System | Not Started |
+| 1 | Project Foundation | Done |
+| 2 | Design System | In Progress |
 | 3 | Internationalization | Not Started |
 | 4 | Authentication | Not Started |
 | 5 | Authorization | Not Started |

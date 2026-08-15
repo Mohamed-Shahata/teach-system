@@ -8,7 +8,7 @@
 - Acceptance criteria: all tokens present; automated contrast check passes.
 - Testing requirements: `scripts/check-contrast.ts`
 - Documentation requirements: none (already documented)
-- Status: Not Started
+- Status: Done
 
 ## TASK-202: Theme provider (light/dark)
 - Description: Implement `ThemeProvider`, cookie-based persistence, server-rendered `data-theme`, per `design-system/theming.md`.
@@ -17,7 +17,7 @@
 - Affected modules: `components/theme/*`, `app/[locale]/layout.tsx`
 - Acceptance criteria: theme persists across reload and matches SSR output.
 - Testing requirements: manual check in both themes; unit test for cookie parsing
-- Status: Not Started
+- Status: Done
 
 ## TASK-203: Typography setup
 - Description: Load Inter + IBM Plex Sans Arabic via `next/font`, wire `--font-sans` per locale, implement `:lang(ar)` line-height rule.

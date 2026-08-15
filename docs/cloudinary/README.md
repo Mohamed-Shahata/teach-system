@@ -63,6 +63,11 @@ document, and the operation is wrapped so a Cloudinary failure doesn't
 leave an orphaned Firestore reference (retry/log strategy documented in
 `security/error-handling.md`).
 
+## Project
+
+Cloud name: `dihm4riw5`. Credentials live only in local `.env.local` /
+Vercel env vars — never in the repo (see TASK-104).
+
 ## Security
 
 - `CLOUDINARY_API_SECRET` — server env var only, never sent to the

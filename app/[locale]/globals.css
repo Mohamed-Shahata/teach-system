@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/*
+ * Color tokens per docs/design-system/colors.md.
+ * Theme switching (`data-theme` attribute, cookie persistence) lands in
+ * TASK-202. Until then, `:root` holds the light values and
+ * `prefers-color-scheme` is the initial-only fallback, per
+ * docs/design-system/theming.md.
+ */
+:root {
+  --color-background: #f7f8fa;
+  --color-foreground: #111827;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f3f6;
+  --color-border: #e2e5ea;
+  --color-input: #e2e5ea;
+  --color-primary: #1e4fd8;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #0f9e8e;
+  --color-secondary-foreground: #111827;
+  --color-accent: #eef2ff;
+  --color-success: #16a34a;
+  --color-warning: #c86d05;
+  --color-error: #dc2626;
+  --color-info: #2563eb;
+}
+
+[data-theme="dark"] {
+  --color-background: #0f1420;
+  --color-foreground: #e5e7eb;
+  --color-surface: #161b29;
+  --color-surface-muted: #1e2433;
+  --color-border: #2a3142;
+  --color-input: #2a3142;
+  --color-primary: #5b84f5;
+  --color-primary-foreground: #0b1020;
+  --color-secondary: #3fcbb8;
+  --color-secondary-foreground: #04211c;
+  --color-accent: #1b2440;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-background: #0f1420;
+    --color-foreground: #e5e7eb;
+    --color-surface: #161b29;
+    --color-surface-muted: #1e2433;
+    --color-border: #2a3142;
+    --color-input: #2a3142;
+    --color-primary: #5b84f5;
+    --color-primary-foreground: #0b1020;
+    --color-secondary: #3fcbb8;
+    --color-secondary-foreground: #04211c;
+    --color-accent: #1b2440;
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-error: #f87171;
+    --color-info: #60a5fa;
+  }
+}
+
+@theme inline {
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-surface: var(--color-surface);
+  --color-surface-muted: var(--color-surface-muted);
+  --color-border: var(--color-border);
+  --color-input: var(--color-input);
+  --color-primary: var(--color-primary);
+  --color-primary-foreground: var(--color-primary-foreground);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-foreground: var(--color-secondary-foreground);
+  --color-accent: var(--color-accent);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+

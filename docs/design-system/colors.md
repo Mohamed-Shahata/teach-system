@@ -20,10 +20,10 @@ Neutrals: warm-tinted grays (not pure gray) to feel less clinical.
 | `--color-primary` | `#1E4FD8` | `#5B84F5` | primary actions, links, active nav |
 | `--color-primary-foreground` | `#FFFFFF` | `#0B1020` | text/icons on primary |
 | `--color-secondary` | `#0F9E8E` | `#3FCBB8` | secondary emphasis, progress |
-| `--color-secondary-foreground` | `#FFFFFF` | `#04211C` | text on secondary |
+| `--color-secondary-foreground` | `#111827` | `#04211C` | text on secondary |
 | `--color-accent` | `#EEF2FF` | `#1B2440` | subtle highlight backgrounds |
 | `--color-success` | `#16A34A` | `#4ADE80` | success state |
-| `--color-warning` | `#D97706` | `#FBBF24` | warning state |
+| `--color-warning` | `#C86D05` | `#FBBF24` | warning state |
 | `--color-error` | `#DC2626` | `#F87171` | error/destructive state |
 | `--color-info` | `#2563EB` | `#60A5FA` | informational state |
 
@@ -47,3 +47,8 @@ Neutrals: warm-tinted grays (not pure gray) to feel less clinical.
 All text/background token pairs above are chosen to meet WCAG AA
 (≥4.5:1 for normal text, ≥3:1 for large text/UI components). Verified via
 automated contrast check in `scripts/check-contrast.ts` (Phase 2 task).
+
+Note: light-mode `secondary-foreground` and `warning` were adjusted from
+their initial values during TASK-201 after the contrast check failed
+(white text on `secondary` measured 3.33:1; the original `warning`
+measured 2.99:1 against `background`) — both now pass with margin.

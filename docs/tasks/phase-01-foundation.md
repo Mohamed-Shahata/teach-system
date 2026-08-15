@@ -18,7 +18,7 @@
 - Acceptance criteria: folders exist; `tsc --noEmit` passes on the empty skeleton; ESLint configured.
 - Testing requirements: build passes (`next build`)
 - Documentation requirements: none beyond `folder-structure.md`
-- Status: Not Started
+- Status: Done
 
 ## TASK-103: Environment variable scaffolding
 - Description: Create `.env.example` with all variables from `deployment/environment-variables.md`.
@@ -28,7 +28,7 @@
 - Acceptance criteria: `.env.example` matches the documented table exactly; no real secrets committed.
 - Testing requirements: n/a
 - Documentation requirements: keep in sync with `deployment/environment-variables.md`
-- Status: Not Started
+- Status: Done
 
 ## TASK-104: Firebase & Cloudinary project setup
 - Description: Create Firebase project(s) (dev/staging/prod), enable Auth + Firestore, create Cloudinary account/folders per `cloudinary/README.md`.
@@ -38,4 +38,4 @@
 - Acceptance criteria: projects exist; credentials retrieved and stored in Vercel env vars (not committed).
 - Testing requirements: n/a
 - Documentation requirements: record project IDs/naming in `firebase/README.md` if they diverge from the convention
-- Status: Not Started
+- Status: Done
