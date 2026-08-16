@@ -177,6 +177,8 @@ describe("accountService.createStudentByTeacher", () => {
     const result = await accountService.createStudentByTeacher(session, {
       email: "sara@example.com",
       displayName: "Sara",
+      phone: "01000000000",
+      age: 15,
       stageId: "stage-1",
     });
 
@@ -199,6 +201,8 @@ describe("accountService.createStudentByTeacher", () => {
       accountService.createStudentByTeacher(session, {
         email: "sara@example.com",
         displayName: "Sara",
+        phone: "01000000000",
+        age: 15,
         stageId: "stage-1",
       }),
     ).rejects.toBeInstanceOf(ForbiddenError);
@@ -212,6 +216,8 @@ describe("accountService.createStudentByTeacher", () => {
     const result = await accountService.createStudentByTeacher(session, {
       email: "sara@example.com",
       displayName: "Sara",
+      phone: "01000000000",
+      age: 15,
       stageId: "stage-1",
     });
 
@@ -226,6 +232,8 @@ describe("accountService.createStudentByTeacher", () => {
       accountService.createStudentByTeacher(session, {
         email: "sara@example.com",
         displayName: "Sara",
+        phone: "01000000000",
+        age: 15,
         stageId: "stage-1",
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
@@ -239,6 +247,8 @@ describe("accountService.createStudentByTeacher", () => {
       accountService.createStudentByTeacher(session, {
         email: "sara@example.com",
         displayName: "Sara",
+        phone: "01000000000",
+        age: 15,
         stageId: "stage-1",
       }),
     ).rejects.toBeInstanceOf(ForbiddenError);

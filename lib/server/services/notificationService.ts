@@ -15,8 +15,14 @@ export const notificationService = {
   },
 
   async markNotificationRead(session: Session, id: string) {
-    assertRole(session, "student", "admin");
+    assertRole(session, "student", "teacher", "admin");
     return notificationRepository.markRead(session, id);
+  },
+
+  /** TASK-2003 — the signed-in teacher's own pre-class reminders, most recent first. */
+  async listMyClassReminders(session: Session) {
+    assertRole(session, "teacher");
+    return notificationRepository.listByTeacherRecipient(session.uid);
   },
 
   /**
@@ -54,7 +60,7 @@ export const notificationService = {
     const now = Date.now();
     const created = await notificationRepository.createMany(
       matchingStudentIds.map((studentId) => ({
-        studentId,
+        recipientId: studentId,
         teacherId: slot.teacherId,
         type: "meeting_link" as const,
         scheduleId: slot.id,

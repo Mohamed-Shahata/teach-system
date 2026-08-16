@@ -6,17 +6,24 @@ import type { Session } from "@/lib/auth/session";
 /**
  * `notifications/{notificationId}` — Phase 6 (TASK-1602), created only by
  * `notificationService.sendMeetingLink` (one doc per matching student) and
- * read by the owning student only. See `docs/database/collections.md`.
+ * read by the owning student only. Extended in Phase 20 (TASK-2002,
+ * TASK-2003) with automatic-fire variants; see `docs/database/collections.md`.
+ *
+ * `recipientId` is who this notification is *for* — a student for
+ * `meeting_link`, the teacher themselves for `class_reminder`. Kept as one
+ * field (rather than a separate `studentId`/`teacherId`-addressed doc
+ * shape) so `notificationRepository`/the read query stay a single
+ * `(recipientId, createdAt)` lookup regardless of recipient role.
  */
 export interface NotificationDoc {
   id: string;
-  studentId: string;
+  recipientId: string;
   teacherId: string;
-  type: "meeting_link";
+  type: "meeting_link" | "class_reminder";
   scheduleId: string;
   subjectId: string;
   stageId: string;
-  meetingUrl: string;
+  meetingUrl?: string;
   read: boolean;
   createdAt: number;
 }
@@ -28,13 +35,16 @@ const COLLECTION = "notifications";
 function toNotificationDoc(id: string, data: FirebaseFirestore.DocumentData): NotificationDoc {
   return {
     id,
-    studentId: String(data.studentId),
+    // `studentId` is the pre-Phase-20 field name, still present on every
+    // existing document — read it as a fallback so old `meeting_link`
+    // docs written before `recipientId` existed keep working unchanged.
+    recipientId: String(data.recipientId ?? data.studentId),
     teacherId: String(data.teacherId),
-    type: "meeting_link",
+    type: data.type === "class_reminder" ? "class_reminder" : "meeting_link",
     scheduleId: String(data.scheduleId),
     subjectId: String(data.subjectId),
     stageId: String(data.stageId),
-    meetingUrl: String(data.meetingUrl),
+    ...(data.meetingUrl ? { meetingUrl: String(data.meetingUrl) } : {}),
     read: Boolean(data.read),
     createdAt: Number(data.createdAt),
   };
@@ -43,7 +53,23 @@ function toNotificationDoc(id: string, data: FirebaseFirestore.DocumentData): No
 export const notificationRepository = {
   /** The signed-in student's own notifications, most recent first. */
   async listByStudent(studentId: string): Promise<NotificationDoc[]> {
-    const snap = await adminDb.collection(COLLECTION).where("studentId", "==", studentId).get();
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .where("recipientId", "==", studentId)
+      .where("type", "==", "meeting_link")
+      .get();
+    return snap.docs
+      .map((doc) => toNotificationDoc(doc.id, doc.data()))
+      .sort((a, b) => b.createdAt - a.createdAt);
+  },
+
+  /** TASK-2003 — the signed-in teacher's own `class_reminder` notifications, most recent first. */
+  async listByTeacherRecipient(teacherId: string): Promise<NotificationDoc[]> {
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .where("recipientId", "==", teacherId)
+      .where("type", "==", "class_reminder")
+      .get();
     return snap.docs
       .map((doc) => toNotificationDoc(doc.id, doc.data()))
       .sort((a, b) => b.createdAt - a.createdAt);
@@ -72,7 +98,7 @@ export const notificationRepository = {
   async markRead(session: Session, id: string): Promise<NotificationDoc> {
     const existing = await this.findById(id);
     if (!existing) throw new NotFoundError();
-    if (session.role !== "admin" && existing.studentId !== session.uid) throw new ForbiddenError();
+    if (session.role !== "admin" && existing.recipientId !== session.uid) throw new ForbiddenError();
     await adminDb.collection(COLLECTION).doc(id).update({ read: true });
     return { ...existing, read: true };
   },

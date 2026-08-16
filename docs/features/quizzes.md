@@ -25,3 +25,9 @@ results.
 in MVP) designed to grow to `short_answer | essay | matching` by adding
 a new type + a new grading strategy, without rewriting the quiz-taking
 flow.
+
+## Standalone, stage-wide exams (Phase 21)
+The MVP ties every quiz to a course. `docs/tasks/phase-21-standalone-
+exams.md` adds a second mode: no `courseId`, targeted at an entire
+`stageId` instead, opened at a scheduled time, with an optional
+auto-grade/manual-grade toggle.

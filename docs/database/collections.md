@@ -124,6 +124,8 @@ Purpose: a teacher's recurring weekly class slot for a subject/stage
 | durationMinutes | number | yes | |
 | meetingUrl | string | no | Google Meet / Zoom link for this slot's live session; set by the teacher around class time (Phase 6) |
 | label | map `{ en, ar }` | no | free-text note, e.g. "Revision session" |
+| lastNotifiedDate | string (`YYYY-MM-DD`) | no | Phase 20 (TASK-2002) dedupe marker — the calendar date the "class starting" auto-notification last fired for this recurring slot, so the per-minute cron doesn't resend it twice in one day |
+| lastReminderDate | string (`YYYY-MM-DD`) | no | Phase 20 (TASK-2003) dedupe marker for the teacher's own pre-class reminder — tracked separately since it fires at a different offset from `startTime` |
 | createdAt / updatedAt | timestamp | yes | |
 
 Indexes: `(teacherId, dayOfWeek)`, `(stageId, subjectId, dayOfWeek)`
@@ -245,30 +247,36 @@ only by the server-side gateway webhook handler, never by client input.
 
 Purpose: fan-out of a schedule slot's meeting link to the matching
 students (Phase 6, TASK-1602) — one doc per recipient, so each student's
-read state is independent.
+read state is independent. Extended in Phase 20 (TASK-2002, TASK-2003)
+to also cover automated "class starting" pushes and a teacher's own
+pre-class reminder, addressed via the same collection.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| studentId | string | yes | recipient |
-| teacherId | string | yes | sender, denormalized |
-| type | `"meeting_link"` | yes | extensible enum; only value in the MVP |
+| recipientId | string | yes | who this notification is *for* — a student for `type: "meeting_link"`, the teacher themselves for `type: "class_reminder"`. Renamed from `studentId` in Phase 20 to cover both. |
+| teacherId | string | yes | sender/owning teacher, denormalized |
+| type | `"meeting_link" \| "class_reminder"` | yes | `class_reminder` added Phase 20 (TASK-2003) |
 | scheduleId | string | yes | ref into `schedule` |
 | subjectId | string | yes | denormalized from the schedule slot |
 | stageId | string | yes | denormalized from the schedule slot |
-| meetingUrl | string | yes | copied from `schedule.meetingUrl` at send time |
+| meetingUrl | string | `meeting_link` only | copied from `schedule.meetingUrl` at send time; absent on a `class_reminder` sent before the teacher has set one |
 | read | boolean | yes | default `false`, flips to `true` client-side |
 | createdAt | timestamp | yes | |
 
-Indexes: `(studentId, createdAt desc)`.
+Indexes: `(recipientId, createdAt desc)`.
 
-Authorization: server-created only (`notificationService.sendMeetingLink`,
-via the Admin SDK) — never client-created. A student may read and mark
-read only their own notifications; an Admin may read any.
+Authorization: server-created only (`notificationService.sendMeetingLink`
+for manual sends, `classNotificationsJob` for the Phase 20 automated
+ones — both via the Admin SDK) — never client-created. A user may read
+and mark read only their own (`recipientId == auth.uid`) notifications;
+an Admin may read any.
 
-Recipient rule (item 18 of Phase 6): a schedule slot's meeting link is
-sent to every student who (a) has an *active* enrollment with the slot's
-owning teacher (any course), and (b) has `users.stageId` exactly equal to
-the slot's `stageId` — not merely "one of this teacher's students".
+Recipient rule (item 18 of Phase 6, unchanged by Phase 20's automation —
+`classNotificationsJob` applies the same check): a schedule slot's
+meeting link is sent to every student who (a) has an *active* enrollment
+with the slot's owning teacher (any course), and (b) has `users.stageId`
+exactly equal to the slot's `stageId` — not merely "one of this
+teacher's students".
 
 ## Relationship diagram
 

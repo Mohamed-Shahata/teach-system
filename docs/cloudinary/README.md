@@ -80,3 +80,8 @@ Vercel env vars — never in the repo (see TASK-104).
   be exposed via `NEXT_PUBLIC_*` if the client SDK needs them for the
   signed-upload POST, but the actual signature is always server-computed.
 - Upload presets, if used, are restricted (not "unsigned").
+
+## Lesson video upload (Phase 22)
+The `.../lessons/{lessonId}/video/` folder above is already reserved,
+but the lesson form doesn't yet drive an actual upload through it — see
+`docs/tasks/phase-22-lesson-video-upload.md`.

@@ -21,6 +21,18 @@ export interface ScheduleSlotDoc {
   label?: LocalizedText;
   /** Google Meet / Zoom link the teacher set for this recurring slot's live session (Phase 6). */
   meetingUrl?: string;
+  /**
+   * TASK-2002 dedupe markers — prevents the per-minute cron from
+   * re-sending the "class starting" notification twice for the same
+   * weekly occurrence. `lastNotifiedDate` is a `YYYY-MM-DD` string (the
+   * calendar date, in the deployment's server timezone, of the
+   * occurrence last notified); compared against "today" rather than a
+   * raw timestamp so a slot that recurs every week only needs to store
+   * one date, not a growing history.
+   */
+  lastNotifiedDate?: string;
+  /** TASK-2003 dedupe marker for the teacher's own pre-class reminder — same shape/purpose as lastNotifiedDate, tracked separately since the two notifications fire at different offsets from startTime. */
+  lastReminderDate?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -47,6 +59,8 @@ function toScheduleSlotDoc(id: string, data: FirebaseFirestore.DocumentData): Sc
     durationMinutes: Number(data.durationMinutes),
     ...(data.label ? { label: data.label as LocalizedText } : {}),
     ...(data.meetingUrl ? { meetingUrl: String(data.meetingUrl) } : {}),
+    ...(data.lastNotifiedDate ? { lastNotifiedDate: String(data.lastNotifiedDate) } : {}),
+    ...(data.lastReminderDate ? { lastReminderDate: String(data.lastReminderDate) } : {}),
     createdAt: Number(data.createdAt),
     updatedAt: Number(data.updatedAt),
   };
@@ -88,5 +102,31 @@ export const scheduleRepository = {
     }
     assertWritableByTeacher(session, existing);
     await adminDb.collection(COLLECTION).doc(id).delete();
+  },
+
+  /**
+   * TASK-2001/2002/2003 — system-level read, deliberately unscoped by
+   * teacher. Only the cron job (`lib/server/jobs/classNotificationsJob.ts`)
+   * calls this: it has no `Session` (it isn't triggered by a signed-in
+   * user) and needs to check every teacher's slots each run, not one
+   * teacher's. Never call this from a request-handling path — use `list`
+   * (session-scoped) there instead. Returns every slot regardless of
+   * whether `meetingUrl` is set — TASK-2003's teacher reminder fires
+   * specifically to nudge a teacher who *hasn't* set one yet, so the job
+   * filters by `meetingUrl` itself rather than the query doing it.
+   */
+  async listAll(): Promise<ScheduleSlotDoc[]> {
+    const snap = await adminDb.collection(COLLECTION).get();
+    return snap.docs.map((doc) => toScheduleSlotDoc(doc.id, doc.data()));
+  },
+
+  /** TASK-2002 — records that this slot's "class starting" push has fired for today's occurrence, so the next cron tick within the same day doesn't resend it. */
+  async markNotifiedToday(id: string, dateKey: string): Promise<void> {
+    await adminDb.collection(COLLECTION).doc(id).update({ lastNotifiedDate: dateKey });
+  },
+
+  /** TASK-2003 — same dedupe purpose as markNotifiedToday, for the teacher's own pre-class reminder. */
+  async markReminderSentToday(id: string, dateKey: string): Promise<void> {
+    await adminDb.collection(COLLECTION).doc(id).update({ lastReminderDate: dateKey });
   },
 };

@@ -18,6 +18,23 @@ export function MeetingNotifications({ initialNotifications }: MeetingNotificati
   const t = useTranslations("studentDashboard.meetingNotifications");
   const [notifications, setNotifications] = React.useState(initialNotifications);
 
+  // TASK-2004 — poll for new auto-fired notifications (TASK-2002) since
+  // they no longer only appear after a manual click; the initial
+  // server-rendered list can go stale while the tab stays open.
+  React.useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/student/notifications");
+        if (!res.ok) return;
+        const data = (await res.json()) as { notifications: NotificationDoc[] };
+        setNotifications(data.notifications);
+      } catch {
+        // Best-effort — keep showing the last known list on a failed poll.
+      }
+    }, 45_000);
+    return () => clearInterval(interval);
+  }, []);
+
   async function markRead(id: string) {
     setNotifications((current) => current.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try {

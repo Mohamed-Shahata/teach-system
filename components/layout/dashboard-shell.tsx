@@ -14,6 +14,8 @@ export interface DashboardShellProps {
   topbarTitle?: string;
   /** Profile avatar (Cloudinary URL) -- shown in the topbar instead of initials when present. */
   avatarUrl?: string;
+  /** TASK-2004 — unread notification count, forwarded to `DashboardTopbar`. Omit to hide the bell entirely. */
+  unreadCount?: number;
 }
 
 const EXPANDED_WIDTH = "w-64";
@@ -31,7 +33,7 @@ const COLLAPSED_WIDTH = "w-20";
  * and can be collapsed to an icon rail via `SidebarCollapseProvider` --
  * see `dashboard-nav-item.tsx` for how nav links react to that.
  */
-export function DashboardShell({ sidebar, displayName, children, topbarTitle, avatarUrl }: DashboardShellProps) {
+export function DashboardShell({ sidebar, displayName, children, topbarTitle, avatarUrl, unreadCount }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(false);
   const toggleCollapsed = React.useCallback(() => setCollapsed((v) => !v), []);
@@ -120,6 +122,7 @@ export function DashboardShell({ sidebar, displayName, children, topbarTitle, av
           avatarUrl={avatarUrl}
           onMenuClick={() => setMobileOpen(true)}
           title={topbarTitle}
+          unreadCount={unreadCount}
         />
         <main className="flex-1 bg-background p-4 sm:p-6">{children}</main>
       </div>

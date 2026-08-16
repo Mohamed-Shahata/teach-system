@@ -131,21 +131,24 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------
     // notifications/{notificationId} — server-created only (Phase 6,
-    // TASK-1602). A student may read/mark-read their own; a teacher never
-    // reads another user's notification doc directly (they only trigger
-    // creation through the Admin SDK via notificationService).
+    // TASK-1602; extended Phase 20, TASK-2002/2003). A user may
+    // read/mark-read their own — `recipientId` is a student for
+    // `type: "meeting_link"`, the teacher themselves for
+    // `type: "class_reminder"` — but never another user's doc directly
+    // (creation only happens through the Admin SDK via
+    // notificationService / the cron job, both of which bypass rules).
     // ---------------------------------------------------------------
     match /notifications/{notificationId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.studentId);
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.recipientId);
 
       // Always created server-side (Admin SDK bypasses rules) — no
       // client-facing create path.
       allow create: if false;
 
-      // A student may only flip their own notification to read=true;
+      // A recipient may only flip their own notification to read=true;
       // every other field is immutable from the client.
-      allow update: if (isAdmin() || (isSignedIn() && request.auth.uid == resource.data.studentId))
-        && request.resource.data.studentId == resource.data.studentId
+      allow update: if (isAdmin() || (isSignedIn() && request.auth.uid == resource.data.recipientId))
+        && request.resource.data.recipientId == resource.data.recipientId
         && request.resource.data.teacherId == resource.data.teacherId
         && request.resource.data.scheduleId == resource.data.scheduleId
         && request.resource.data.meetingUrl == resource.data.meetingUrl;

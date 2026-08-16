@@ -38,3 +38,9 @@ retroactive notification.
 Day-of-week labels and times must respect locale (Arabic day names) and
 be direction-agnostic (a Tue/Thu badge row uses `flex` with logical
 gap/margin properties, not hardcoded left/right).
+
+## Automation (Phase 20)
+The manual "send meeting link" click described above is being replaced
+by a scheduled trigger — see `docs/tasks/phase-20-notifications-
+automation.md` — plus a new reminder pushed to the teacher shortly
+before their own class starts.

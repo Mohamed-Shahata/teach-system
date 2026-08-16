@@ -26,6 +26,21 @@ Standard Next.js build (`next build`) — no custom server, fully
 compatible with Vercel's Next.js runtime. No Node APIs requiring a
 custom server are used.
 
+## Cron jobs (TASK-2001)
+
+`vercel.json` registers `/api/cron/class-notifications` on a per-minute
+schedule (`* * * * *`), used by Phase 20's automated class notifications.
+
+> **Plan caveat:** Vercel's Hobby (free) tier only runs cron jobs once
+> per day, regardless of what `vercel.json` says — per-minute schedules
+> need a Pro plan or higher. Confirm the deployment's plan before
+> relying on this firing every minute in production.
+
+The route itself checks `Authorization: Bearer <CRON_SECRET>` (see
+`environment-variables.md`) — Vercel adds this header automatically for
+routes listed under `crons`, so no extra configuration is needed beyond
+setting the `CRON_SECRET` env var in the Vercel dashboard.
+
 ## Environment variables
 
 Configured per-environment in the Vercel dashboard (Production, Preview,

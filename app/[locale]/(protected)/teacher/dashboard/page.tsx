@@ -5,9 +5,11 @@ import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfi
 import { scheduleService } from "@/lib/server/services/scheduleService";
 import { paymentService } from "@/lib/server/services/paymentService";
 import { centerConfigService } from "@/lib/server/services/centerConfigService";
+import { notificationService } from "@/lib/server/services/notificationService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScheduleManager } from "@/components/teacher/schedule-manager";
 import { PaymentsQueue } from "@/components/teacher/payments-queue";
+import { ClassReminderBanner } from "@/components/teacher/class-reminder-banner";
 
 /**
  * Teacher overview stats for TASK-702. Counters are denormalized on
@@ -37,6 +39,7 @@ export default async function TeacherDashboardPage() {
   const pendingPayments = (await paymentService.listForTeacher(session, "pending")).filter(
     (payment) => payment.method === "vodafone_cash" || payment.method === "bank_transfer",
   );
+  const classReminders = await notificationService.listMyClassReminders(session);
   const cards = [
     {
       key: "students",
@@ -124,6 +127,8 @@ export default async function TeacherDashboardPage() {
       </div>
 
       <ScheduleManager initialSlots={scheduleSlots} subjects={subjects} stages={stages} />
+
+      <ClassReminderBanner initialReminders={classReminders} />
 
       <PaymentsQueue initialPayments={pendingPayments} />
     </div>

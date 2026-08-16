@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/session";
 import { userRepository } from "@/lib/server/repositories/userRepository";
+import { notificationService } from "@/lib/server/services/notificationService";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { StudentSidebar } from "@/components/layout/student-sidebar";
 
@@ -23,6 +24,8 @@ export default async function StudentLayout({ children, params }: LayoutProps<"/
   const user = await userRepository.findById(session.uid);
   const displayName = user?.displayName ?? session.email ?? "";
   const t = await getTranslations("studentDashboard");
+  const notifications = await notificationService.listMyNotifications(session);
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <DashboardShell
@@ -30,6 +33,7 @@ export default async function StudentLayout({ children, params }: LayoutProps<"/
       displayName={displayName}
       avatarUrl={user?.avatarUrl}
       topbarTitle={t("topbarTitle")}
+      unreadCount={unreadCount}
     >
       {children}
     </DashboardShell>

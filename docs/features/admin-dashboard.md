@@ -22,3 +22,8 @@ Per project rules, this stays admin-operations-focused — no general
 analytics/BI tooling in the MVP (e.g. no custom date-range reports,
 no export). See `docs/tasks/phase-19-admin-dashboard.md` for the
 task-by-task breakdown.
+
+## Planned additions (Phase 24)
+Center-wide course visibility, multi-subject teachers, and a per-teacher
+student drill-down are planned in `docs/tasks/phase-24-admin-
+oversight.md`.

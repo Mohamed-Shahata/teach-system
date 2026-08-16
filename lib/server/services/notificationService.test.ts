@@ -65,7 +65,7 @@ describe("notificationService.sendMeetingLink", () => {
     const result = await notificationService.sendMeetingLink(makeSession("teacher"), "slot-1");
 
     expect(createMany).toHaveBeenCalledWith([
-      expect.objectContaining({ studentId: "student-match", meetingUrl: slot.meetingUrl, stageId: "secondary-3" }),
+      expect.objectContaining({ recipientId: "student-match", meetingUrl: slot.meetingUrl, stageId: "secondary-3" }),
     ]);
     expect(result.sentCount).toBe(1);
   });

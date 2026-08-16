@@ -22,7 +22,7 @@ const { notificationRepository } = await import("./notificationRepository");
 const { ForbiddenError, NotFoundError } = await import("@/lib/errors");
 
 const raw = {
-  studentId: "student-1",
+  recipientId: "student-1",
   teacherId: "teacher-1",
   type: "meeting_link" as const,
   scheduleId: "slot-1",
@@ -36,7 +36,7 @@ const raw = {
 describe("notificationRepository.listByStudent", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns the student's notifications sorted newest first", async () => {
+  it("returns the student's meeting_link notifications sorted newest first", async () => {
     getQuery.mockResolvedValue({
       docs: [
         { id: "n1", data: () => ({ ...raw, createdAt: 1000 }) },
@@ -46,8 +46,35 @@ describe("notificationRepository.listByStudent", () => {
 
     const result = await notificationRepository.listByStudent("student-1");
 
-    expect(where).toHaveBeenCalledWith("studentId", "==", "student-1");
+    expect(where).toHaveBeenCalledWith("recipientId", "==", "student-1");
+    expect(where).toHaveBeenCalledWith("type", "==", "meeting_link");
     expect(result.map((n) => n.id)).toEqual(["n2", "n1"]);
+  });
+
+  it("falls back to the pre-Phase-20 studentId field for older docs missing recipientId", async () => {
+    getQuery.mockResolvedValue({
+      docs: [{ id: "n1", data: () => ({ ...raw, recipientId: undefined, studentId: "student-1" }) }],
+    });
+
+    const result = await notificationRepository.listByStudent("student-1");
+
+    expect(result[0].recipientId).toBe("student-1");
+  });
+});
+
+describe("notificationRepository.listByTeacherRecipient", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("queries recipientId + type=class_reminder", async () => {
+    getQuery.mockResolvedValue({
+      docs: [{ id: "n1", data: () => ({ ...raw, recipientId: "teacher-1", type: "class_reminder" }) }],
+    });
+
+    const result = await notificationRepository.listByTeacherRecipient("teacher-1");
+
+    expect(where).toHaveBeenCalledWith("recipientId", "==", "teacher-1");
+    expect(where).toHaveBeenCalledWith("type", "==", "class_reminder");
+    expect(result).toHaveLength(1);
   });
 });
 
@@ -63,7 +90,7 @@ describe("notificationRepository.createMany", () => {
   it("writes one doc per notification in a single batch", async () => {
     batchCommit.mockResolvedValue(undefined);
 
-    const result = await notificationRepository.createMany([raw, { ...raw, studentId: "student-2" }]);
+    const result = await notificationRepository.createMany([raw, { ...raw, recipientId: "student-2" }]);
 
     expect(batchCreate).toHaveBeenCalledTimes(2);
     expect(batchCommit).toHaveBeenCalledTimes(1);

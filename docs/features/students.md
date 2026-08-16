@@ -26,3 +26,8 @@ session.uid`. No separate `students` collection — a student is a
   students **they created or who are enrolled in their own courses** —
   never a global student list across other teachers.
 - An Admin may see and manage every student in the center.
+
+## "My teachers" (Phase 23)
+The reverse direction — a student's own list of the teachers they're
+enrolled with — is planned in `docs/tasks/phase-23-student-teachers-
+directory.md`.

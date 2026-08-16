@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/session";
 import { userRepository } from "@/lib/server/repositories/userRepository";
+import { notificationService } from "@/lib/server/services/notificationService";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { TeacherSidebar } from "@/components/layout/teacher-sidebar";
 
@@ -22,9 +23,16 @@ export default async function TeacherLayout({ children, params }: LayoutProps<"/
 
   const user = await userRepository.findById(session.uid);
   const displayName = user?.displayName ?? session.email ?? "";
+  const classReminders = await notificationService.listMyClassReminders(session);
+  const unreadCount = classReminders.filter((n) => !n.read).length;
 
   return (
-    <DashboardShell sidebar={<TeacherSidebar />} displayName={displayName} avatarUrl={user?.avatarUrl}>
+    <DashboardShell
+      sidebar={<TeacherSidebar />}
+      displayName={displayName}
+      avatarUrl={user?.avatarUrl}
+      unreadCount={unreadCount}
+    >
       {children}
     </DashboardShell>
   );

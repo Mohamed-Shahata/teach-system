@@ -102,6 +102,7 @@
     "greeting": "أهلاً، {name}",
     "topbarTitle": "لوحة المعلم",
     "openMenu": "فتح القائمة",
+    "unreadNotifications": "{count, plural, =0 {لا توجد إشعارات غير مقروءة} other {# إشعار غير مقروء}}",
     "searchLabel": "البحث في لوحة التحكم",
     "searchPlaceholder": "بحث...",
     "overviewSubtitle": "لمحة سريعة عن طلابك وكورساتك ودروسك والتسجيلات.",
@@ -118,6 +119,12 @@
       "publishedCourses": "مرئية للطلاب",
       "lessons": "إجمالي المواد",
       "enrollments": "عبر كل الكورسات"
+    },
+    "classReminders": {
+      "title": "الحصص القادمة",
+      "new": "جديد",
+      "message": "حصة {subject} هتبدأ قريبًا — راجع رابط الاجتماع.",
+      "dismiss": "إخفاء"
     },
     "schedule": {
       "title": "الجدول الأسبوعي",

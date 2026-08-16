@@ -83,6 +83,17 @@ export const enrollmentRepository = {
   },
 
   /**
+   * TASK-2002 — system-level read for the class-notifications cron job
+   * (`lib/server/jobs/classNotificationsJob.ts`), which has no `Session`
+   * and needs one teacher's enrollments by raw id, not the session-scoped
+   * `listByTeacher`. Never call from a request-handling path.
+   */
+  async listAllByTeacherId(teacherId: string): Promise<EnrollmentDoc[]> {
+    const snap = await adminDb.collection(COLLECTION).where("teacherId", "==", teacherId).get();
+    return snap.docs.map((doc) => toEnrollmentDoc(doc.id, doc.data()));
+  },
+
+  /**
    * Creates the enrollment at the deterministic `(studentId, courseId)`
    * id. Uses `.create()` (fails if it already exists) rather than
    * `.set()` — callers (`enrollmentService.createEnrollment`) catch the

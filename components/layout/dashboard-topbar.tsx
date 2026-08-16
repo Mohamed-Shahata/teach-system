@@ -25,6 +25,8 @@ export interface DashboardTopbarProps {
   title?: string;
   /** Profile avatar (Cloudinary URL) -- shown instead of the initials badge when present. */
   avatarUrl?: string;
+  /** TASK-2004 — unread notification count (meeting_link for a student, class_reminder for a teacher). Omit entirely (not just 0) to hide the bell — the admin layout has no notification concept. */
+  unreadCount?: number;
 }
 
 /**
@@ -36,7 +38,7 @@ export interface DashboardTopbarProps {
  * Background matches the page background (not `--color-surface`) so it
  * blends into its parent instead of reading as a separate panel.
  */
-export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl }: DashboardTopbarProps) {
+export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl, unreadCount }: DashboardTopbarProps) {
   const t = useTranslations("teacherDashboard");
   const settingsHref = useSettingsHref();
 
@@ -87,6 +89,24 @@ export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl }: 
         <div className="ms-auto flex items-center gap-2">
           <LocaleSwitcher />
           <ThemeToggle />
+          {unreadCount !== undefined && (
+            <span
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground/60"
+              aria-label={t("unreadNotifications", { count: unreadCount })}
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+                <path
+                  d="M12 3a6 6 0 0 0-6 6v3.09c0 .5-.18.99-.5 1.38L4 15h16l-1.5-1.53a2 2 0 0 1-.5-1.38V9a6 6 0 0 0-6-6Zm0 18a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 21Z"
+                  fill="currentColor"
+                />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -end-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-error px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </span>
+          )}
           <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
           <Link
             href={settingsHref}

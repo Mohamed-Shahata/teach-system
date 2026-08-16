@@ -90,3 +90,16 @@ describe("enrollmentRepository.updateProgress", () => {
     expect(result.studentId).toBe("student-1");
   });
 });
+
+describe("enrollmentRepository.listAllByTeacherId", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("queries unscoped by raw teacherId (no Session — TASK-2002's cron job)", async () => {
+    getQuery.mockResolvedValue({ docs: [{ id: "student-1_course-1", data: () => rawEnrollmentData }] });
+
+    const result = await enrollmentRepository.listAllByTeacherId("teacher-1");
+
+    expect(where).toHaveBeenCalledWith("teacherId", "==", "teacher-1");
+    expect(result).toHaveLength(1);
+  });
+});

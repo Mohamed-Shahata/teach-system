@@ -21,6 +21,7 @@
 | `CLOUDINARY_API_KEY` | server-side signature generation |
 | `CLOUDINARY_API_SECRET` | server-side signature generation — **critical secret** |
 | `SESSION_COOKIE_SECRET` | (if used) additional signing for session cookie handling |
+| `CRON_SECRET` | shared secret checked by `app/api/cron/*` routes — Vercel Cron sends it as `Authorization: Bearer <CRON_SECRET>`; any request without a match is rejected (TASK-2001) |
 
 ## Rule
 
