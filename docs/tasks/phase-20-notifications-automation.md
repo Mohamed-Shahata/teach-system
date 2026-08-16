@@ -22,6 +22,23 @@
 - Affected modules: `vercel.json` (cron config), `app/api/cron/class-notifications/route.ts`, `lib/deployment/environment-variables.md`
 - Status: Done — `vercel.json` schedules `/api/cron/class-notifications` every minute; the route checks `Authorization: Bearer <CRON_SECRET>` (fails closed with 401 if the header is missing/wrong or the env var isn't set) before calling `runClassNotificationsJob()` (new `lib/server/jobs/classNotificationsJob.ts`, currently a no-op placeholder returning `{ notified: 0 }`). `CRON_SECRET` added to `.env.example` and `docs/deployment/environment-variables.md`; `docs/deployment/vercel.md` documents the cron section and flags that Vercel's Hobby plan only runs crons daily regardless of `vercel.json`'s schedule — confirm the plan before relying on per-minute firing in production. TASK-2002/TASK-2003 fill in the actual notification logic inside the job function.
 
+> **Follow-up (post-launch, still on Hobby):** the per-minute schedule in
+> `vercel.json` isn't just slow on Hobby — Vercel now hard-rejects the
+> *deploy itself* for any `crons` entry finer than once/day on Hobby
+> ("Hobby accounts are limited to daily cron jobs"), so the flagged risk
+> above became a build-breaking one. `vercel.json`'s `crons` array was
+> removed entirely (now `{}`) rather than downgraded to a once-daily
+> schedule, since a once-a-day "class starting"/"10-minutes-before"
+> check is no better than not running at all for this job's actual
+> purpose. The route itself (`app/api/cron/class-notifications/route.ts`)
+> is unchanged — it only cares about a valid `Authorization: Bearer
+> <CRON_SECRET>` header, not who's calling it — so per-minute triggering
+> now comes from an external free cron service (cron-job.org) hitting
+> the deployed URL directly instead of Vercel's native `crons` config.
+> See `docs/deployment/vercel.md` for the setup steps. Revisit switching
+> back to `vercel.json`'s native `crons` if/when the project moves to
+> Vercel Pro (removes the daily-only limit).
+
 ## TASK-2002: Automatic "class starting" push to students
 - Description: Replace/extend the manual `notificationService.sendMeetingLink` trigger with an automatic one: every `schedule` slot whose `dayOfWeek`/`startTime` matches "now" (within the cron's polling window) and that has a `meetingUrl` set fires the same fan-out `sendMeetingLink` already does (same recipient rule: active enrollment with this teacher + `user.stageId === slot.stageId`). A slot fires **once** per occurrence — add a `lastNotifiedAt`/`lastNotifiedDate` marker on the `schedule` doc (or a lightweight per-occurrence dedupe key) so the per-minute cron doesn't re-send for the same class. The existing manual "Send" button in the teacher UI can stay as a manual override/backup, but the primary path is automatic from here.
 - Dependencies: TASK-2001
