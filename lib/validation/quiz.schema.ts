@@ -19,17 +19,44 @@ export const questionOptionSchema = z.object({
 });
 export type QuestionOptionInput = z.infer<typeof questionOptionSchema>;
 
-export const createQuizSchema = z.object({
-  courseId: z.string().trim().min(1),
-  lessonId: z.string().trim().min(1).optional(),
-  title: localizedRequiredTextSchema,
-});
+/**
+ * TASK-2101 — a quiz is either course-attached (`courseId` set) or a
+ * standalone, stage-wide exam (`courseId` absent, `stageId` +
+ * `scheduledAt` required instead). Mirrors `createAccountSchema`'s
+ * role-driven cross-field `refine` pattern (`lib/validation/account.schema.ts`).
+ * `teacherId` is only meaningful for an Admin creating a standalone exam
+ * on a teacher's behalf — a Teacher caller always owns their own quiz
+ * (`resolveOwnerTeacherId` ignores it for them) and course-attached
+ * quizzes always derive `teacherId` from the course instead.
+ */
+export const createQuizSchema = z
+  .object({
+    courseId: z.string().trim().min(1).optional(),
+    lessonId: z.string().trim().min(1).optional(),
+    title: localizedRequiredTextSchema,
+    stageId: z.string().trim().min(1).optional(),
+    scheduledAt: z.coerce.number().int().positive().optional(),
+    teacherId: z.string().trim().min(1).optional(),
+    /** TASK-2102 — defaults to `true` (auto-graded) at the repository layer when absent. */
+    autoGrade: z.boolean().optional(),
+  })
+  .refine((data) => !!data.courseId || !!data.stageId, {
+    message: "errors.validation",
+    path: ["stageId"],
+  })
+  .refine((data) => !!data.courseId || !!data.scheduledAt, {
+    message: "errors.validation",
+    path: ["scheduledAt"],
+  });
 export type CreateQuizInput = z.infer<typeof createQuizSchema>;
 
 export const updateQuizSchema = z
   .object({
     title: localizedRequiredTextSchema,
     lessonId: z.string().trim().min(1).nullable(),
+    stageId: z.string().trim().min(1),
+    scheduledAt: z.coerce.number().int().positive(),
+    autoGrade: z.boolean(),
   })
   .partial()
   .refine((data) => Object.keys(data).length > 0, { message: "errors.validation" });

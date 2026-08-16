@@ -10,22 +10,34 @@ export interface LocalizedText {
   ar: string;
 }
 
-/** See `docs/database/collections.md` — `quizzes/{quizId}`. */
+/**
+ * See `docs/database/collections.md` — `quizzes/{quizId}`. TASK-2101:
+ * `courseId` is now optional — absent means a standalone, stage-wide
+ * exam, in which case `stageId` + `scheduledAt` are set instead. Never
+ * all-absent — enforced by `createQuizSchema`'s cross-field `refine`,
+ * not at the repository layer.
+ */
 export interface QuizDoc {
   id: string;
   teacherId: string;
-  courseId: string;
+  courseId?: string;
   lessonId?: string;
   title: LocalizedText;
   status: QuizStatus;
   questionIds: string[];
+  /** Required when `courseId` is absent — the education stage this standalone exam targets. */
+  stageId?: string;
+  /** Required when `courseId` is absent — epoch ms the exam opens for students. */
+  scheduledAt?: number;
+  /** TASK-2102 — when `false`, `quizAttemptService.submitAttempt` stores answers without scoring them; defaults to `true`. */
+  autoGrade: boolean;
   createdAt: number;
   updatedAt: number;
 }
 
 export type CreateQuizDoc = Omit<QuizDoc, "id">;
 export type UpdateQuizDoc = Partial<
-  Pick<QuizDoc, "title" | "lessonId" | "status" | "questionIds">
+  Pick<QuizDoc, "title" | "lessonId" | "status" | "questionIds" | "stageId" | "scheduledAt" | "autoGrade">
 > & { updatedAt: number };
 
 const COLLECTION = "quizzes";
@@ -34,11 +46,15 @@ function toQuizDoc(id: string, data: FirebaseFirestore.DocumentData): QuizDoc {
   return {
     id,
     teacherId: String(data.teacherId),
-    courseId: String(data.courseId),
+    ...(data.courseId ? { courseId: String(data.courseId) } : {}),
     ...(data.lessonId ? { lessonId: String(data.lessonId) } : {}),
     title: data.title as LocalizedText,
     status: data.status as QuizStatus,
     questionIds: Array.isArray(data.questionIds) ? data.questionIds.map(String) : [],
+    ...(data.stageId ? { stageId: String(data.stageId) } : {}),
+    ...(data.scheduledAt !== undefined ? { scheduledAt: Number(data.scheduledAt) } : {}),
+    // Defaults to `true` for docs written before TASK-2102 (field absent).
+    autoGrade: data.autoGrade === undefined ? true : Boolean(data.autoGrade),
     createdAt: Number(data.createdAt),
     updatedAt: Number(data.updatedAt),
   };

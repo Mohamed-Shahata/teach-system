@@ -35,9 +35,9 @@ Status: Not Started | In Progress | Blocked | Done
 | 12 | Quiz / Exam System | Done |
 | 13 | File Management | Done |
 | 14 | Public Pages | Done |
-| 19 | Admin Dashboard & System Analytics | In Progress |
+| 19 | Admin Dashboard & System Analytics | Done |
 | 20 | Automated Class Notifications | Done |
-| 21 | Stage-Wide Exams & Manual Grading | Not Started |
+| 21 | Stage-Wide Exams & Manual Grading | In Progress |
 | 22 | Lesson Video Upload Widget | Not Started |
 | 23 | "My Teachers" (Student-Facing) | Not Started |
 | 24 | Admin Oversight Enhancements | Not Started |
@@ -71,5 +71,10 @@ Status: Not Started | In Progress | Blocked | Done
 > `phase-15-security.md` still contains "Phase 15" and `TASK-15xx`) to
 > avoid an invasive rename across cross-referenced docs — this table's
 > row order is the actual intended working order, not the file numbers.
+
+> Table corrected: Phase 19 was marked "In Progress" here but every one
+> of its tasks (TASK-1901–1907) was already `Done` in its own phase
+> file — a stale row, not real work. Phase 21 moved to "In Progress":
+> TASK-2101 is now `Done`; TASK-2102–2105 remain `Not Started`.
 
 Before starting any task, follow `development/ai-agent-workflow.md`.

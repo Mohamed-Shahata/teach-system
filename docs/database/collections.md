@@ -200,11 +200,14 @@ only by the server-side gateway webhook handler, never by client input.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | teacherId | string | yes | |
-| courseId | string | yes | |
+| courseId | string | no (TASK-2101) | absent means a standalone, stage-wide exam — `stageId`/`scheduledAt` are required instead |
 | lessonId | string | no | optional link to a lesson |
 | title | map `{ en, ar }` | yes | |
 | status | `"draft" \| "published"` | yes | |
 | questionIds | string[] | yes | ordered |
+| stageId | string | required iff `courseId` absent (TASK-2101) | ref into `educationStages` — the stage this standalone exam targets |
+| scheduledAt | timestamp | required iff `courseId` absent (TASK-2101) | when the exam opens for students |
+| autoGrade | boolean | yes (TASK-2102) | defaults to `true`; `false` means attempts need manual teacher grading |
 | createdAt / updatedAt | timestamp | yes | |
 
 ## `questions/{questionId}`
@@ -226,7 +229,10 @@ only by the server-side gateway webhook handler, never by client input.
 | quizId | string | yes | |
 | teacherId | string | yes | |
 | answers | array `{ questionId, selectedOptionIds }` | yes | |
-| score | number | yes | computed server-side, never client-submitted |
+| score | number | yes | computed server-side, never client-submitted; `0` placeholder while `status === "pending_review"` |
+| status | `"graded" \| "pending_review"` | yes (TASK-2102) | `pending_review` for manually-graded (`quiz.autoGrade === false`) attempts until a teacher scores them |
+| gradedBy | string | no (TASK-2102) | teacher/Admin uid who graded a `pending_review` attempt |
+| gradedAt | timestamp | no (TASK-2102) | |
 | submittedAt | timestamp | yes | |
 
 ## `files/{fileId}`

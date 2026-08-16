@@ -25,7 +25,10 @@ vi.mock("@/lib/server/repositories/teacherProfileRepository", () => ({
     totalLessons: 0,
     totalEnrollments: 0,
   },
-  teacherProfileRepository: { create: createTeacherProfile, findBySlug: findTeacherProfileBySlug },
+  teacherProfileRepository: {
+    create: createTeacherProfile,
+    findBySlug: findTeacherProfileBySlug,
+  },
 }));
 
 const incrementSystemStats = vi.fn();
@@ -34,7 +37,8 @@ vi.mock("@/lib/server/repositories/systemStatsRepository", () => ({
 }));
 
 const { accountService } = await import("./accountService");
-const { ForbiddenError, ConflictError, NotFoundError } = await import("@/lib/errors");
+const { ForbiddenError, ConflictError, NotFoundError } =
+  await import("@/lib/errors");
 
 function makeSession(role: "admin" | "teacher" | "student", uid = "uid-1") {
   return { uid, email: `${uid}@example.com`, role };
@@ -48,7 +52,9 @@ describe("accountService.createAccountByAdmin", () => {
     createUserDoc.mockResolvedValue(undefined);
     createTeacherProfile.mockResolvedValue(undefined);
     findTeacherProfileBySlug.mockResolvedValue(null);
-    generatePasswordResetLink.mockResolvedValue("https://example.com/reset?oobCode=abc");
+    generatePasswordResetLink.mockResolvedValue(
+      "https://example.com/reset?oobCode=abc",
+    );
   });
 
   it("creates a teacher account and its teacherProfile, with createdBy = admin", async () => {
@@ -62,7 +68,10 @@ describe("accountService.createAccountByAdmin", () => {
     });
 
     expect(createUser).toHaveBeenCalledWith(
-      expect.objectContaining({ email: "mona@example.com", displayName: "Mona" }),
+      expect.objectContaining({
+        email: "mona@example.com",
+        displayName: "Mona",
+      }),
     );
     expect(createUserDoc).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -72,7 +81,11 @@ describe("accountService.createAccountByAdmin", () => {
       }),
     );
     expect(createTeacherProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ teacherId: "new-uid", displayName: "Mona", slug: "mona" }),
+      expect.objectContaining({
+        teacherId: "new-uid",
+        displayName: "Mona",
+        slug: "mona",
+      }),
     );
     expect(result).toEqual({
       uid: "new-uid",
@@ -96,7 +109,9 @@ describe("accountService.createAccountByAdmin", () => {
       phone: "01000000000",
     });
 
-    expect(createTeacherProfile).toHaveBeenCalledWith(expect.objectContaining({ slug: "mona-2" }));
+    expect(createTeacherProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ slug: "mona-2" }),
+    );
   });
 
   it("creates a student account without a teacherProfile, with createdBy = admin", async () => {
@@ -111,7 +126,10 @@ describe("accountService.createAccountByAdmin", () => {
     });
 
     expect(createUserDoc).toHaveBeenCalledWith(
-      expect.objectContaining({ role: "student", stageId: "stage-3-secondary" }),
+      expect.objectContaining({
+        role: "student",
+        stageId: "stage-3-secondary",
+      }),
     );
     expect(createTeacherProfile).not.toHaveBeenCalled();
   });
@@ -167,7 +185,9 @@ describe("accountService.createStudentByTeacher", () => {
     vi.clearAllMocks();
     createUser.mockResolvedValue({ uid: "new-uid" });
     createUserDoc.mockResolvedValue(undefined);
-    generatePasswordResetLink.mockResolvedValue("https://example.com/reset?oobCode=xyz");
+    generatePasswordResetLink.mockResolvedValue(
+      "https://example.com/reset?oobCode=xyz",
+    );
     findUserById.mockResolvedValue({ uid: "teacher-1", role: "teacher" });
   });
 
@@ -194,7 +214,11 @@ describe("accountService.createStudentByTeacher", () => {
   });
 
   it("blocks a teacher whose canCreateStudents flag was turned off by the Admin", async () => {
-    findUserById.mockResolvedValue({ uid: "teacher-1", role: "teacher", canCreateStudents: false });
+    findUserById.mockResolvedValue({
+      uid: "teacher-1",
+      role: "teacher",
+      canCreateStudents: false,
+    });
     const session = makeSession("teacher", "teacher-1");
 
     await expect(
@@ -266,7 +290,9 @@ describe("accountService.createStudentByTeacher", () => {
     });
 
     expect(createUser).toHaveBeenCalledWith(
-      expect.objectContaining({ email: expect.stringContaining("01000000000") }),
+      expect.objectContaining({
+        email: expect.stringContaining("01000000000"),
+      }),
     );
     expect(createUserDoc).toHaveBeenCalledWith(
       expect.objectContaining({ phone: "01000000000", age: 12 }),

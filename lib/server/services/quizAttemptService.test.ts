@@ -43,6 +43,7 @@ const quiz = {
   title: { en: "Quiz", ar: "اختبار" },
   status: "published" as const,
   questionIds: ["q-1", "q-2"],
+  autoGrade: true,
   createdAt: 1,
   updatedAt: 1,
 };
@@ -139,6 +140,19 @@ describe("quizAttemptService.submitAttempt", () => {
     });
 
     expect(attempt.score).toBe(100);
+  });
+
+  it("stores a manually-graded quiz's attempt as pending_review, unscored", async () => {
+    quizFindById.mockResolvedValue({ ...quiz, autoGrade: false });
+    const attempt = await quizAttemptService.submitAttempt(makeSession("student"), "quiz-1", {
+      answers: [
+        { questionId: "q-1", selectedOptionIds: ["b"] },
+        { questionId: "q-2", selectedOptionIds: ["t"] },
+      ],
+    });
+
+    expect(attempt.status).toBe("pending_review");
+    expect(attempt.score).toBe(0);
   });
 
   it("rejects a submission for an unpublished quiz", async () => {

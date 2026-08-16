@@ -3,6 +3,8 @@ import { assertRole, assertStudentEnrolled, assertTeacherOwnsResource } from "@/
 import type { Session } from "@/lib/auth/session";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { enrollmentRepository } from "@/lib/server/repositories/enrollmentRepository";
+import { educationStageRepository } from "@/lib/server/repositories/educationStageRepository";
+import { resolveOwnerTeacherId } from "@/lib/server/repositories/base";
 import { quizRepository, type QuizDoc } from "@/lib/server/repositories/quizRepository";
 import {
   questionRepository,
@@ -50,9 +52,27 @@ async function loadOwnedQuiz(session: Session, quizId: string): Promise<QuizDoc>
 async function loadQuizForStudent(session: Session, quizId: string): Promise<QuizDoc> {
   const quiz = await quizRepository.findById(quizId);
   if (!quiz || quiz.status !== "published") throw new NotFoundError();
+  if (!quiz.courseId) {
+    // Standalone stage-wide exams (TASK-2101) aren't student-readable through
+    // this course-enrollment-gated path yet — the stage-targeted read/take
+    // flow is TASK-2104 (Not Started). Treat as not-found in the meantime,
+    // same "doesn't exist as far as this caller is concerned" reasoning as
+    // the draft-quiz case above.
+    throw new NotFoundError();
+  }
   const enrollment = await enrollmentRepository.findByStudentAndCourse(session.uid, quiz.courseId);
   assertStudentEnrolled(session, enrollment);
   return quiz;
+}
+
+/**
+ * Guards a standalone exam's `stageId` against a real `educationStages`
+ * document — same "never trust a client-supplied id without a lookup"
+ * reasoning as `courseService.assertSubjectAndStageExist`.
+ */
+async function assertStageExists(stageId: string) {
+  const stage = await educationStageRepository.findById(stageId);
+  if (!stage) throw new ValidationError();
 }
 
 export const quizService = {
@@ -78,17 +98,40 @@ export const quizService = {
     return loadOwnedQuiz(session, id);
   },
 
+  /**
+   * TASK-2101 — branches on course-attached vs standalone (`courseId`
+   * absent) mode. `createQuizSchema`'s `refine`s already guarantee
+   * `stageId`/`scheduledAt` are present when `courseId` is absent, so
+   * this only needs to resolve ownership and validate the reference.
+   */
   async createQuiz(session: Session, input: CreateQuizInput) {
     assertRole(session, "teacher", "admin");
-    const course = await courseService.getCourse(session, input.courseId);
     const now = Date.now();
+    if (input.courseId) {
+      const course = await courseService.getCourse(session, input.courseId);
+      return quizRepository.create({
+        teacherId: course.teacherId,
+        courseId: course.id,
+        title: input.title,
+        status: "draft",
+        questionIds: [],
+        autoGrade: input.autoGrade ?? true,
+        ...withoutUndefined({ lessonId: input.lessonId }),
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    // Standalone, stage-wide exam — no course to derive teacherId/ownership from.
+    const teacherId = resolveOwnerTeacherId(session, input.teacherId);
+    await assertStageExists(input.stageId!);
     return quizRepository.create({
-      teacherId: course.teacherId,
-      courseId: course.id,
+      teacherId,
       title: input.title,
       status: "draft",
       questionIds: [],
-      ...withoutUndefined({ lessonId: input.lessonId }),
+      stageId: input.stageId,
+      scheduledAt: input.scheduledAt,
+      autoGrade: input.autoGrade ?? true,
       createdAt: now,
       updatedAt: now,
     });
@@ -96,6 +139,9 @@ export const quizService = {
 
   async updateQuiz(session: Session, id: string, input: UpdateQuizInput) {
     await loadOwnedQuiz(session, id);
+    if (input.stageId) {
+      await assertStageExists(input.stageId);
+    }
     const { lessonId, ...rest } = input;
     return quizRepository.update(session, id, {
       ...withoutUndefined(rest),

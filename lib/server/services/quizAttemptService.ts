@@ -53,18 +53,30 @@ export const quizAttemptService = {
     if (quiz.questionIds.length === 0) {
       throw new ValidationError();
     }
+    if (!quiz.courseId) {
+      // Standalone stage-wide exams (TASK-2101) skip the enrollment check by
+      // design, but the stage-gated variant of that skip is TASK-2104 (Not
+      // Started) — until it lands, treat as not-found rather than letting
+      // any student submit against it.
+      throw new NotFoundError();
+    }
 
     const enrollment = await enrollmentRepository.findByStudentAndCourse(session.uid, quiz.courseId);
     assertStudentEnrolled(session, enrollment);
 
     const questions = await questionRepository.findByIds(quiz.questionIds);
 
+    // TASK-2102 — a manually-graded quiz (`autoGrade: false`) still stores the
+    // raw answers, but doesn't compute/reveal a score yet: the attempt sits
+    // `pending_review` until a teacher grades it (TASK-2103). `score` is a `0`
+    // placeholder in that state, not a real result.
     const attempt = await quizAttemptRepository.create({
       studentId: session.uid,
       quizId: quiz.id,
       teacherId: quiz.teacherId,
       answers: input.answers,
-      score: computeScore(questions, input.answers),
+      score: quiz.autoGrade ? computeScore(questions, input.answers) : 0,
+      status: quiz.autoGrade ? "graded" : "pending_review",
       submittedAt: Date.now(),
     });
 

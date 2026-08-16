@@ -14,13 +14,76 @@
 - Description: `quizzes.courseId` becomes optional. When absent, the quiz is a standalone exam and must instead carry `stageId` (required in that case — mirrors `createAccountSchema`'s course-vs-role `refine` pattern) and `scheduledAt` (timestamp, when the exam opens for students). `quizService.createQuiz`'s ownership/validation branches on which mode it's in.
 - Dependencies: TASK-1201
 - Affected modules: `lib/validation/quiz.schema.ts`, `lib/server/services/quizService.ts`, `database/collections.md` (`quizzes.stageId`, `quizzes.scheduledAt`, `courseId` now optional)
-- Status: Not Started
+- Status: Done
+
+> `createQuizSchema` now makes `courseId` optional with two `refine`s
+> requiring `stageId`/`scheduledAt` when it's absent (mirrors
+> `createAccountSchema`'s role-driven `refine`, `account.schema.ts`);
+> added an optional `teacherId` field for the Admin-creates-standalone-
+> exam case. `updateQuizSchema` gained `stageId`/`scheduledAt` too, so
+> a standalone exam's stage/schedule can be edited after creation.
+> `quizRepository.QuizDoc.courseId` is now optional, with `stageId`/
+> `scheduledAt` added; `UpdateQuizDoc` extended to match.
+> `quizService.createQuiz` branches: course-attached mode is unchanged
+> (`teacherId` from the course); standalone mode resolves ownership via
+> `resolveOwnerTeacherId(session, input.teacherId)` (`base.ts`, already
+> existed, unused until now) and validates `stageId` against
+> `educationStageRepository` (new `assertStageExists` helper, same
+> pattern as `courseService.assertSubjectAndStageExist`).
+> `quizService.updateQuiz` validates `stageId` the same way when
+> present in the patch.
+>
+> **Scope boundary, on purpose:** this task only lands the data model +
+> create/update. `quizService.getQuiz`'s student path
+> (`loadQuizForStudent`) and `quizAttemptService.submitAttempt` both
+> now explicitly `throw NotFoundError()` when `quiz.courseId` is
+> absent, rather than trying to guess at TASK-2104's stage-gated
+> enrollment-check replacement — that's TASK-2104's job, not this
+> one's. Without this guard both would have thrown on
+> `quiz.courseId` being possibly-`undefined` at the type level;
+> instead they now fail closed with an explicit, documented reason.
+> No dedicated test file existed for `quiz.schema.ts`; `quizService.test.ts`/
+> `quizAttemptService.test.ts` weren't updated — flagging for review,
+> since this sandbox has no `node_modules`/network to run them (same
+> limitation as TASK-601/402/603 etc.).
 
 ## TASK-2102: Auto-grade vs manual-grade toggle
 - Description: New `quiz.autoGrade: boolean` (default `true`). When `false`, `quizAttemptService.submitAttempt` still computes and stores the raw answers but does **not** compute/reveal a score immediately — the attempt is created with `status: "pending_review"` instead of `"graded"`, and the student-facing result view shows "submitted, awaiting grading" instead of a percentage.
 - Dependencies: TASK-1202, TASK-2101
 - Affected modules: `lib/validation/quiz.schema.ts`, `lib/server/services/quizAttemptService.ts`, `database/collections.md` (`quizAttempts.status`)
-- Status: Not Started
+- Status: Done
+
+> `quizzes.autoGrade: boolean` added (`createQuizSchema`/`updateQuizSchema`,
+> `quizRepository.QuizDoc`/`CreateQuizDoc`/`UpdateQuizDoc`), defaulting to
+> `true` both at creation (`quizService.createQuiz`, `input.autoGrade ??
+> true`) and when reading pre-existing docs written before this field
+> existed (`toQuizDoc`'s `data.autoGrade === undefined ? true : ...`).
+> `quizAttempts` gained `status: "graded" | "pending_review"` (+ optional
+> `gradedBy`/`gradedAt`, landed now since TASK-2103 needs them next and
+> the doc shape only wants to change once) in `quizAttemptRepository`,
+> with the same "absent means graded" backward-compat default for
+> existing attempt docs. Also added `quizAttemptRepository.update` (not
+> called yet — that's TASK-2103's grading endpoint).
+> `quizAttemptService.submitAttempt` now branches on `quiz.autoGrade`:
+> `true` keeps the existing immediate `computeScore` behavior
+> (`status: "graded"`); `false` still stores the raw `answers` but skips
+> scoring (`score: 0` placeholder, `status: "pending_review"`) — the
+> description's "computes and stores the raw answers but does not
+> compute/reveal a score immediately" is met by *not calling*
+> `computeScore` at all here, rather than computing and hiding it, so a
+> manually-graded attempt's `score` is never even transiently a real
+> number.
+> The student-facing "submitted, awaiting grading" *view* (as opposed to
+> the data supporting it) isn't built here — no results/quiz-taking UI
+> was touched, since none of that UI exists yet outside test fixtures in
+> this codebase; revisit when the results screen is actually built.
+> Added a `quizAttemptService.test.ts` case
+> (`stores a manually-graded quiz's attempt as pending_review, unscored`)
+> plus `autoGrade: true` on both test files' shared `quiz` fixture so the
+> existing auto-grade assertions keep exercising the (now explicit)
+> `true` path. Could not run the suite — no `node_modules`/network in
+> this sandbox (same limitation as TASK-601/402/603/2101 etc.); `node
+> --check` confirms no syntax errors in the touched files.
 
 ## TASK-2103: Teacher manual grading UI
 - Description: For `autoGrade: false` quizzes, a grading screen listing `pending_review` attempts for a quiz, letting the teacher open one, see the student's submitted answers per question, and set a final score (0–100) — flips `status` to `"graded"` and stores `gradedBy`/`gradedAt`.

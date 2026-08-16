@@ -70,6 +70,7 @@ const quiz = {
   title: { en: "Quiz 1", ar: "اختبار 1" },
   status: "draft" as const,
   questionIds: ["q-1", "q-2"],
+  autoGrade: true,
   createdAt: 1,
   updatedAt: 1,
 };
