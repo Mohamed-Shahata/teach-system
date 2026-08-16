@@ -11,6 +11,8 @@ export interface DashboardTopbarProps {
   onMenuClick: () => void;
   /** Overrides the default ("Teacher Dashboard") title -- pass this from role-specific layouts (admin, student) so the topbar doesn't always say "Teacher". */
   title?: string;
+  /** Profile avatar (Cloudinary URL) -- shown instead of the initials badge when present. */
+  avatarUrl?: string;
 }
 
 /**
@@ -22,7 +24,7 @@ export interface DashboardTopbarProps {
  * Background matches the page background (not `--color-surface`) so it
  * blends into its parent instead of reading as a separate panel.
  */
-export function DashboardTopbar({ displayName, onMenuClick, title }: DashboardTopbarProps) {
+export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl }: DashboardTopbarProps) {
   const t = useTranslations("teacherDashboard");
 
   return (
@@ -73,17 +75,26 @@ export function DashboardTopbar({ displayName, onMenuClick, title }: DashboardTo
           <LocaleSwitcher />
           <ThemeToggle />
           <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
-          <span
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-primary"
-            aria-hidden="true"
-          >
-            {displayName
-              .trim()
-              .split(/\s+/)
-              .slice(0, 2)
-              .map((part) => part[0]?.toUpperCase())
-              .join("") || "?"}
-          </span>
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- Cloudinary-hosted, remote avatar; no local optimization needed here.
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="h-8 w-8 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-primary"
+              aria-hidden="true"
+            >
+              {displayName
+                .trim()
+                .split(/\s+/)
+                .slice(0, 2)
+                .map((part) => part[0]?.toUpperCase())
+                .join("") || "?"}
+            </span>
+          )}
           <LogoutButton
             size="sm"
             className="border border-error/40 text-error hover:border-error hover:bg-error hover:text-white"

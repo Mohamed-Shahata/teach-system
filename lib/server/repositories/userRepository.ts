@@ -114,6 +114,26 @@ export const userRepository = {
   },
 
   /**
+   * Admin edit of an existing account's profile fields (name/email/phone/
+   * age/grade level) — the Teacher/Student management "Edit" action.
+   * Only defined keys are written, so partial edits never clobber fields
+   * the admin didn't touch. Callers are responsible for also updating the
+   * Firebase Auth account's `displayName`/`email` (`adminAuth.updateUser`)
+   * so the two stay in sync, the same dual-write pattern `setDisabled` uses.
+   */
+  async updateProfile(
+    uid: string,
+    fields: Partial<Pick<UserDoc, "displayName" | "email" | "phone" | "age" | "stageId">>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) data[key] = value;
+    }
+    if (Object.keys(data).length === 0) return;
+    await adminDb.collection(COLLECTION).doc(uid).update(data);
+  },
+
+  /**
    * Updates a user's own `displayName` — TASK-1907's Admin account
    * settings (and reusable by any future self-service profile edit).
    * Callers are responsible for also updating the Firebase Auth

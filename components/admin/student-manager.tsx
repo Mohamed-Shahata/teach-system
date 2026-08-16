@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Alert, Badge, Button, Dialog, Input, Table } from "@/components/ui";
+import { Alert, Badge, Button, Dialog, Input, Pagination, Table } from "@/components/ui";
 import type { Column } from "@/components/ui/table";
 import type { StudentSummary } from "@/lib/server/services/studentManagementService";
 import type { EducationStageDoc } from "@/lib/server/repositories/educationStageRepository";
@@ -27,6 +27,28 @@ function emptyCreateForm(stages: EducationStageDoc[]): CreateStudentFormState {
   return { displayName: "", email: "", phone: "", age: "", stageId: stages[0]?.id ?? "" };
 }
 
+interface EditStudentFormState {
+  uid: string;
+  displayName: string;
+  email: string;
+  phone: string;
+  age: string;
+  stageId: string;
+}
+
+function editFormFromStudent(student: StudentSummary): EditStudentFormState {
+  return {
+    uid: student.uid,
+    displayName: student.displayName,
+    email: student.email,
+    phone: student.phone ?? "",
+    age: student.age !== undefined ? String(student.age) : "",
+    stageId: student.stageId ?? "",
+  };
+}
+
+const PAGE_SIZE = 10;
+
 /**
  * TASK-1904 — Admin-facing Student list with search, per-student
  * enrollment stats (derived server-side by `studentManagementService`
@@ -36,6 +58,7 @@ function emptyCreateForm(stages: EducationStageDoc[]): CreateStudentFormState {
  */
 export function StudentManager({ initialStudents, stages, subjects }: StudentManagerProps) {
   const t = useTranslations("adminDashboard.students");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
 
   const [students, setStudents] = React.useState(initialStudents);
@@ -52,6 +75,16 @@ export function StudentManager({ initialStudents, stages, subjects }: StudentMan
 
   const [subscriptionsTarget, setSubscriptionsTarget] = React.useState<StudentSummary | null>(null);
 
+  const [editTarget, setEditTarget] = React.useState<StudentSummary | null>(null);
+  const [editForm, setEditForm] = React.useState<EditStudentFormState | null>(null);
+  const [editError, setEditError] = React.useState<string | null>(null);
+  const [editing, setEditing] = React.useState(false);
+
+  const [page, setPage] = React.useState(1);
+  const totalPages = Math.max(1, Math.ceil(students.length / PAGE_SIZE));
+  const clampedPage = Math.min(page, totalPages);
+  const pagedStudents = students.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE);
+
   function localizedName(name?: { en: string; ar: string }): string {
     if (!name) return "—";
     return locale === "ar" ? name.ar || name.en : name.en || name.ar;
@@ -66,6 +99,7 @@ export function StudentManager({ initialStudents, stages, subjects }: StudentMan
       if (!res.ok) throw new Error("list");
       const body = (await res.json()) as { students: StudentSummary[] };
       setStudents(body.students);
+      setPage(1);
     } catch {
       setError(t("errors.list"));
     } finally {
@@ -124,6 +158,41 @@ export function StudentManager({ initialStudents, stages, subjects }: StudentMan
       setCreateError(t("errors.create"));
     } finally {
       setCreating(false);
+    }
+  }
+
+  function openEdit(student: StudentSummary) {
+    setEditTarget(student);
+    setEditForm(editFormFromStudent(student));
+    setEditError(null);
+  }
+
+  async function submitEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editTarget || !editForm) return;
+    setEditing(true);
+    setEditError(null);
+    try {
+      const res = await fetch(`/api/admin/students/${editTarget.uid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: editForm.displayName,
+          email: editForm.email,
+          phone: editForm.phone,
+          stageId: editForm.stageId,
+          ...(editForm.age ? { age: Number(editForm.age) } : {}),
+        }),
+      });
+      if (!res.ok) throw new Error("update");
+      const body = (await res.json()) as { student: StudentSummary };
+      setStudents((current) => current.map((student) => (student.uid === body.student.uid ? body.student : student)));
+      setEditTarget(null);
+      setEditForm(null);
+    } catch {
+      setEditError(t("errors.edit"));
+    } finally {
+      setEditing(false);
     }
   }
 
@@ -188,12 +257,16 @@ export function StudentManager({ initialStudents, stages, subjects }: StudentMan
 
       <Table
         columns={columns}
-        rows={students}
+        rows={pagedStudents}
         rowKey={(row) => row.uid}
         loading={loading}
         emptyMessage={t("empty")}
+        actionsLabel={tCommon("actions")}
         rowActions={(row) => (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => openEdit(row)}>
+              {t("edit")}
+            </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => setSubscriptionsTarget(row)}>
               {t("subscriptions")}
             </Button>
@@ -208,6 +281,8 @@ export function StudentManager({ initialStudents, stages, subjects }: StudentMan
           </div>
         )}
       />
+
+      {totalPages > 1 && <Pagination page={clampedPage} totalPages={totalPages} onPageChange={setPage} />}
 
       <Dialog
         open={statusTarget !== null}
@@ -242,64 +317,68 @@ export function StudentManager({ initialStudents, stages, subjects }: StudentMan
         }}
         title={t("createTitle")}
         description={t("createDescription")}
+        size="lg"
       >
         <form onSubmit={submitCreate} className="flex flex-col gap-4">
           {createError && <Alert variant="error">{createError}</Alert>}
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-foreground">{t("fields.displayName")}</span>
-            <Input
-              required
-              value={createForm.displayName}
-              onChange={(event) => setCreateForm((c) => ({ ...c, displayName: event.target.value }))}
-            />
-          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-foreground">{t("fields.displayName")}</span>
+              <Input
+                required
+                value={createForm.displayName}
+                onChange={(event) => setCreateForm((c) => ({ ...c, displayName: event.target.value }))}
+              />
+            </label>
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-foreground">{t("fields.email")}</span>
-            <Input
-              type="email"
-              required
-              value={createForm.email}
-              onChange={(event) => setCreateForm((c) => ({ ...c, email: event.target.value }))}
-            />
-          </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-foreground">{t("fields.email")}</span>
+              <Input
+                type="email"
+                required
+                value={createForm.email}
+                onChange={(event) => setCreateForm((c) => ({ ...c, email: event.target.value }))}
+              />
+            </label>
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-foreground">{t("fields.phone")}</span>
-            <Input
-              type="tel"
-              value={createForm.phone}
-              onChange={(event) => setCreateForm((c) => ({ ...c, phone: event.target.value }))}
-            />
-          </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-foreground">{t("fields.phone")}</span>
+              <Input
+                type="tel"
+                required
+                value={createForm.phone}
+                onChange={(event) => setCreateForm((c) => ({ ...c, phone: event.target.value }))}
+              />
+            </label>
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-foreground">{t("fields.age")}</span>
-            <Input
-              type="number"
-              min={2}
-              max={25}
-              value={createForm.age}
-              onChange={(event) => setCreateForm((c) => ({ ...c, age: event.target.value }))}
-            />
-          </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-foreground">{t("fields.age")}</span>
+              <Input
+                type="number"
+                min={2}
+                max={25}
+                value={createForm.age}
+                onChange={(event) => setCreateForm((c) => ({ ...c, age: event.target.value }))}
+              />
+            </label>
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-foreground">{t("fields.stage")}</span>
-            <select
-              required
-              className="h-10 rounded-md border border-border bg-background px-2 text-sm"
-              value={createForm.stageId}
-              onChange={(event) => setCreateForm((c) => ({ ...c, stageId: event.target.value }))}
-            >
-              {stages.map((stage) => (
-                <option key={stage.id} value={stage.id}>
-                  {localizedName(stage.name)}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              <span className="font-medium text-foreground">{t("fields.stage")}</span>
+              <select
+                required
+                className="h-10 rounded-md border border-border bg-background px-2 text-sm"
+                value={createForm.stageId}
+                onChange={(event) => setCreateForm((c) => ({ ...c, stageId: event.target.value }))}
+              >
+                {stages.map((stage) => (
+                  <option key={stage.id} value={stage.id}>
+                    {localizedName(stage.name)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
@@ -310,6 +389,93 @@ export function StudentManager({ initialStudents, stages, subjects }: StudentMan
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        open={editTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditTarget(null);
+            setEditForm(null);
+            setEditError(null);
+          }
+        }}
+        title={t("editTitle")}
+        description={t("editDescription")}
+        size="lg"
+      >
+        {editForm && (
+          <form onSubmit={submitEdit} className="flex flex-col gap-4">
+            {editError && <Alert variant="error">{editError}</Alert>}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium text-foreground">{t("fields.displayName")}</span>
+                <Input
+                  required
+                  value={editForm.displayName}
+                  onChange={(event) => setEditForm((c) => (c ? { ...c, displayName: event.target.value } : c))}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium text-foreground">{t("fields.email")}</span>
+                <Input
+                  type="email"
+                  required
+                  value={editForm.email}
+                  onChange={(event) => setEditForm((c) => (c ? { ...c, email: event.target.value } : c))}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium text-foreground">{t("fields.phone")}</span>
+                <Input
+                  type="tel"
+                  required
+                  value={editForm.phone}
+                  onChange={(event) => setEditForm((c) => (c ? { ...c, phone: event.target.value } : c))}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium text-foreground">{t("fields.age")}</span>
+                <Input
+                  type="number"
+                  min={2}
+                  max={25}
+                  value={editForm.age}
+                  onChange={(event) => setEditForm((c) => (c ? { ...c, age: event.target.value } : c))}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+                <span className="font-medium text-foreground">{t("fields.stage")}</span>
+                <select
+                  required
+                  className="h-10 rounded-md border border-border bg-background px-2 text-sm"
+                  value={editForm.stageId}
+                  onChange={(event) => setEditForm((c) => (c ? { ...c, stageId: event.target.value } : c))}
+                >
+                  {stages.map((stage) => (
+                    <option key={stage.id} value={stage.id}>
+                      {localizedName(stage.name)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>
+                {t("cancel")}
+              </Button>
+              <Button type="submit" loading={editing}>
+                {t("save")}
+              </Button>
+            </div>
+          </form>
+        )}
       </Dialog>
 
       {subscriptionsTarget && (

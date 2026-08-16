@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { Alert, Button, Dialog, EmptyState, Input, Select, Table } from "@/components/ui";
+import { Alert, Button, Dialog, EmptyState, Input, Pagination, Select, Table } from "@/components/ui";
 import type { Column } from "@/components/ui/table";
 import type { EducationStageDoc, EducationStageCategory } from "@/lib/server/repositories/educationStageRepository";
 import type { SubjectDoc } from "@/lib/server/repositories/subjectRepository";
@@ -11,6 +11,8 @@ interface CenterConfigManagerProps {
   initialStages: EducationStageDoc[];
   initialSubjects: SubjectDoc[];
 }
+
+const PAGE_SIZE = 10;
 
 interface StageFormState {
   id?: string;
@@ -38,6 +40,7 @@ const EMPTY_SUBJECT_FORM: SubjectFormState = { nameEn: "", nameAr: "" };
  */
 export function CenterConfigManager({ initialStages, initialSubjects }: CenterConfigManagerProps) {
   const t = useTranslations("adminDashboard.education");
+  const tCommon = useTranslations("common");
 
   const [stages, setStages] = React.useState(initialStages);
   const [subjects, setSubjects] = React.useState(initialSubjects);
@@ -53,11 +56,22 @@ export function CenterConfigManager({ initialStages, initialSubjects }: CenterCo
   const [subjectPending, setSubjectPending] = React.useState(false);
   const [subjectDeleteTarget, setSubjectDeleteTarget] = React.useState<SubjectDoc | null>(null);
 
+  const [stagePage, setStagePage] = React.useState(1);
+  const stageTotalPages = Math.max(1, Math.ceil(stages.length / PAGE_SIZE));
+  const clampedStagePage = Math.min(stagePage, stageTotalPages);
+  const pagedStages = stages.slice((clampedStagePage - 1) * PAGE_SIZE, clampedStagePage * PAGE_SIZE);
+
+  const [subjectPage, setSubjectPage] = React.useState(1);
+  const subjectTotalPages = Math.max(1, Math.ceil(subjects.length / PAGE_SIZE));
+  const clampedSubjectPage = Math.min(subjectPage, subjectTotalPages);
+  const pagedSubjects = subjects.slice((clampedSubjectPage - 1) * PAGE_SIZE, clampedSubjectPage * PAGE_SIZE);
+
   async function refreshStages() {
     const res = await fetch("/api/admin/education-stages");
     if (!res.ok) throw new Error("refresh");
     const body = (await res.json()) as { stages: EducationStageDoc[] };
     setStages(body.stages);
+    setStagePage(1);
   }
 
   async function refreshSubjects() {
@@ -65,6 +79,7 @@ export function CenterConfigManager({ initialStages, initialSubjects }: CenterCo
     if (!res.ok) throw new Error("refresh");
     const body = (await res.json()) as { subjects: SubjectDoc[] };
     setSubjects(body.subjects);
+    setSubjectPage(1);
   }
 
   function openCreateStage() {
@@ -214,21 +229,27 @@ export function CenterConfigManager({ initialStages, initialSubjects }: CenterCo
         {stages.length === 0 ? (
           <EmptyState title={t("stages.emptyTitle")} description={t("stages.emptyDescription")} actionLabel={t("stages.newStage")} onAction={openCreateStage} />
         ) : (
-          <Table
-            columns={stageColumns}
-            rows={stages}
-            rowKey={(stage) => stage.id}
-            rowActions={(stage) => (
-              <div className="flex items-center justify-end gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => openEditStage(stage)}>
-                  {t("edit")}
-                </Button>
-                <Button type="button" variant="destructive" size="sm" onClick={() => setStageDeleteTarget(stage)}>
-                  {t("delete")}
-                </Button>
-              </div>
+          <>
+            <Table
+              columns={stageColumns}
+              rows={pagedStages}
+              rowKey={(stage) => stage.id}
+              actionsLabel={tCommon("actions")}
+              rowActions={(stage) => (
+                <div className="flex items-center justify-end gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => openEditStage(stage)}>
+                    {t("edit")}
+                  </Button>
+                  <Button type="button" variant="destructive" size="sm" onClick={() => setStageDeleteTarget(stage)}>
+                    {t("delete")}
+                  </Button>
+                </div>
+              )}
+            />
+            {stageTotalPages > 1 && (
+              <Pagination page={clampedStagePage} totalPages={stageTotalPages} onPageChange={setStagePage} />
             )}
-          />
+          </>
         )}
       </section>
 
@@ -246,21 +267,27 @@ export function CenterConfigManager({ initialStages, initialSubjects }: CenterCo
         {subjects.length === 0 ? (
           <EmptyState title={t("subjects.emptyTitle")} description={t("subjects.emptyDescription")} actionLabel={t("subjects.newSubject")} onAction={openCreateSubject} />
         ) : (
-          <Table
-            columns={subjectColumns}
-            rows={subjects}
-            rowKey={(subject) => subject.id}
-            rowActions={(subject) => (
-              <div className="flex items-center justify-end gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => openEditSubject(subject)}>
-                  {t("edit")}
-                </Button>
-                <Button type="button" variant="destructive" size="sm" onClick={() => setSubjectDeleteTarget(subject)}>
-                  {t("delete")}
-                </Button>
-              </div>
+          <>
+            <Table
+              columns={subjectColumns}
+              rows={pagedSubjects}
+              rowKey={(subject) => subject.id}
+              actionsLabel={tCommon("actions")}
+              rowActions={(subject) => (
+                <div className="flex items-center justify-end gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => openEditSubject(subject)}>
+                    {t("edit")}
+                  </Button>
+                  <Button type="button" variant="destructive" size="sm" onClick={() => setSubjectDeleteTarget(subject)}>
+                    {t("delete")}
+                  </Button>
+                </div>
+              )}
+            />
+            {subjectTotalPages > 1 && (
+              <Pagination page={clampedSubjectPage} totalPages={subjectTotalPages} onPageChange={setSubjectPage} />
             )}
-          />
+          </>
         )}
       </section>
 

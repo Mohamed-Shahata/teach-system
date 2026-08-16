@@ -3,7 +3,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "loading": "Loading",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "actions": "Actions"
   },
   "layout": {
     "title": "Darsi",
@@ -640,7 +641,8 @@
         "courses": "Courses",
         "students": "Students",
         "enrollments": "Enrollments",
-        "permissions": "Permissions"
+        "permissions": "Permissions",
+        "subject": "Subject"
       },
       "status": {
         "active": "Active",
@@ -649,6 +651,7 @@
       "activate": "Activate",
       "deactivate": "Deactivate",
       "cancel": "Cancel",
+      "save": "Save",
       "activateConfirmTitle": "Reactivate this teacher?",
       "activateConfirmDescription": "They'll be able to sign in again immediately.",
       "deactivateConfirmTitle": "Deactivate this teacher?",
@@ -659,7 +662,8 @@
         "deactivate": "Couldn't deactivate this teacher. Please try again.",
         "create": "Couldn't create the teacher, try again.",
         "offerings": "Couldn't load/update pricing, try again.",
-        "permissions": "Couldn't update the permission. Please try again."
+        "permissions": "Couldn't update the permission. Please try again.",
+        "edit": "Couldn't update this teacher. Please try again."
       },
       "create": "Create teacher",
       "createTitle": "Create a new teacher account",
@@ -668,7 +672,9 @@
         "displayName": "Name",
         "email": "Email",
         "phone": "Phone number",
-        "subjects": "Subjects they teach"
+        "subjects": "Subjects they teach",
+        "selectSubject": "Select a subject",
+        "age": "Age"
       },
       "submit": "Create",
       "offerings": "Pricing",
@@ -688,7 +694,10 @@
         "enableConfirmDescription": "They'll be able to create new student accounts of their own again.",
         "disableConfirmTitle": "Block this teacher from creating students?",
         "disableConfirmDescription": "They won't be able to create new student accounts until re-enabled. Existing students are unaffected."
-      }
+      },
+      "edit": "Edit",
+      "editTitle": "Edit teacher account",
+      "editDescription": "Update this teacher's details."
     },
     "students": {
       "title": "Students",
@@ -721,7 +730,8 @@
         "deactivate": "Couldn't deactivate this student. Please try again.",
         "create": "Couldn't create the student, try again.",
         "subscriptions": "Couldn't load/update subscriptions, try again.",
-        "invoice": "Something went wrong generating the invoice."
+        "invoice": "Something went wrong generating the invoice.",
+        "edit": "Couldn't update this student. Please try again."
       },
       "create": "Create student",
       "createTitle": "Create a new student account",
@@ -747,7 +757,10 @@
         "pending": "Awaiting payment",
         "confirmed": "Paid",
         "rejected": "Rejected"
-      }
+      },
+      "edit": "Edit",
+      "editTitle": "Edit student account",
+      "editDescription": "Update this student's details."
     },
     "analytics": {
       "title": "Analytics",

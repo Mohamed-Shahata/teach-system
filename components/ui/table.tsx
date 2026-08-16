@@ -15,35 +15,53 @@ export interface TableProps<T> {
   loading?: boolean;
   emptyMessage?: string;
   rowActions?: (row: T) => React.ReactNode;
+  /** Header label for the trailing row-actions column. Defaults to "Actions" -- pass a localized string. */
+  actionsLabel?: string;
 }
 
-export function Table<T>({ columns, rows, rowKey, loading, emptyMessage = "No data", rowActions }: TableProps<T>) {
+export function Table<T>({
+  columns,
+  rows,
+  rowKey,
+  loading,
+  emptyMessage = "No data",
+  rowActions,
+  actionsLabel = "Actions",
+}: TableProps<T>) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-start text-sm">
+    <div className="themed-scrollbar overflow-x-auto rounded-lg border border-border">
+      <table className="w-full min-w-max border-collapse text-start text-sm">
         <thead className="bg-surface-muted">
           <tr>
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={cn("px-3 py-2 font-medium text-foreground text-start", col.numeric && "text-end")}
+                scope="col"
+                className={cn(
+                  "whitespace-nowrap px-4 py-3 text-start align-middle font-medium text-foreground",
+                  col.numeric && "text-end"
+                )}
               >
                 {col.header}
               </th>
             ))}
-            {rowActions && <th className="px-3 py-2 text-end" />}
+            {rowActions && (
+              <th scope="col" className="whitespace-nowrap px-4 py-3 text-end align-middle font-medium text-foreground">
+                {actionsLabel}
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={columns.length + (rowActions ? 1 : 0)} className="px-3 py-6 text-center text-foreground/60">
+              <td colSpan={columns.length + (rowActions ? 1 : 0)} className="px-4 py-6 text-center text-foreground/60">
                 Loading…
               </td>
             </tr>
           ) : rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (rowActions ? 1 : 0)} className="px-3 py-6 text-center text-foreground/60">
+              <td colSpan={columns.length + (rowActions ? 1 : 0)} className="px-4 py-6 text-center text-foreground/60">
                 {emptyMessage}
               </td>
             </tr>
@@ -51,11 +69,17 @@ export function Table<T>({ columns, rows, rowKey, loading, emptyMessage = "No da
             rows.map((row) => (
               <tr key={rowKey(row)} className="border-t border-border">
                 {columns.map((col) => (
-                  <td key={col.key} className={cn("px-3 py-2 text-foreground", col.numeric && "text-end tabular-nums")}>
+                  <td
+                    key={col.key}
+                    className={cn(
+                      "whitespace-nowrap px-4 py-3 text-start align-middle text-foreground",
+                      col.numeric && "text-end tabular-nums"
+                    )}
+                  >
                     {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "")}
                   </td>
                 ))}
-                {rowActions && <td className="px-3 py-2 text-end">{rowActions(row)}</td>}
+                {rowActions && <td className="whitespace-nowrap px-4 py-3 text-end align-middle">{rowActions(row)}</td>}
               </tr>
             ))
           )}

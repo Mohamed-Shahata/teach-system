@@ -8,7 +8,13 @@ export async function GET() {
   try {
     const session = await requireSession();
     const subjects = await centerConfigService.listSubjects(session);
-    return NextResponse.json({ subjects });
+    // Rarely-changing, center-wide lookup list read by every role on many
+    // pages — cache it in the browser for a minute instead of refetching
+    // (and re-hitting Firestore) on every navigation.
+    return NextResponse.json(
+      { subjects },
+      { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=300" } },
+    );
   } catch (err) {
     return handleApiError(err);
   }

@@ -11,6 +11,10 @@ import type { LocalizedText } from "@/lib/server/repositories/courseRepository";
  * `requireSession`, no direct `courseRepository` use.
  */
 
+// Public, anonymous, and identical for every visitor — cache the rendered
+// page for a minute (ISR) instead of hitting Firestore on every request.
+export const revalidate = 60;
+
 function localizedText(text: Partial<LocalizedText> | undefined, locale: string): string | undefined {
   if (!text) return undefined;
   return (locale === "ar" ? text.ar : text.en) || text.en || text.ar;

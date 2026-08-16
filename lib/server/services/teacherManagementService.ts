@@ -32,9 +32,12 @@ export interface TeacherSummary {
   uid: string;
   displayName: string;
   email: string;
+  phone?: string;
   disabled: boolean;
   /** Phase 5 — whether this teacher may create their own students (`users.canCreateStudents`, default `true`). */
   canCreateStudents: boolean;
+  /** ref into `subjects`, mirrored from `teacherProfiles.subjectId` — the "Edit" dialog's subject field. */
+  subjectId?: string;
   stats: TeacherProfileStats;
 }
 
@@ -42,13 +45,15 @@ export interface TeacherDetail extends TeacherSummary {
   createdAt: number;
 }
 
-function toSummary(user: UserDoc, stats: TeacherProfileStats): TeacherSummary {
+function toSummary(user: UserDoc, stats: TeacherProfileStats, subjectId?: string): TeacherSummary {
   return {
     uid: user.uid,
     displayName: user.displayName,
     email: user.email,
+    phone: user.phone,
     disabled: Boolean(user.disabled),
     canCreateStudents: user.canCreateStudents !== false,
+    subjectId,
     stats,
   };
 }
@@ -70,7 +75,48 @@ export const teacherManagementService = {
       throw new NotFoundError();
     }
     const stats = await teacherProfileRepository.findStatsByTeacherId(teacherId);
-    return { ...toSummary(user, stats), createdAt: user.createdAt };
+    return {
+      ...toSummary(user, stats ?? EMPTY_TEACHER_PROFILE_STATS),
+      createdAt: user.createdAt,
+    };
+  },
+
+  /**
+   * Admin edit of a teacher's profile fields — the Teacher management
+   * "Edit" action. `displayName`/`email` also update the Firebase Auth
+   * account (same dual-write `setTeacherDisabled` uses); `displayName`/
+   * `subjectId` are mirrored onto `teacherProfiles` since that's what the
+   * public teacher page and offerings dialog read.
+   */
+  async updateTeacherProfile(
+    session: Session,
+    teacherId: string,
+    input: { displayName?: string; email?: string; phone?: string; subjectId?: string },
+  ): Promise<TeacherSummary> {
+    assertRole(session, "admin");
+    const user = await userRepository.findById(teacherId);
+    if (!user || user.role !== "teacher") {
+      throw new NotFoundError();
+    }
+
+    const authUpdate: { displayName?: string; email?: string } = {};
+    if (input.displayName) authUpdate.displayName = input.displayName;
+    if (input.email) authUpdate.email = input.email;
+    if (Object.keys(authUpdate).length > 0) {
+      await adminAuth.updateUser(teacherId, authUpdate);
+    }
+    await userRepository.updateProfile(teacherId, {
+      displayName: input.displayName,
+      email: input.email,
+      phone: input.phone,
+    });
+    await teacherProfileRepository.updateProfileFields(teacherId, {
+      displayName: input.displayName,
+      subjectId: input.subjectId,
+    });
+
+    const stats = await teacherProfileRepository.findStatsByTeacherId(teacherId);
+    return toSummary({ ...user, ...input }, stats ?? EMPTY_TEACHER_PROFILE_STATS, input.subjectId);
   },
 
   /** `disabled: true` deactivates the account; `false` reactivates it. */
@@ -83,7 +129,7 @@ export const teacherManagementService = {
     await adminAuth.updateUser(teacherId, { disabled });
     await userRepository.setDisabled(teacherId, disabled);
     const stats = await teacherProfileRepository.findStatsByTeacherId(teacherId);
-    return toSummary({ ...user, disabled }, stats);
+    return toSummary({ ...user, disabled }, stats ?? EMPTY_TEACHER_PROFILE_STATS);
   },
 
   /**
@@ -104,6 +150,6 @@ export const teacherManagementService = {
     }
     await userRepository.setCanCreateStudents(teacherId, canCreateStudents);
     const stats = await teacherProfileRepository.findStatsByTeacherId(teacherId);
-    return toSummary({ ...user, canCreateStudents }, stats);
+    return toSummary({ ...user, canCreateStudents }, stats ?? EMPTY_TEACHER_PROFILE_STATS);
   },
 };

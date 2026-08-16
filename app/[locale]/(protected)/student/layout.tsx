@@ -25,7 +25,12 @@ export default async function StudentLayout({ children, params }: LayoutProps<"/
   const t = await getTranslations("studentDashboard");
 
   return (
-    <DashboardShell sidebar={<StudentSidebar />} displayName={displayName} topbarTitle={t("topbarTitle")}>
+    <DashboardShell
+      sidebar={<StudentSidebar />}
+      displayName={displayName}
+      avatarUrl={user?.avatarUrl}
+      topbarTitle={t("topbarTitle")}
+    >
       {children}
     </DashboardShell>
   );

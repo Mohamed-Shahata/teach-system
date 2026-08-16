@@ -12,6 +12,8 @@ export interface DashboardShellProps {
   children: React.ReactNode;
   /** Topbar title override -- pass the role-specific dashboard name (e.g. "Admin Dashboard") so it doesn't default to "Teacher Dashboard". */
   topbarTitle?: string;
+  /** Profile avatar (Cloudinary URL) -- shown in the topbar instead of initials when present. */
+  avatarUrl?: string;
 }
 
 const EXPANDED_WIDTH = "w-64";
@@ -29,7 +31,7 @@ const COLLAPSED_WIDTH = "w-20";
  * and can be collapsed to an icon rail via `SidebarCollapseProvider` --
  * see `dashboard-nav-item.tsx` for how nav links react to that.
  */
-export function DashboardShell({ sidebar, displayName, children, topbarTitle }: DashboardShellProps) {
+export function DashboardShell({ sidebar, displayName, children, topbarTitle, avatarUrl }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(false);
   const toggleCollapsed = React.useCallback(() => setCollapsed((v) => !v), []);
@@ -102,7 +104,12 @@ export function DashboardShell({ sidebar, displayName, children, topbarTitle }: 
       )}
 
       <div className={cn("flex min-h-screen flex-col transition-[margin] duration-200 ease-in-out", collapsed ? "lg:ms-28" : "lg:ms-72")}>
-        <DashboardTopbar displayName={displayName} onMenuClick={() => setMobileOpen(true)} title={topbarTitle} />
+        <DashboardTopbar
+          displayName={displayName}
+          avatarUrl={avatarUrl}
+          onMenuClick={() => setMobileOpen(true)}
+          title={topbarTitle}
+        />
         <main className="flex-1 bg-background p-4 sm:p-6">{children}</main>
       </div>
     </div>

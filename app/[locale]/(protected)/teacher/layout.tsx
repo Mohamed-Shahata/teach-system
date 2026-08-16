@@ -24,7 +24,7 @@ export default async function TeacherLayout({ children, params }: LayoutProps<"/
   const displayName = user?.displayName ?? session.email ?? "";
 
   return (
-    <DashboardShell sidebar={<TeacherSidebar />} displayName={displayName}>
+    <DashboardShell sidebar={<TeacherSidebar />} displayName={displayName} avatarUrl={user?.avatarUrl}>
       {children}
     </DashboardShell>
   );

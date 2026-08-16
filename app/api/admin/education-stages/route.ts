@@ -8,7 +8,12 @@ export async function GET() {
   try {
     const session = await requireSession();
     const stages = await centerConfigService.listEducationStages(session);
-    return NextResponse.json({ stages });
+    // Same rationale as /api/admin/subjects — rarely changes, read by every
+    // role, so a short private client cache avoids redundant Firestore reads.
+    return NextResponse.json(
+      { stages },
+      { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=300" } },
+    );
   } catch (err) {
     return handleApiError(err);
   }

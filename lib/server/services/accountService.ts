@@ -135,7 +135,7 @@ async function provisionAccount(params: ProvisionAccountParams): Promise<Created
       // value, never sent as `key: undefined`.
       ...(params.stageId ? { stageId: params.stageId } : {}),
       ...(params.phone ? { phone: params.phone } : {}),
-      ...(params.role === "student" && params.age !== undefined ? { age: params.age } : {}),
+      ...(params.age !== undefined ? { age: params.age } : {}),
     });
 
     if (params.role === "teacher") {

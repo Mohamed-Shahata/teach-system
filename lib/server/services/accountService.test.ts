@@ -58,6 +58,7 @@ describe("accountService.createAccountByAdmin", () => {
       role: "teacher",
       email: "mona@example.com",
       displayName: "Mona",
+      phone: "01000000000",
     });
 
     expect(createUser).toHaveBeenCalledWith(
@@ -92,6 +93,7 @@ describe("accountService.createAccountByAdmin", () => {
       role: "teacher",
       email: "mona2@example.com",
       displayName: "Mona",
+      phone: "01000000000",
     });
 
     expect(createTeacherProfile).toHaveBeenCalledWith(expect.objectContaining({ slug: "mona-2" }));
@@ -104,6 +106,7 @@ describe("accountService.createAccountByAdmin", () => {
       role: "student",
       email: "sara@example.com",
       displayName: "Sara",
+      phone: "01000000000",
       stageId: "stage-3-secondary",
     });
 
@@ -121,6 +124,7 @@ describe("accountService.createAccountByAdmin", () => {
         role: "student",
         email: "sara@example.com",
         displayName: "Sara",
+        phone: "01000000000",
         stageId: "stage-1",
       }),
     ).rejects.toBeInstanceOf(ForbiddenError);
@@ -136,6 +140,7 @@ describe("accountService.createAccountByAdmin", () => {
         role: "teacher",
         email: "taken@example.com",
         displayName: "X",
+        phone: "01000000000",
       }),
     ).rejects.toBeInstanceOf(ConflictError);
   });
@@ -149,6 +154,7 @@ describe("accountService.createAccountByAdmin", () => {
         role: "teacher",
         email: "mona@example.com",
         displayName: "Mona",
+        phone: "01000000000",
       }),
     ).rejects.toThrow("firestore down");
 

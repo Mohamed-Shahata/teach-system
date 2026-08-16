@@ -43,6 +43,8 @@ export interface StudentSummary {
   uid: string;
   displayName: string;
   email: string;
+  phone?: string;
+  age?: number;
   disabled: boolean;
   stageId?: string;
   stageName?: LocalizedText;
@@ -71,6 +73,8 @@ function toSummary(
     uid: user.uid,
     displayName: user.displayName,
     email: user.email,
+    phone: user.phone,
+    age: user.age,
     disabled: Boolean(user.disabled),
     stageId: user.stageId,
     stageName: user.stageId ? stageNames.get(user.stageId) : undefined,
@@ -102,6 +106,35 @@ export const studentManagementService = {
     }
     const [stats, stageNames] = await Promise.all([computeStats(studentId), stageNameMap()]);
     return { ...toSummary(user, stats, stageNames), createdAt: user.createdAt };
+  },
+
+  /**
+   * Admin edit of a student's own profile fields — the Student management
+   * "Edit" action. `displayName`/`email` also update the Firebase Auth
+   * account so login and the `users` doc stay in sync, the same
+   * dual-write `setStudentDisabled` uses.
+   */
+  async updateStudentProfile(
+    session: Session,
+    studentId: string,
+    input: { displayName?: string; email?: string; phone?: string; age?: number; stageId?: string },
+  ): Promise<StudentSummary> {
+    assertRole(session, "admin");
+    const user = await userRepository.findById(studentId);
+    if (!user || user.role !== "student") {
+      throw new NotFoundError();
+    }
+
+    const authUpdate: { displayName?: string; email?: string } = {};
+    if (input.displayName) authUpdate.displayName = input.displayName;
+    if (input.email) authUpdate.email = input.email;
+    if (Object.keys(authUpdate).length > 0) {
+      await adminAuth.updateUser(studentId, authUpdate);
+    }
+    await userRepository.updateProfile(studentId, input);
+
+    const [stats, stageNames] = await Promise.all([computeStats(studentId), stageNameMap()]);
+    return toSummary({ ...user, ...input }, stats, stageNames);
   },
 
   /** `disabled: true` deactivates the account; `false` reactivates it. */

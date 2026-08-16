@@ -24,7 +24,7 @@ const { ForbiddenError, NotFoundError } = await import("@/lib/errors");
 const raw = {
   studentId: "student-1",
   teacherId: "teacher-1",
-  type: "meeting_link",
+  type: "meeting_link" as const,
   scheduleId: "slot-1",
   subjectId: "physics",
   stageId: "secondary-3",

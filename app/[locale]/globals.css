@@ -86,6 +86,23 @@ body {
   color: var(--color-foreground);
 }
 
+/*
+ * Hide the native up/down spinner buttons on every number input across
+ * the app (Chrome/Safari + Firefox) -- design calls for plain numeric
+ * fields, not steppers.
+ */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 [data-theme="dark"] .empty-schedule-illustration {
   filter: brightness(0.7);
 }
@@ -302,5 +319,37 @@ body {
   .loader-text {
     animation: none !important;
   }
+}
+
+/*
+ * Themed scrollbars -- used on scrollable panels (data tables, dialogs)
+ * so the scrollbar tracks/thumb blend into the surface instead of
+ * showing the browser's stark default (light gray on dark backgrounds).
+ * `.themed-scrollbar` opts a container in; Firefox via `scrollbar-color`,
+ * WebKit/Blink via the `::-webkit-scrollbar*` pseudo-elements.
+ */
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.themed-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-border) 70%, var(--color-foreground));
 }
 

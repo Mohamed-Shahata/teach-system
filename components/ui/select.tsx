@@ -24,25 +24,35 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             {label}
           </label>
         )}
-        <select
-          ref={ref}
-          id={selectId}
-          disabled={disabled}
-          aria-invalid={!!error || undefined}
-          className={cn(
-            "h-10 rounded-full border bg-surface ps-4 pe-8 text-sm text-foreground text-start",
-            "border-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            error && "border-error focus-visible:ring-error",
-            disabled && "opacity-50 pointer-events-none",
-            className
-          )}
-          {...props}
-        >
-          {placeholder && <option value="" disabled hidden>{placeholder}</option>}
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            ref={ref}
+            id={selectId}
+            disabled={disabled}
+            aria-invalid={!!error || undefined}
+            className={cn(
+              "h-10 w-full appearance-none rounded-full border bg-surface ps-4 pe-9 text-sm text-foreground text-start",
+              "border-input transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "hover:border-primary/50",
+              error && "border-error focus-visible:ring-error",
+              disabled && "opacity-50 pointer-events-none",
+              className
+            )}
+            {...props}
+          >
+            {placeholder && <option value="" disabled hidden>{placeholder}</option>}
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/50"
+          >
+            <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
         {error && <p role="alert" className="text-xs text-error text-start">{error}</p>}
       </div>
     );

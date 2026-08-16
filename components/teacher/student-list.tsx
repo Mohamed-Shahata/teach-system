@@ -21,6 +21,7 @@ interface StudentListProps {
  */
 export function StudentList({ students }: StudentListProps) {
   const t = useTranslations("teacherDashboard.students");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const format = useFormatter();
 
@@ -64,6 +65,7 @@ export function StudentList({ students }: StudentListProps) {
         rows={students}
         rowKey={(student) => student.uid}
         emptyMessage={t("list.emptyTitle")}
+        actionsLabel={tCommon("actions")}
         rowActions={(student) => (
           <Link
             href={`/${locale}/teacher/students/${student.uid}`}

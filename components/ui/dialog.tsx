@@ -9,9 +9,16 @@ export interface DialogProps {
   description?: string;
   children?: React.ReactNode;
   footer?: React.ReactNode;
+  /** "md" (default) is the compact single-column width; "lg" gives two-column forms room to breathe. */
+  size?: "md" | "lg";
 }
 
-export function Dialog({ open, onOpenChange, title, description, children, footer }: DialogProps) {
+const SIZE_CLASS: Record<"md" | "lg", string> = {
+  md: "max-w-md",
+  lg: "max-w-2xl",
+};
+
+export function Dialog({ open, onOpenChange, title, description, children, footer, size = "md" }: DialogProps) {
   const titleId = React.useId();
   const descId = React.useId();
 
@@ -38,7 +45,10 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
-        className="animate-fade-up relative z-10 w-full max-w-md rounded-3xl border border-border bg-surface p-6 text-start shadow-2xl shadow-foreground/10"
+        className={cn(
+          "animate-fade-up relative z-10 w-full rounded-3xl border border-border bg-surface p-6 text-start shadow-2xl shadow-foreground/10",
+          SIZE_CLASS[size]
+        )}
       >
         <div className="mb-4 flex items-start justify-between gap-2">
           <h2 id={titleId} className="text-lg font-semibold text-foreground">{title}</h2>

@@ -98,6 +98,21 @@ export const teacherProfileRepository = {
     };
   },
 
+  /**
+   * Admin edit of a teacher's profile-side fields (name/subject) — mirrors
+   * `userRepository.updateProfile`'s "only defined keys are written"
+   * behavior. `displayName` is duplicated onto `teacherProfiles` (it's
+   * also on `users`) since the public teacher page reads it from here.
+   */
+  async updateProfileFields(teacherId: string, fields: Partial<Pick<TeacherProfileDoc, "displayName" | "subjectId">>): Promise<void> {
+    const data: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) data[key] = value;
+    }
+    if (Object.keys(data).length === 0) return;
+    await adminDb.collection(COLLECTION).doc(teacherId).update(data);
+  },
+
   async incrementStats(teacherId: string, patch: Partial<TeacherProfileStats>): Promise<void> {
     const updates = Object.fromEntries(
       Object.entries(patch).map(([key, value]) => [`stats.${key}`, FieldValue.increment(value ?? 0)]),

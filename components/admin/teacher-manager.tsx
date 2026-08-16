@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Alert, Badge, Button, Dialog, Input, Radio, Table } from "@/components/ui";
+import { Alert, Badge, Button, Dialog, Input, Pagination, Select, Table } from "@/components/ui";
 import type { Column } from "@/components/ui/table";
 import type { TeacherSummary } from "@/lib/server/services/teacherManagementService";
 import type { SubjectDoc } from "@/lib/server/repositories/subjectRepository";
@@ -19,10 +19,39 @@ interface CreateTeacherFormState {
   displayName: string;
   email: string;
   phone: string;
+  age: string;
   subjectId: string;
 }
 
-const EMPTY_CREATE_FORM: CreateTeacherFormState = { displayName: "", email: "", phone: "", subjectId: "" };
+const EMPTY_CREATE_FORM: CreateTeacherFormState = { displayName: "", email: "", phone: "", age: "", subjectId: "" };
+
+interface EditTeacherFormState {
+  uid: string;
+  displayName: string;
+  email: string;
+  phone: string;
+  subjectId: string;
+}
+
+function editFormFromTeacher(teacher: TeacherSummary): EditTeacherFormState {
+  return {
+    uid: teacher.uid,
+    displayName: teacher.displayName,
+    email: teacher.email,
+    phone: teacher.phone ?? "",
+    subjectId: teacher.subjectId ?? "",
+  };
+}
+
+const PAGE_SIZE = 10;
+
+function RequiredLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="font-medium text-foreground">
+      {children} <span className="text-error">*</span>
+    </span>
+  );
+}
 
 /**
  * TASK-1903 — Admin-facing Teacher list with search, per-teacher stats,
@@ -32,6 +61,7 @@ const EMPTY_CREATE_FORM: CreateTeacherFormState = { displayName: "", email: "", 
  */
 export function TeacherManager({ initialTeachers, subjects, stages }: TeacherManagerProps) {
   const t = useTranslations("adminDashboard.teachers");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
 
   const [teachers, setTeachers] = React.useState(initialTeachers);
@@ -51,6 +81,16 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
 
   const [offeringsTarget, setOfferingsTarget] = React.useState<TeacherSummary | null>(null);
 
+  const [editTarget, setEditTarget] = React.useState<TeacherSummary | null>(null);
+  const [editForm, setEditForm] = React.useState<EditTeacherFormState | null>(null);
+  const [editError, setEditError] = React.useState<string | null>(null);
+  const [editing, setEditing] = React.useState(false);
+
+  const [page, setPage] = React.useState(1);
+  const totalPages = Math.max(1, Math.ceil(teachers.length / PAGE_SIZE));
+  const clampedPage = Math.min(page, totalPages);
+  const pagedTeachers = teachers.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE);
+
   function localizedName(name: { en: string; ar: string }): string {
     return locale === "ar" ? name.ar || name.en : name.en || name.ar;
   }
@@ -64,6 +104,7 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
       if (!res.ok) throw new Error("list");
       const body = (await res.json()) as { teachers: TeacherSummary[] };
       setTeachers(body.teachers);
+      setPage(1);
     } catch {
       setError(t("errors.list"));
     } finally {
@@ -134,7 +175,8 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
           role: "teacher",
           displayName: createForm.displayName,
           email: createForm.email,
-          ...(createForm.phone ? { phone: createForm.phone } : {}),
+          phone: createForm.phone,
+          ...(createForm.age ? { age: Number(createForm.age) } : {}),
           ...(createForm.subjectId ? { subjectId: createForm.subjectId } : {}),
         }),
       });
@@ -149,9 +191,50 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
     }
   }
 
+  function openEdit(teacher: TeacherSummary) {
+    setEditTarget(teacher);
+    setEditForm(editFormFromTeacher(teacher));
+    setEditError(null);
+  }
+
+  async function submitEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editTarget || !editForm) return;
+    setEditing(true);
+    setEditError(null);
+    try {
+      const res = await fetch(`/api/admin/teachers/${editTarget.uid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: editForm.displayName,
+          email: editForm.email,
+          phone: editForm.phone,
+          ...(editForm.subjectId ? { subjectId: editForm.subjectId } : {}),
+        }),
+      });
+      if (!res.ok) throw new Error("update");
+      const body = (await res.json()) as { teacher: TeacherSummary };
+      setTeachers((current) => current.map((teacher) => (teacher.uid === body.teacher.uid ? body.teacher : teacher)));
+      setEditTarget(null);
+      setEditForm(null);
+    } catch {
+      setEditError(t("errors.edit"));
+    } finally {
+      setEditing(false);
+    }
+  }
+
+  function subjectLabel(subjectId?: string): string {
+    if (!subjectId) return "—";
+    const subject = subjects.find((s) => s.id === subjectId);
+    return subject ? localizedName(subject.name) : "—";
+  }
+
   const columns: Column<TeacherSummary>[] = [
     { key: "displayName", header: t("columns.name") },
     { key: "email", header: t("columns.email") },
+    { key: "subject", header: t("columns.subject"), render: (row) => subjectLabel(row.subjectId) },
     {
       key: "status",
       header: t("columns.status"),
@@ -211,12 +294,16 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
 
       <Table
         columns={columns}
-        rows={teachers}
+        rows={pagedTeachers}
         rowKey={(row) => row.uid}
         loading={loading}
         emptyMessage={t("empty")}
+        actionsLabel={tCommon("actions")}
         rowActions={(row) => (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => openEdit(row)}>
+              {t("edit")}
+            </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => setOfferingsTarget(row)}>
               {t("offerings")}
             </Button>
@@ -239,6 +326,8 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
           </div>
         )}
       />
+
+      {totalPages > 1 && <Pagination page={clampedPage} totalPages={totalPages} onPageChange={setPage} />}
 
       <Dialog
         open={statusTarget !== null}
@@ -299,53 +388,62 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
         }}
         title={t("createTitle")}
         description={t("createDescription")}
+        size="lg"
       >
         <form onSubmit={submitCreate} className="flex flex-col gap-4">
           {createError && <Alert variant="error">{createError}</Alert>}
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-foreground">{t("fields.displayName")}</span>
-            <Input
-              required
-              value={createForm.displayName}
-              onChange={(event) => setCreateForm((c) => ({ ...c, displayName: event.target.value }))}
-            />
-          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <RequiredLabel>{t("fields.displayName")}</RequiredLabel>
+              <Input
+                required
+                value={createForm.displayName}
+                onChange={(event) => setCreateForm((c) => ({ ...c, displayName: event.target.value }))}
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              <RequiredLabel>{t("fields.email")}</RequiredLabel>
+              <Input
+                type="email"
+                required
+                value={createForm.email}
+                onChange={(event) => setCreateForm((c) => ({ ...c, email: event.target.value }))}
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              <RequiredLabel>{t("fields.phone")}</RequiredLabel>
+              <Input
+                type="tel"
+                required
+                value={createForm.phone}
+                onChange={(event) => setCreateForm((c) => ({ ...c, phone: event.target.value }))}
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-foreground">{t("fields.age")}</span>
+              <Input
+                type="number"
+                min={18}
+                max={80}
+                value={createForm.age}
+                onChange={(event) => setCreateForm((c) => ({ ...c, age: event.target.value }))}
+              />
+            </label>
+          </div>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-foreground">{t("fields.email")}</span>
-            <Input
-              type="email"
-              required
-              value={createForm.email}
-              onChange={(event) => setCreateForm((c) => ({ ...c, email: event.target.value }))}
+            <span className="font-medium text-foreground">{t("fields.subjects")}</span>
+            <Select
+              value={createForm.subjectId}
+              onChange={(event) => selectCreateSubject(event.target.value)}
+              placeholder={t("fields.selectSubject")}
+              options={subjects.map((subject) => ({ value: subject.id, label: localizedName(subject.name) }))}
             />
           </label>
-
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-foreground">{t("fields.phone")}</span>
-            <Input
-              type="tel"
-              value={createForm.phone}
-              onChange={(event) => setCreateForm((c) => ({ ...c, phone: event.target.value }))}
-            />
-          </label>
-
-          <fieldset className="flex flex-col gap-2 text-sm">
-            <legend className="mb-1 font-medium text-foreground">{t("fields.subjects")}</legend>
-            <div className="flex flex-col gap-2 max-h-48 overflow-y-auto rounded-md border border-border p-2">
-              {subjects.map((subject) => (
-                <label key={subject.id} className="flex items-center gap-2">
-                  <Radio
-                    name="create-teacher-subject"
-                    checked={createForm.subjectId === subject.id}
-                    onChange={() => selectCreateSubject(subject.id)}
-                  />
-                  <span>{localizedName(subject.name)}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
@@ -356,6 +454,76 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        open={editTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditTarget(null);
+            setEditForm(null);
+            setEditError(null);
+          }
+        }}
+        title={t("editTitle")}
+        description={t("editDescription")}
+        size="lg"
+      >
+        {editForm && (
+          <form onSubmit={submitEdit} className="flex flex-col gap-4">
+            {editError && <Alert variant="error">{editError}</Alert>}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm">
+                <RequiredLabel>{t("fields.displayName")}</RequiredLabel>
+                <Input
+                  required
+                  value={editForm.displayName}
+                  onChange={(event) => setEditForm((c) => (c ? { ...c, displayName: event.target.value } : c))}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-sm">
+                <RequiredLabel>{t("fields.email")}</RequiredLabel>
+                <Input
+                  type="email"
+                  required
+                  value={editForm.email}
+                  onChange={(event) => setEditForm((c) => (c ? { ...c, email: event.target.value } : c))}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+                <RequiredLabel>{t("fields.phone")}</RequiredLabel>
+                <Input
+                  type="tel"
+                  required
+                  value={editForm.phone}
+                  onChange={(event) => setEditForm((c) => (c ? { ...c, phone: event.target.value } : c))}
+                />
+              </label>
+            </div>
+
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-foreground">{t("fields.subjects")}</span>
+              <Select
+                value={editForm.subjectId}
+                onChange={(event) => setEditForm((c) => (c ? { ...c, subjectId: event.target.value } : c))}
+                placeholder={t("fields.selectSubject")}
+                options={subjects.map((subject) => ({ value: subject.id, label: localizedName(subject.name) }))}
+              />
+            </label>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>
+                {t("cancel")}
+              </Button>
+              <Button type="submit" loading={editing}>
+                {t("save")}
+              </Button>
+            </div>
+          </form>
+        )}
       </Dialog>
 
       {offeringsTarget && (

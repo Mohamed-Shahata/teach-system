@@ -23,7 +23,12 @@ export default async function AdminLayout({ children, params }: LayoutProps<"/[l
   const t = await getTranslations("adminDashboard");
 
   return (
-    <DashboardShell sidebar={<AdminSidebar />} displayName={displayName} topbarTitle={t("topbarTitle")}>
+    <DashboardShell
+      sidebar={<AdminSidebar />}
+      displayName={displayName}
+      avatarUrl={user?.avatarUrl}
+      topbarTitle={t("topbarTitle")}
+    >
       {children}
     </DashboardShell>
   );

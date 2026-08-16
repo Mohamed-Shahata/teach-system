@@ -271,6 +271,7 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
           columns={columns}
           rows={courses}
           rowKey={(course) => course.id}
+          actionsLabel={t("columns.actions")}
           rowActions={(course) => (
             <div className="flex items-center justify-end gap-2">
               <Link

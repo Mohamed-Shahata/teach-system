@@ -15,7 +15,7 @@ const displayNameField = z.string().trim().min(2).max(80);
 const stageIdField = z.string().min(1);
 /** E.164-ish free text — the center matches phones manually (manual payments), no strict format enforced. */
 const phoneField = z.string().trim().min(6).max(20);
-/** Student's age in years — optional, shown alongside `stageId` in the admin create-student form. */
+/** Age in years — optional; shown alongside `stageId` for students and standalone for teachers. */
 const ageField = z.number().int().min(2).max(25);
 /** ref into `subjects` — the single subject a teacher is assigned to teach (one specialization per teacher). */
 const subjectIdField = z.string().min(1);
@@ -35,6 +35,7 @@ export const createAccountSchema = z
     role: adminCreatableRoleSchema,
     email: emailField,
     displayName: displayNameField,
+    /** Optional at creation — the center matches phones manually for payments (see `phoneField`); can be added later via profile edit. */
     phone: phoneField.optional(),
     stageId: stageIdField.optional(),
     age: ageField.optional(),
@@ -45,6 +46,32 @@ export const createAccountSchema = z
     path: ["stageId"],
   });
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;
+
+/**
+ * `PATCH /api/admin/students/{id}` profile-edit body (the Student
+ * management "Edit" action) — every field optional so an admin can save
+ * a single changed field without resubmitting the whole form.
+ */
+export const updateStudentProfileSchema = z.object({
+  displayName: displayNameField.optional(),
+  email: emailField.optional(),
+  phone: phoneField.optional(),
+  age: ageField.optional(),
+  stageId: stageIdField.optional(),
+  /** Same endpoint also carries the deactivate/reactivate toggle, so both can be saved in one request. */
+  disabled: z.boolean().optional(),
+});
+export type UpdateStudentProfileInput = z.infer<typeof updateStudentProfileSchema>;
+
+/** `PATCH /api/admin/teachers/{id}` profile-edit body — the Teacher management "Edit" action. */
+export const updateTeacherProfileSchema = z.object({
+  displayName: displayNameField.optional(),
+  email: emailField.optional(),
+  phone: phoneField.optional(),
+  subjectId: subjectIdField.optional(),
+  disabled: z.boolean().optional(),
+});
+export type UpdateTeacherProfileInput = z.infer<typeof updateTeacherProfileSchema>;
 
 /**
  * `POST /api/teacher/students` body — role is implicitly `student`, so

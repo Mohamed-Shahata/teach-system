@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Alert, Badge, Select, Table } from "@/components/ui";
+import { Alert, Badge, Select, Table, Pagination } from "@/components/ui";
 import type { Column } from "@/components/ui/table";
 import type { AdminPaymentRow } from "@/lib/server/services/adminPaymentsService";
 import type { PaymentStatus } from "@/lib/validation/payment.schema";
@@ -10,6 +10,8 @@ import type { PaymentStatus } from "@/lib/validation/payment.schema";
 interface AdminPaymentsOverviewProps {
   initialPayments: AdminPaymentRow[];
 }
+
+const PAGE_SIZE = 10;
 
 const STATUS_BADGE: Record<PaymentStatus, "success" | "warning" | "error" | "info"> = {
   pending: "warning",
@@ -41,6 +43,10 @@ export function AdminPaymentsOverview({ initialPayments }: AdminPaymentsOverview
   const [status, setStatus] = React.useState<PaymentStatus | "all">("all");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [page, setPage] = React.useState(1);
+  const totalPages = Math.max(1, Math.ceil(payments.length / PAGE_SIZE));
+  const clampedPage = Math.min(page, totalPages);
+  const pagedPayments = payments.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE);
 
   async function refresh(nextStatus: PaymentStatus | "all") {
     setLoading(true);
@@ -51,6 +57,7 @@ export function AdminPaymentsOverview({ initialPayments }: AdminPaymentsOverview
       if (!res.ok) throw new Error("list");
       const body = (await res.json()) as { payments: AdminPaymentRow[] };
       setPayments(body.payments);
+      setPage(1);
     } catch {
       setError(t("errors.list"));
     } finally {
@@ -123,11 +130,13 @@ export function AdminPaymentsOverview({ initialPayments }: AdminPaymentsOverview
 
       <Table
         columns={columns}
-        rows={payments}
+        rows={pagedPayments}
         rowKey={(row) => row.id}
         loading={loading}
         emptyMessage={t("empty")}
       />
+
+      {totalPages > 1 && <Pagination page={clampedPage} totalPages={totalPages} onPageChange={setPage} />}
     </section>
   );
 }
