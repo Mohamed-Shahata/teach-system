@@ -459,6 +459,32 @@
           "reorder": "Could not save the new order.",
           "correctAnswerRequired": "Select at least one correct answer."
         }
+      },
+      "grading": {
+        "title": "Manual grading",
+        "subtitle": "This quiz is manually graded — review each student's answers and set a final score.",
+        "pendingHeading": "Awaiting grading",
+        "gradedHeading": "Graded",
+        "emptyTitle": "No attempts awaiting grading",
+        "emptyDescription": "Submissions will show up here once students take this quiz.",
+        "studentAttempt": "Student {id}",
+        "selected": "Selected",
+        "grade": "Grade",
+        "scoreLabel": "Score: {score}",
+        "status": {
+          "pending_review": "Pending review"
+        },
+        "dialogTitle": "Grade attempt",
+        "dialogSubtitle": "Review the student's answers, then enter a final score out of 100.",
+        "fields": {
+          "score": "Score (0-100)"
+        },
+        "cancel": "Cancel",
+        "submitGrade": "Save grade",
+        "errors": {
+          "save": "Could not save this grade.",
+          "scoreRange": "Enter a whole number between 0 and 100."
+        }
       }
     },
     "settings": {

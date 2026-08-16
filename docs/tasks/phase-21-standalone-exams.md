@@ -89,7 +89,49 @@
 - Description: For `autoGrade: false` quizzes, a grading screen listing `pending_review` attempts for a quiz, letting the teacher open one, see the student's submitted answers per question, and set a final score (0–100) — flips `status` to `"graded"` and stores `gradedBy`/`gradedAt`.
 - Dependencies: TASK-2102
 - Affected modules: `app/api/quizzes/[quizId]/attempts/[attemptId]/grade/route.ts`, `components/teacher/quiz-grading.tsx` (new), `app/[locale]/(protected)/teacher/quizzes/[quizId]/page.tsx`
-- Status: Not Started
+- Status: Done
+
+> New `quizAttemptService.gradeAttempt(session, attemptId, score)`:
+> `teacher`/`admin` only, re-derives the quiz from the attempt's own
+> `quizId` (never trusts the route's `quizId` param) and checks
+> ownership via `assertTeacherOwnsResource`, same layering as
+> `listAttemptsForQuiz`. Rejects (`ValidationError`) grading an attempt
+> that isn't `pending_review` — covers both "already graded" and
+> "this quiz is auto-graded" (which never produces a `pending_review`
+> attempt) without needing a separate check. On success, flips
+> `status` to `"graded"` and stamps `gradedBy`/`gradedAt` via the
+> already-existing `quizAttemptRepository.update` (added, unused,
+> back in TASK-2102).
+> New route `PATCH /api/quizzes/[quizId]/attempts/[attemptId]/grade`
+> — thin wrapper, `gradeQuizAttemptSchema` (new, `score: 0-100 int`)
+> validates the body.
+> `GET /api/quizzes/[quizId]/attempts` now branches by role instead of
+> always calling `listMyAttempts`: a teacher/Admin gets
+> `listAttemptsForQuiz` (every attempt, ownership-checked there) — this
+> is the "grading queue" listing the task asked for; no new list route
+> was needed since the existing one already had the right shape once
+> it stopped assuming every caller is a student (comment left on
+> TASK-1204 said this was deliberately deferred, not that it needed a
+> new endpoint).
+> New `components/teacher/quiz-grading.tsx` (`QuizGrading`, client
+> component): lists `pending_review` attempts, opens a dialog per
+> attempt showing the student's selected options against each
+> question's `correctOptionIds` (correct answers highlighted, not
+> revealed as a raw score) with a 0-100 score field; already-graded
+> attempts show underneath as a read-only list. Wired into
+> `teacher/quizzes/[quizId]/page.tsx` below `QuestionManager`, gated on
+> `quiz.autoGrade === false` — an auto-graded quiz never shows the
+> grading section and the page skips fetching attempts for it
+> entirely.
+> Added `messages/en.json`/`ar.json` under
+> `teacherDashboard.quizzes.grading`.
+> Extended `quizAttemptService.test.ts` (`gradeAttempt` cases:
+> success, Admin override, non-owning teacher, student, already-graded,
+> missing attempt) and `attempts/route.test.ts` (role branch); added
+> `attempts/[attemptId]/grade/route.test.ts`. Could not run the suite —
+> no `node_modules`/network in this sandbox (same limitation as every
+> prior task here); did a bracket-balance pass over every touched file
+> instead of `node --check`, since these are `.ts`/`.tsx`.
 
 ## TASK-2104: Student-facing standalone exam list
 - Description: A student needs somewhere to see exams that aren't attached to any course — "exams for my stage." New endpoint listing published, `scheduledAt <= now` quizzes where `quiz.stageId === session user's stageId` (and `courseId` is absent). Reuses `quizService.listQuestionsForStudent`/`QuizTaker` (TASK-1204) for the actual taking flow — a standalone exam still needs a `courseId`-free variant of the enrollment check in `quizAttemptService.submitAttempt` (skip `assertStudentEnrolled` when `quiz.courseId` is absent; gate on stage match instead).

@@ -113,6 +113,12 @@ export const updateQuestionSchema = baseQuestionObjectSchema
   });
 export type UpdateQuestionInput = z.infer<typeof updateQuestionSchema>;
 
+/** Body for `PATCH /api/quizzes/[quizId]/attempts/[attemptId]/grade` (TASK-2103) — a teacher's final score for a manually-graded, `pending_review` attempt. */
+export const gradeQuizAttemptSchema = z.object({
+  score: z.coerce.number().int().min(0).max(100),
+});
+export type GradeQuizAttemptInput = z.infer<typeof gradeQuizAttemptSchema>;
+
 /** Body for `POST /api/quizzes/[quizId]/attempts` (TASK-1202) — score is always server-computed, never client-submitted. */
 export const submitQuizAttemptSchema = z.object({
   answers: z

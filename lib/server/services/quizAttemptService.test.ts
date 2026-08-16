@@ -7,6 +7,7 @@ const attemptCreate = vi.fn();
 const listByStudentAndQuiz = vi.fn();
 const listByQuiz = vi.fn();
 const attemptFindById = vi.fn();
+const attemptUpdate = vi.fn();
 
 vi.mock("@/lib/server/repositories/quizRepository", () => ({
   quizRepository: { findById: quizFindById },
@@ -26,6 +27,7 @@ vi.mock("@/lib/server/repositories/quizAttemptRepository", () => ({
     listByStudentAndQuiz,
     listByQuiz,
     findById: attemptFindById,
+    update: attemptUpdate,
   },
 }));
 
@@ -261,5 +263,67 @@ describe("quizAttemptService.getAttempt", () => {
   it("throws NotFoundError for a missing attempt", async () => {
     attemptFindById.mockResolvedValue(null);
     await expect(quizAttemptService.getAttempt(makeSession("student"), "missing")).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe("quizAttemptService.gradeAttempt", () => {
+  const pendingAttempt = {
+    id: "attempt-1",
+    studentId: "student-1",
+    quizId: "quiz-1",
+    teacherId: "teacher-1",
+    answers: [],
+    score: 0,
+    status: "pending_review" as const,
+    submittedAt: 1,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    attemptFindById.mockResolvedValue(pendingAttempt);
+    quizFindById.mockResolvedValue({ ...quiz, autoGrade: false });
+    attemptUpdate.mockImplementation(async (id, patch) => ({ ...pendingAttempt, ...patch }));
+  });
+
+  it("grades a pending_review attempt and marks who/when", async () => {
+    const attempt = await quizAttemptService.gradeAttempt(makeSession("teacher", "teacher-1"), "attempt-1", 85);
+
+    expect(attempt.status).toBe("graded");
+    expect(attempt.score).toBe(85);
+    expect(attemptUpdate).toHaveBeenCalledWith(
+      "attempt-1",
+      expect.objectContaining({ score: 85, status: "graded", gradedBy: "teacher-1" }),
+    );
+  });
+
+  it("allows Admin to grade any teacher's attempt", async () => {
+    const attempt = await quizAttemptService.gradeAttempt(makeSession("admin", "admin-1"), "attempt-1", 40);
+    expect(attempt.score).toBe(40);
+  });
+
+  it("rejects a teacher who doesn't own the quiz", async () => {
+    await expect(
+      quizAttemptService.gradeAttempt(makeSession("teacher", "teacher-2"), "attempt-1", 85),
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it("rejects a student", async () => {
+    await expect(quizAttemptService.gradeAttempt(makeSession("student"), "attempt-1", 85)).rejects.toThrow(
+      ForbiddenError,
+    );
+  });
+
+  it("rejects grading an attempt that's already graded", async () => {
+    attemptFindById.mockResolvedValue({ ...pendingAttempt, status: "graded" });
+    await expect(
+      quizAttemptService.gradeAttempt(makeSession("teacher", "teacher-1"), "attempt-1", 85),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("throws NotFoundError for a missing attempt", async () => {
+    attemptFindById.mockResolvedValue(null);
+    await expect(
+      quizAttemptService.gradeAttempt(makeSession("teacher", "teacher-1"), "missing", 85),
+    ).rejects.toThrow(NotFoundError);
   });
 });

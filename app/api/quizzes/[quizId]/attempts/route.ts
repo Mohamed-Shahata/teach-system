@@ -20,17 +20,19 @@ interface RouteContext {
  * authorization logic of its own, same as every other route in
  * `app/api/quizzes/*`.
  *
- * A teacher/Admin grading view of *all* attempts at a quiz
- * (`quizAttemptService.listAttemptsForQuiz`) is intentionally not
- * wired to a route here — TASK-1204 is the student-facing half only;
- * revisit under a `teacher/quizzes/[quizId]/attempts` route if/when
- * that grading UI is scheduled.
+ * `GET` branches by role (TASK-2103): a student gets their own attempt
+ * history (`listMyAttempts`); a teacher/Admin gets every attempt at the
+ * quiz (`listAttemptsForQuiz`, ownership-checked there), backing the
+ * manual-grading screen's `pending_review` queue.
  */
 export async function GET(_req: Request, { params }: RouteContext) {
   try {
     const { quizId } = await params;
     const session = await requireSession();
-    const attempts = await quizAttemptService.listMyAttempts(session, quizId);
+    const attempts =
+      session.role === "student"
+        ? await quizAttemptService.listMyAttempts(session, quizId)
+        : await quizAttemptService.listAttemptsForQuiz(session, quizId);
     return NextResponse.json({ attempts });
   } catch (err) {
     return handleApiError(err);

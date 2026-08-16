@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requireSession = vi.fn();
 const listMyAttempts = vi.fn();
+const listAttemptsForQuiz = vi.fn();
 const submitAttempt = vi.fn();
 
 vi.mock("@/lib/auth/session", () => ({ requireSession }));
 vi.mock("@/lib/server/services/quizAttemptService", () => ({
-  quizAttemptService: { listMyAttempts, submitAttempt },
+  quizAttemptService: { listMyAttempts, listAttemptsForQuiz, submitAttempt },
 }));
 
 const { GET, POST } = await import("./route");
@@ -39,6 +40,18 @@ describe("/api/quizzes/[quizId]/attempts", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ attempts: [{ id: "attempt-1", score: 100 }] });
     expect(listMyAttempts).toHaveBeenCalledWith(session, "quiz-1");
+  });
+
+  it("lists every attempt for a teacher (TASK-2103 grading queue)", async () => {
+    const teacherSession = { uid: "teacher-1", email: "teacher@example.com", role: "teacher" };
+    requireSession.mockResolvedValue(teacherSession);
+    listAttemptsForQuiz.mockResolvedValue([{ id: "attempt-1", status: "pending_review" }]);
+
+    const res = await GET(new Request("http://localhost/api/quizzes/quiz-1/attempts"), context);
+
+    expect(res.status).toBe(200);
+    expect(listAttemptsForQuiz).toHaveBeenCalledWith(teacherSession, "quiz-1");
+    expect(listMyAttempts).not.toHaveBeenCalled();
   });
 
   it("submits an attempt and returns it with a 201", async () => {

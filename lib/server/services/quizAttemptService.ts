@@ -98,6 +98,36 @@ export const quizAttemptService = {
     return quizAttemptRepository.listByQuiz(quizId);
   },
 
+  /**
+   * TASK-2103 — teacher/Admin sets a final score for a manually-graded
+   * (`autoGrade: false`) attempt sitting `pending_review`. Verifies quiz
+   * ownership the same way `listAttemptsForQuiz` does, then rejects
+   * grading an attempt that isn't `pending_review` — either it's already
+   * `graded` (no re-grading through this endpoint) or it belongs to an
+   * auto-graded quiz, which never produces a `pending_review` attempt.
+   */
+  async gradeAttempt(session: Session, attemptId: string, score: number): Promise<QuizAttemptDoc> {
+    assertRole(session, "teacher", "admin");
+
+    const attempt = await quizAttemptRepository.findById(attemptId);
+    if (!attempt) throw new NotFoundError();
+
+    const quiz = await quizRepository.findById(attempt.quizId);
+    if (!quiz) throw new NotFoundError();
+    assertTeacherOwnsResource(session, quiz);
+
+    if (attempt.status !== "pending_review") {
+      throw new ValidationError();
+    }
+
+    return quizAttemptRepository.update(attemptId, {
+      score,
+      status: "graded",
+      gradedBy: session.uid,
+      gradedAt: Date.now(),
+    });
+  },
+
   /** A single attempt — the student who submitted it, the owning teacher, or Admin. */
   async getAttempt(session: Session, id: string): Promise<QuizAttemptDoc> {
     const attempt = await quizAttemptRepository.findById(id);
