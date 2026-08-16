@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth/session";
 import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
 import { scheduleService } from "@/lib/server/services/scheduleService";
 import { paymentService } from "@/lib/server/services/paymentService";
+import { centerConfigService } from "@/lib/server/services/centerConfigService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScheduleManager } from "@/components/teacher/schedule-manager";
 import { PaymentsQueue } from "@/components/teacher/payments-queue";
@@ -21,6 +22,18 @@ export default async function TeacherDashboardPage() {
 
   const stats = await teacherProfileRepository.findStatsByTeacherId(session.uid);
   const scheduleSlots = await scheduleService.listSchedule(session);
+  const [teacherProfile, allSubjects, stages] = await Promise.all([
+    teacherProfileRepository.findByTeacherId(session.uid),
+    centerConfigService.listSubjects(session),
+    centerConfigService.listEducationStages(session),
+  ]);
+  // A teacher normally teaches a single assigned subject (`teacherProfiles.subjectId`,
+  // set by an Admin) -- the schedule form's Subject picker is limited to that,
+  // not every subject in the center, unless/until the data model grows to
+  // support an Admin granting a teacher more than one subject.
+  const subjects = teacherProfile?.subjectId
+    ? allSubjects.filter((subject) => subject.id === teacherProfile.subjectId)
+    : allSubjects;
   const pendingPayments = (await paymentService.listForTeacher(session, "pending")).filter(
     (payment) => payment.method === "vodafone_cash" || payment.method === "bank_transfer",
   );
@@ -110,7 +123,7 @@ export default async function TeacherDashboardPage() {
         ))}
       </div>
 
-      <ScheduleManager initialSlots={scheduleSlots} />
+      <ScheduleManager initialSlots={scheduleSlots} subjects={subjects} stages={stages} />
 
       <PaymentsQueue initialPayments={pendingPayments} />
     </div>

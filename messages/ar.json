@@ -29,7 +29,8 @@
       "subtitle": "سجّل الدخول إلى حسابك",
       "fields": {
         "email": "البريد الإلكتروني",
-        "password": "كلمة المرور"
+        "password": "كلمة المرور",
+        "identifier": "البريد الإلكتروني أو رقم الهاتف"
       },
       "submit": "تسجيل الدخول",
       "forgotPassword": "نسيت كلمة المرور؟",
@@ -143,11 +144,11 @@
         "dayOfWeek": "اليوم",
         "startTime": "وقت البداية",
         "durationMinutes": "المدة بالدقائق",
-        "subjectId": "معرّف المادة",
-        "stageId": "معرّف المرحلة",
-        "courseId": "معرّف الكورس",
+        "subjectId": "المادة",
+        "stageId": "المرحلة",
         "labelEn": "ملاحظة بالإنجليزية",
-        "labelAr": "ملاحظة بالعربية"
+        "labelAr": "ملاحظة بالعربية",
+        "selectPlaceholder": "اختر..."
       },
       "errors": {
         "save": "تعذر حفظ هذا الموعد.",
@@ -212,7 +213,8 @@
         "selectPlaceholder": "اختر..."
       },
       "hints": {
-        "thumbnailUrl": "JPG أو PNG، بحد أقصى 5 ميجابايت."
+        "thumbnailUrl": "JPG أو PNG، بحد أقصى 5 ميجابايت.",
+        "thumbnailDragDrop": "اسحب وأفلت الصورة هنا، أو اضغط للرفع."
       },
       "create": "إنشاء الكورس",
       "save": "حفظ التعديلات",
@@ -306,7 +308,10 @@
       "fields": {
         "displayName": "الاسم كامل",
         "email": "البريد الإلكتروني",
-        "stageId": "معرف المرحلة"
+        "phone": "رقم التليفون",
+        "age": "السن",
+        "stage": "المرحلة الدراسية",
+        "selectPlaceholder": "اختر..."
       },
       "create": "إنشاء الطالب",
       "success": {

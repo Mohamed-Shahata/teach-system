@@ -20,6 +20,7 @@ import type { CourseDoc } from "@/lib/server/repositories/courseRepository";
 import type { SubjectDoc } from "@/lib/server/repositories/subjectRepository";
 import type { EducationStageDoc } from "@/lib/server/repositories/educationStageRepository";
 import { uploadImage } from "@/lib/client/upload";
+import { cn } from "@/lib/utils/cn";
 
 const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
 
@@ -97,6 +98,14 @@ function toRequestBody(form: FormState) {
 export function CourseManager({ initialCourses, subjects, stages }: CourseManagerProps) {
   const t = useTranslations("teacherDashboard.courses");
   const locale = useLocale();
+  // A teacher normally has a single assigned subject, so `subjects` here is
+  // already narrowed to just that one (see the courses page) -- default the
+  // form to it instead of making the teacher pick from a list of one.
+  const defaultSubjectId = subjects.length === 1 ? subjects[0].id : "";
+  const emptyForm = React.useMemo<FormState>(
+    () => ({ ...EMPTY_FORM, subjectId: defaultSubjectId }),
+    [defaultSubjectId]
+  );
   const subjectName = React.useCallback(
     (subjectId: string) => subjects.find((subject) => subject.id === subjectId)?.name[locale as "en" | "ar"] ?? subjectId,
     [subjects, locale],
@@ -107,7 +116,7 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
   );
   const [courses, setCourses] = React.useState(initialCourses);
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [form, setForm] = React.useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = React.useState<FormState>(emptyForm);
   const [error, setError] = React.useState<string | null>(null);
   const [pendingAction, setPendingAction] = React.useState<"save" | "delete" | "publish" | null>(null);
   const [pendingCourseId, setPendingCourseId] = React.useState<string | null>(null);
@@ -115,16 +124,13 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
   const [uploadingThumbnail, setUploadingThumbnail] = React.useState(false);
   const [thumbnailError, setThumbnailError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isDraggingOver, setIsDraggingOver] = React.useState(false);
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  async function onThumbnailFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
+  async function processThumbnailFile(file: File) {
     setThumbnailError(null);
     if (!file.type.startsWith("image/")) {
       setThumbnailError(t("errors.thumbnailType"));
@@ -146,8 +152,33 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
     }
   }
 
+  async function onThumbnailFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    await processThumbnailFile(file);
+  }
+
+  function onThumbnailDragOver(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingOver(true);
+  }
+
+  function onThumbnailDragLeave(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingOver(false);
+  }
+
+  async function onThumbnailDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingOver(false);
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    await processThumbnailFile(file);
+  }
+
   function openCreateDialog() {
-    setForm(EMPTY_FORM);
+    setForm(emptyForm);
     setError(null);
     setThumbnailError(null);
     setDialogOpen(true);
@@ -183,7 +214,7 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
       }
       await refresh();
       setDialogOpen(false);
-      setForm(EMPTY_FORM);
+      setForm(emptyForm);
     } catch {
       setError(t("errors.save"));
     } finally {
@@ -302,8 +333,80 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
         onOpenChange={setDialogOpen}
         title={form.id ? t("editTitle") : t("createTitle")}
         description={t("formSubtitle")}
+        size="lg"
       >
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-foreground text-start">{t("fields.thumbnailUrl")}</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onThumbnailFileChange}
+            />
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              onDragOver={onThumbnailDragOver}
+              onDragLeave={onThumbnailDragLeave}
+              onDrop={onThumbnailDrop}
+              className={cn(
+                "relative flex h-24 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border-2 border-dashed text-center transition-colors",
+                isDraggingOver ? "border-primary bg-primary/5" : "border-border bg-surface hover:border-primary/50"
+              )}
+            >
+              {form.thumbnailUrl ? (
+                <>
+                  <img src={form.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-transparent to-transparent p-3">
+                    <span className="rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-foreground">
+                      {t("fields.replaceThumbnail")}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" className="h-8 w-8 text-foreground/40" aria-hidden="true">
+                    <path
+                      d="M12 16V4m0 0-4 4m4-4 4 4M4 16.5V19a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium text-foreground">{t("fields.uploadThumbnail")}</span>
+                  <span className="max-w-xs text-xs text-foreground/60">{t("hints.thumbnailDragDrop")}</span>
+                </>
+              )}
+              {uploadingThumbnail && (
+                <div className="absolute inset-0 grid place-items-center bg-background/70">
+                  <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden="true" />
+                </div>
+              )}
+            </div>
+            {form.thumbnailUrl && (
+              <div className="flex justify-end">
+                <Button type="button" variant="ghost" size="sm" onClick={() => updateField("thumbnailUrl", "")}>
+                  {t("fields.removeThumbnail")}
+                </Button>
+              </div>
+            )}
+            {thumbnailError && (
+              <p role="alert" className="text-xs text-error text-start">
+                {thumbnailError}
+              </p>
+            )}
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
               label={t("fields.titleEn")}
@@ -340,6 +443,7 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
               }))}
               value={form.subjectId}
               onChange={(event) => updateField("subjectId", event.target.value)}
+              disabled={subjects.length <= 1}
               required
             />
             <Select
@@ -353,58 +457,6 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
               onChange={(event) => updateField("stageId", event.target.value)}
               required
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground text-start">{t("fields.thumbnailUrl")}</span>
-            <div className="flex items-center gap-3">
-              {form.thumbnailUrl ? (
-                <img
-                  src={form.thumbnailUrl}
-                  alt=""
-                  className="h-16 w-24 shrink-0 rounded-md border border-border object-cover"
-                />
-              ) : (
-                <div className="grid h-16 w-24 shrink-0 place-items-center rounded-md border border-dashed border-border text-xs text-foreground/50">
-                  {t("fields.noThumbnail")}
-                </div>
-              )}
-              <div className="flex flex-col gap-1.5">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={onThumbnailFileChange}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    loading={uploadingThumbnail}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {form.thumbnailUrl ? t("fields.replaceThumbnail") : t("fields.uploadThumbnail")}
-                  </Button>
-                  {form.thumbnailUrl && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => updateField("thumbnailUrl", "")}
-                    >
-                      {t("fields.removeThumbnail")}
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-foreground/60 text-start">{t("hints.thumbnailUrl")}</p>
-              </div>
-            </div>
-            {thumbnailError && (
-              <p role="alert" className="text-xs text-error text-start">
-                {thumbnailError}
-              </p>
-            )}
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <Select

@@ -29,7 +29,8 @@
       "subtitle": "Sign in to your account",
       "fields": {
         "email": "Email",
-        "password": "Password"
+        "password": "Password",
+        "identifier": "Email or phone number"
       },
       "submit": "Sign in",
       "forgotPassword": "Forgot your password?",
@@ -143,11 +144,11 @@
         "dayOfWeek": "Day",
         "startTime": "Start time",
         "durationMinutes": "Duration minutes",
-        "subjectId": "Subject ID",
-        "stageId": "Stage ID",
-        "courseId": "Course ID",
+        "subjectId": "Subject",
+        "stageId": "Stage",
         "labelEn": "English note",
-        "labelAr": "Arabic note"
+        "labelAr": "Arabic note",
+        "selectPlaceholder": "Select..."
       },
       "errors": {
         "save": "Could not save this schedule slot.",
@@ -212,7 +213,8 @@
         "selectPlaceholder": "Select..."
       },
       "hints": {
-        "thumbnailUrl": "JPG or PNG, up to 5 MB."
+        "thumbnailUrl": "JPG or PNG, up to 5 MB.",
+        "thumbnailDragDrop": "Drag and drop an image here, or click to upload."
       },
       "create": "Create course",
       "save": "Save changes",
@@ -306,7 +308,10 @@
       "fields": {
         "displayName": "Full name",
         "email": "Email",
-        "stageId": "Stage ID"
+        "phone": "Phone number",
+        "age": "Age",
+        "stage": "Grade / stage",
+        "selectPlaceholder": "Select…"
       },
       "create": "Create student",
       "success": {

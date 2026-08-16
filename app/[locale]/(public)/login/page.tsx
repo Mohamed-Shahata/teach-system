@@ -18,6 +18,7 @@ export default async function LoginPage() {
       illustrationVariant="learn"
       heading={t("welcomeBack")}
       subtitle={t("subtitle")}
+      panelWidthClassName="lg:w-1/2"
     >
       <LoginForm />
     </AuthShell>

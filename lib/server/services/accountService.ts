@@ -47,7 +47,15 @@ export interface CreatedAccount {
 }
 
 interface ProvisionAccountParams {
-  email: string;
+  /**
+   * Optional when a Teacher creates a Student with only a phone number
+   * (see `createStudentSchema`). Firebase Auth still needs *an* email to
+   * create the user and to generate the reset link, so `provisionAccount`
+   * falls back to a `phone`-derived placeholder — never shown to anyone
+   * and never used for real delivery (see the "nothing is emailed
+   * automatically" note on the Student manager form).
+   */
+  email?: string;
   displayName: string;
   role: "teacher" | "student";
   phone?: string;
@@ -103,11 +111,26 @@ function randomUnusedPassword(): string {
   return `${crypto.randomUUID()}${crypto.randomUUID()}`;
 }
 
+/**
+ * Firebase Auth needs *an* email to create the user and to generate the
+ * password-reset link; a phone-only student (no `email` in the request)
+ * gets one derived from their phone plus a random suffix so it's unique
+ * and never collides with a real address. It's never surfaced to the
+ * student or the teacher — login resolves by `phone` instead (see
+ * `resolveLoginEmail`).
+ */
+function placeholderEmail(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, "") || "student";
+  return `${digits}.${crypto.randomUUID().slice(0, 8)}@placeholder.local`;
+}
+
 async function provisionAccount(params: ProvisionAccountParams): Promise<CreatedAccount> {
+  const email = params.email ?? placeholderEmail(params.phone ?? crypto.randomUUID());
+
   let uid: string;
   try {
     const authUser = await adminAuth.createUser({
-      email: params.email,
+      email,
       password: randomUnusedPassword(),
       displayName: params.displayName,
     });
@@ -124,7 +147,7 @@ async function provisionAccount(params: ProvisionAccountParams): Promise<Created
   try {
     await userRepository.create({
       uid,
-      email: params.email,
+      email,
       displayName: params.displayName,
       role: params.role,
       createdBy: params.createdBy,
@@ -162,9 +185,9 @@ async function provisionAccount(params: ProvisionAccountParams): Promise<Created
     throw err;
   }
 
-  const resetLink = await adminAuth.generatePasswordResetLink(params.email);
+  const resetLink = await adminAuth.generatePasswordResetLink(email);
 
-  return { uid, email: params.email, displayName: params.displayName, role: params.role, resetLink };
+  return { uid, email, displayName: params.displayName, role: params.role, resetLink };
 }
 
 export const accountService = {
@@ -201,6 +224,8 @@ export const accountService = {
       email: input.email,
       displayName: input.displayName,
       role: "student",
+      phone: input.phone,
+      age: input.age,
       stageId: input.stageId,
       createdBy: { uid: session.uid, role: "teacher" },
     });

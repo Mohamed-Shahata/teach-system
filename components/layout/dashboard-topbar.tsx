@@ -1,10 +1,22 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Button } from "@/components/ui/button";
+
+/** Derives `/{locale}/{role}/settings` from the current path's `(protected)/{role}/...` segment. */
+function useSettingsHref(): string {
+  const locale = useLocale();
+  const pathname = usePathname();
+  const segments = pathname.split("/").filter(Boolean);
+  // segments[0] is the locale; segments[1] is the role ("admin" | "teacher" | "student").
+  const role = segments[1] ?? "teacher";
+  return `/${locale}/${role}/settings`;
+}
 
 export interface DashboardTopbarProps {
   displayName: string;
@@ -26,6 +38,7 @@ export interface DashboardTopbarProps {
  */
 export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl }: DashboardTopbarProps) {
   const t = useTranslations("teacherDashboard");
+  const settingsHref = useSettingsHref();
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -75,30 +88,33 @@ export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl }: 
           <LocaleSwitcher />
           <ThemeToggle />
           <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- Cloudinary-hosted, remote avatar; no local optimization needed here.
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              className="h-8 w-8 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <span
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-primary"
-              aria-hidden="true"
-            >
-              {displayName
-                .trim()
-                .split(/\s+/)
-                .slice(0, 2)
-                .map((part) => part[0]?.toUpperCase())
-                .join("") || "?"}
-            </span>
-          )}
-          <LogoutButton
-            size="sm"
-            className="border border-error/40 text-error hover:border-error hover:bg-error hover:text-white"
-          />
+          <Link
+            href={settingsHref}
+            aria-label={t("nav.settings")}
+            className="cursor-pointer rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- Cloudinary-hosted, remote avatar; no local optimization needed here.
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                className="h-8 w-8 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <span
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-primary"
+                aria-hidden="true"
+              >
+                {displayName
+                  .trim()
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((part) => part[0]?.toUpperCase())
+                  .join("") || "?"}
+              </span>
+            )}
+          </Link>
+          <LogoutButton size="sm" />
         </div>
       </div>
     </header>

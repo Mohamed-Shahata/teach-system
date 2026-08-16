@@ -14,10 +14,27 @@ import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
 
 const loginFormSchema = z.object({
-  email: z.string().trim().email().max(254),
+  identifier: z.string().trim().min(1).max(254),
   password: z.string().min(1),
 });
 type LoginFormInput = z.infer<typeof loginFormSchema>;
+
+/** Looks up the email for a login identifier that may be a phone number. */
+async function resolveLoginEmail(identifier: string): Promise<string> {
+  const res = await fetch("/api/auth/resolve-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw body?.error ?? new Error("resolve_login_failed");
+  }
+
+  const body = await res.json();
+  return body.email as string;
+}
 
 function resolveErrorKey(err: unknown): string {
   const code = err && typeof err === "object" && "code" in err ? err.code : undefined;
@@ -85,14 +102,16 @@ export function LoginForm() {
   const onSubmit = async (data: LoginFormInput) => {
     setFormError(null);
     try {
-      const credential = await signInWithEmailAndPassword(clientAuth, data.email, data.password);
+      const email = await resolveLoginEmail(data.identifier);
+      const credential = await signInWithEmailAndPassword(clientAuth, email, data.password);
       const idToken = await credential.user.getIdToken();
       const { role } = await createSession(idToken);
 
       router.push(`/${locale}/${role ?? ""}`);
       router.refresh();
     } catch (err) {
-      setFormError(resolveErrorKey(err));
+      const messageKey = err && typeof err === "object" && "messageKey" in err ? (err as { messageKey?: string }).messageKey : undefined;
+      setFormError(messageKey || resolveErrorKey(err));
     }
   };
 
@@ -121,11 +140,12 @@ export function LoginForm() {
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <Input
-          type="email"
-          label={t("auth.login.fields.email")}
-          autoComplete="email"
-          error={errors.email && t("validation.required")}
-          {...register("email")}
+          type="text"
+          label={t("auth.login.fields.identifier")}
+          autoComplete="username"
+          inputMode="email"
+          error={errors.identifier && t("validation.required")}
+          {...register("identifier")}
         />
 
         <Input

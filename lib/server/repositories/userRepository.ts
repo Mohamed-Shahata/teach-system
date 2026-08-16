@@ -76,6 +76,21 @@ export const userRepository = {
     return result;
   },
 
+  /**
+   * Looks up a user by their `phone` field -- used by the login-by-phone
+   * flow (`/api/auth/resolve-login`) to translate a phone number into the
+   * account's email before handing off to Firebase Auth's email/password
+   * sign-in, since Firebase Auth itself has no phone/password method.
+   * Equality filter on a single field, so no composite index is needed.
+   * Returns `null` if zero or more than one match (an unset/duplicate
+   * phone shouldn't silently authenticate as the wrong account).
+   */
+  async findByPhone(phone: string): Promise<UserDoc | null> {
+    const snap = await adminDb.collection(COLLECTION).where("phone", "==", phone).limit(2).get();
+    if (snap.size !== 1) return null;
+    return snap.docs[0].data() as UserDoc;
+  },
+
   async create(user: UserDoc): Promise<void> {
     // `create()` (not `set()`) so this fails if the document already
     // exists, instead of silently overwriting a prior registration.

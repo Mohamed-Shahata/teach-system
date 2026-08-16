@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Alert, Button, Card, CardContent, Dialog, Input, Select } from "@/components/ui";
 import type { ScheduleSlotDoc } from "@/lib/server/repositories/scheduleRepository";
+import type { SubjectDoc } from "@/lib/server/repositories/subjectRepository";
+import type { EducationStageDoc } from "@/lib/server/repositories/educationStageRepository";
 
 /**
  * A slot is "live" (its meeting-link controls should show, TASK-1601 item
@@ -25,15 +27,24 @@ function isSlotLive(slot: ScheduleSlotDoc, now: Date): boolean {
   return nowMinutes >= windowStart && nowMinutes <= windowEnd;
 }
 
+function formatTime12h(time: string, format: ReturnType<typeof useFormatter>): string {
+  const [hours, minutes] = time.split(":").map(Number);
+  const date = new Date(Date.UTC(2024, 0, 1, hours, minutes));
+  return format.dateTime(date, { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "UTC" });
+}
+
 interface ScheduleManagerProps {
   initialSlots: ScheduleSlotDoc[];
+  /** From `centerConfigService.listSubjects` -- populates the subject `Select` (curricula are matched by subject/stage, not tied to a specific course). */
+  subjects: SubjectDoc[];
+  /** From `centerConfigService.listEducationStages` -- populates the stage `Select`. */
+  stages: EducationStageDoc[];
 }
 
 interface FormState {
   id?: string;
   subjectId: string;
   stageId: string;
-  courseId: string;
   dayOfWeek: string;
   startTime: string;
   durationMinutes: string;
@@ -44,10 +55,9 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   subjectId: "",
   stageId: "",
-  courseId: "",
   dayOfWeek: "0",
   startTime: "17:00",
-  durationMinutes: "90",
+  durationMinutes: "60",
   labelEn: "",
   labelAr: "",
 };
@@ -57,7 +67,6 @@ function toFormState(slot: ScheduleSlotDoc): FormState {
     id: slot.id,
     subjectId: slot.subjectId,
     stageId: slot.stageId,
-    courseId: slot.courseId ?? "",
     dayOfWeek: String(slot.dayOfWeek),
     startTime: slot.startTime,
     durationMinutes: String(slot.durationMinutes),
@@ -71,7 +80,6 @@ function toRequestBody(form: FormState) {
     ...(form.id ? { id: form.id } : {}),
     subjectId: form.subjectId,
     stageId: form.stageId,
-    ...(form.courseId ? { courseId: form.courseId } : {}),
     dayOfWeek: Number(form.dayOfWeek),
     startTime: form.startTime,
     durationMinutes: Number(form.durationMinutes),
@@ -81,11 +89,28 @@ function toRequestBody(form: FormState) {
   };
 }
 
-export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
+export function ScheduleManager({ initialSlots, subjects, stages }: ScheduleManagerProps) {
   const t = useTranslations("teacherDashboard.schedule");
+  const locale = useLocale();
   const format = useFormatter();
+  // A teacher normally has a single assigned subject, so `subjects` here is
+  // already narrowed to just that one (see the dashboard page) -- default
+  // the form to it instead of making the teacher pick from a list of one.
+  const defaultSubjectId = subjects.length === 1 ? subjects[0].id : "";
+  const emptyForm = React.useMemo<FormState>(
+    () => ({ ...EMPTY_FORM, subjectId: defaultSubjectId }),
+    [defaultSubjectId]
+  );
+  const subjectName = React.useCallback(
+    (subjectId: string) => subjects.find((subject) => subject.id === subjectId)?.name[locale as "en" | "ar"] ?? subjectId,
+    [subjects, locale],
+  );
+  const stageName = React.useCallback(
+    (stageId: string) => stages.find((stage) => stage.id === stageId)?.name[locale as "en" | "ar"] ?? stageId,
+    [stages, locale],
+  );
   const [slots, setSlots] = React.useState(initialSlots);
-  const [form, setForm] = React.useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = React.useState<FormState>(emptyForm);
   const [error, setError] = React.useState<string | null>(null);
   const [pendingAction, setPendingAction] = React.useState<"save" | "delete" | null>(null);
 
@@ -131,7 +156,7 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
       });
       if (!res.ok) throw new Error("save");
       await refresh();
-      setForm(EMPTY_FORM);
+      setForm(emptyForm);
     } catch {
       setError(t("errors.save"));
     } finally {
@@ -150,7 +175,7 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
       });
       if (!res.ok) throw new Error("delete");
       await refresh();
-      setForm((current) => (current.id === id ? EMPTY_FORM : current));
+      setForm((current) => (current.id === id ? emptyForm : current));
     } catch {
       setError(t("errors.delete"));
     } finally {
@@ -238,11 +263,11 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
                   <div key={slot.id} className="flex flex-col gap-2 border-b border-border/60 px-3 py-3 last:border-b-0">
                     <div className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-3 text-sm">
                       <span className="text-foreground">
-                        {dayOptions[slot.dayOfWeek]?.label} - {slot.startTime} -{" "}
+                        {dayOptions[slot.dayOfWeek]?.label} - {formatTime12h(slot.startTime, format)} -{" "}
                         {t("duration", { count: slot.durationMinutes })}
                       </span>
-                      <span className="text-foreground/70">{slot.subjectId}</span>
-                      <span className="text-foreground/70">{slot.stageId}</span>
+                      <span className="text-foreground/70">{subjectName(slot.subjectId)}</span>
+                      <span className="text-foreground/70">{stageName(slot.stageId)}</span>
                       <span className="flex justify-end gap-2">
                         <Button type="button" variant="outline" size="sm" onClick={() => setForm(toFormState(slot))}>
                           {t("edit")}
@@ -322,23 +347,29 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
                 onChange={(event) => updateField("durationMinutes", event.target.value)}
                 required
               />
-              <div className="grid grid-cols-3 gap-2">
-                <Input
+              <div className="grid grid-cols-2 gap-2">
+                <Select
                   label={t("fields.subjectId")}
+                  placeholder={t("fields.selectPlaceholder")}
+                  options={subjects.map((subject) => ({
+                    value: subject.id,
+                    label: subject.name[locale as "en" | "ar"] || subject.name.en,
+                  }))}
                   value={form.subjectId}
                   onChange={(event) => updateField("subjectId", event.target.value)}
+                  disabled={subjects.length <= 1}
                   required
                 />
-                <Input
+                <Select
                   label={t("fields.stageId")}
+                  placeholder={t("fields.selectPlaceholder")}
+                  options={stages.map((stage) => ({
+                    value: stage.id,
+                    label: stage.name[locale as "en" | "ar"] || stage.name.en,
+                  }))}
                   value={form.stageId}
                   onChange={(event) => updateField("stageId", event.target.value)}
                   required
-                />
-                <Input
-                  label={t("fields.courseId")}
-                  value={form.courseId}
-                  onChange={(event) => updateField("courseId", event.target.value)}
                 />
               </div>
               <Input
@@ -356,7 +387,7 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
                   {form.id ? t("update") : t("add")}
                 </Button>
                 {form.id && (
-                  <Button type="button" variant="outline" onClick={() => setForm(EMPTY_FORM)}>
+                  <Button type="button" variant="outline" onClick={() => setForm(emptyForm)}>
                     {t("cancel")}
                   </Button>
                 )}

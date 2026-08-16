@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
-import { Alert, Button, Card, Input } from "@/components/ui";
+import { useLocale, useTranslations } from "next-intl";
+import { Alert, Button, Card, Input, Select } from "@/components/ui";
+import type { EducationStageDoc } from "@/lib/server/repositories/educationStageRepository";
 
 /**
  * TASK-1000: Teacher creates a student account.
@@ -13,15 +14,30 @@ import { Alert, Button, Card, Input } from "@/components/ui";
  * like `CourseManager`. On success it surfaces the one-time password-reset
  * link from `CreatedAccount` (docs/decisions/0005) so the teacher can relay
  * it to the student — the link is never persisted or shown again.
+ *
+ * `phone`/`age` are required and `email` is optional (`createStudentSchema`)
+ * — the center primarily reaches students by phone, and login already
+ * resolves a phone identifier to the underlying account (`resolveLoginEmail`),
+ * so a teacher can create a student with just a phone number. `stageId` is
+ * a `Select` over the real `educationStages` lookup collection rather than
+ * free text, matching the Admin-facing create form.
  */
+
+interface StudentManagerProps {
+  stages: EducationStageDoc[];
+}
 
 interface FormState {
   email: string;
   displayName: string;
+  phone: string;
+  age: string;
   stageId: string;
 }
 
-const EMPTY_FORM: FormState = { email: "", displayName: "", stageId: "" };
+function emptyForm(stages: EducationStageDoc[]): FormState {
+  return { email: "", displayName: "", phone: "", age: "", stageId: stages[0]?.id ?? "" };
+}
 
 interface CreatedStudent {
   email: string;
@@ -29,9 +45,10 @@ interface CreatedStudent {
   resetLink: string;
 }
 
-export function StudentManager() {
+export function StudentManager({ stages }: StudentManagerProps) {
   const t = useTranslations("teacherDashboard.students");
-  const [form, setForm] = React.useState<FormState>(EMPTY_FORM);
+  const locale = useLocale();
+  const [form, setForm] = React.useState<FormState>(() => emptyForm(stages));
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
   const [created, setCreated] = React.useState<CreatedStudent | null>(null);
@@ -49,7 +66,13 @@ export function StudentManager() {
       const res = await fetch("/api/teacher/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          displayName: form.displayName,
+          phone: form.phone,
+          age: form.age ? Number(form.age) : undefined,
+          stageId: form.stageId,
+          ...(form.email ? { email: form.email } : {}),
+        }),
       });
       if (!res.ok) {
         setError(res.status === 409 ? t("errors.emailConflict") : t("errors.create"));
@@ -57,7 +80,7 @@ export function StudentManager() {
       }
       const account = (await res.json()) as CreatedStudent;
       setCreated(account);
-      setForm(EMPTY_FORM);
+      setForm(emptyForm(stages));
     } catch {
       setError(t("errors.create"));
     } finally {
@@ -96,14 +119,34 @@ export function StudentManager() {
               required
             />
             <Input
+              label={t("fields.phone")}
+              type="tel"
+              value={form.phone}
+              onChange={(event) => updateField("phone", event.target.value)}
+              required
+            />
+            <Input
+              label={t("fields.age")}
+              type="number"
+              min={2}
+              max={25}
+              value={form.age}
+              onChange={(event) => updateField("age", event.target.value)}
+              required
+            />
+            <Input
               label={t("fields.email")}
               type="email"
               value={form.email}
               onChange={(event) => updateField("email", event.target.value)}
-              required
             />
-            <Input
-              label={t("fields.stageId")}
+            <Select
+              label={t("fields.stage")}
+              placeholder={t("fields.selectPlaceholder")}
+              options={stages.map((stage) => ({
+                value: stage.id,
+                label: stage.name[locale as "en" | "ar"] || stage.name.en,
+              }))}
               value={form.stageId}
               onChange={(event) => updateField("stageId", event.target.value)}
               required

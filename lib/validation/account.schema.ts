@@ -77,10 +77,19 @@ export type UpdateTeacherProfileInput = z.infer<typeof updateTeacherProfileSchem
  * `POST /api/teacher/students` body — role is implicitly `student`, so
  * it's never accepted on the request (never trust client-supplied role
  * data, per `authorization/README.md`).
+ *
+ * `email` is optional here (unlike the Admin-facing `createAccountSchema`)
+ * — the center primarily reaches students by phone, and login already
+ * supports a phone identifier (`resolveLoginEmail`/`findByPhone`), so a
+ * teacher can create an account with just a phone number. `phone`/`age`
+ * are required for a teacher-created student, matching the extra fields
+ * collected in the "Add a student" form.
  */
 export const createStudentSchema = z.object({
-  email: emailField,
+  email: emailField.optional(),
   displayName: displayNameField,
+  phone: phoneField,
+  age: ageField,
   stageId: stageIdField,
 });
 export type CreateStudentInput = z.infer<typeof createStudentSchema>;

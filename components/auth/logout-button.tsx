@@ -29,7 +29,7 @@ export function LogoutButton(props: Omit<ButtonProps, "onClick" | "loading">) {
   };
 
   return (
-    <Button variant="ghost" {...props} loading={isPending} onClick={handleLogout}>
+    <Button variant="destructive" {...props} loading={isPending} onClick={handleLogout}>
       {t("label")}
     </Button>
   );

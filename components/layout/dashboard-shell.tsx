@@ -83,25 +83,36 @@ export function DashboardShell({ sidebar, displayName, children, topbarTitle, av
         </SidebarCollapseProvider>
       </aside>
 
-      {/* Mobile off-canvas sidebar -- above the top bar (z-40 > topbar's z-20), also floated off the edges. */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div
-            className="absolute inset-0 bg-foreground/30"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
-          />
-          <aside
-            className={cn(
-              "absolute inset-y-4 start-4 w-64 overflow-hidden rounded-3xl border border-border bg-surface shadow-2xl"
-            )}
-          >
-            <SidebarCollapseProvider collapsed={false} toggle={() => {}}>
-              {sidebar}
-            </SidebarCollapseProvider>
-          </aside>
-        </div>
-      )}
+      {/* Mobile off-canvas sidebar -- above the top bar (z-40 > topbar's z-20), also floated off the edges.
+          Always mounted (not conditionally rendered) so the open/close transitions actually animate --
+          `mobileOpen` only toggles opacity/transform/pointer-events, it doesn't mount/unmount the node. */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 lg:hidden",
+          mobileOpen ? "pointer-events-auto" : "pointer-events-none"
+        )}
+        aria-hidden={!mobileOpen}
+      >
+        <div
+          className={cn(
+            "absolute inset-0 bg-foreground/30 transition-opacity duration-300 ease-in-out",
+            mobileOpen ? "opacity-100" : "opacity-0"
+          )}
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+        <aside
+          className={cn(
+            "absolute inset-y-4 start-4 w-64 overflow-hidden rounded-3xl border border-border bg-surface shadow-2xl",
+            "transition-transform duration-300 ease-out",
+            mobileOpen ? "translate-x-0" : "-translate-x-[calc(100%+2rem)] rtl:translate-x-[calc(100%+2rem)]"
+          )}
+        >
+          <SidebarCollapseProvider collapsed={false} toggle={() => {}}>
+            {sidebar}
+          </SidebarCollapseProvider>
+        </aside>
+      </div>
 
       <div className={cn("flex min-h-screen flex-col transition-[margin] duration-200 ease-in-out", collapsed ? "lg:ms-28" : "lg:ms-72")}>
         <DashboardTopbar

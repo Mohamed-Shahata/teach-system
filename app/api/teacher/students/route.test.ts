@@ -63,7 +63,13 @@ describe("POST /api/teacher/students", () => {
     });
 
     const res = await POST(
-      makeRequest({ email: "sara@example.com", displayName: "Sara", stageId: "stage-1" }),
+      makeRequest({
+        email: "sara@example.com",
+        displayName: "Sara",
+        phone: "01000000000",
+        age: 12,
+        stageId: "stage-1",
+      }),
     );
 
     expect(res.status).toBe(201);
@@ -71,7 +77,28 @@ describe("POST /api/teacher/students", () => {
     expect(body.role).toBe("student");
     expect(createStudentByTeacher).toHaveBeenCalledWith(
       { uid: "teacher-1", email: "t@b.com", role: "teacher" },
-      expect.objectContaining({ email: "sara@example.com", stageId: "stage-1" }),
+      expect.objectContaining({ email: "sara@example.com", phone: "01000000000", age: 12, stageId: "stage-1" }),
+    );
+  });
+
+  it("creates the student account without an email (phone-only)", async () => {
+    requireSession.mockResolvedValue({ uid: "teacher-1", email: "t@b.com", role: "teacher" });
+    createStudentByTeacher.mockResolvedValue({
+      uid: "new-uid",
+      email: "01000000000.abcd1234@placeholder.local",
+      displayName: "Sara",
+      role: "student",
+      resetLink: "https://example.com/reset",
+    });
+
+    const res = await POST(
+      makeRequest({ displayName: "Sara", phone: "01000000000", age: 12, stageId: "stage-1" }),
+    );
+
+    expect(res.status).toBe(201);
+    expect(createStudentByTeacher).toHaveBeenCalledWith(
+      { uid: "teacher-1", email: "t@b.com", role: "teacher" },
+      expect.objectContaining({ phone: "01000000000", age: 12, stageId: "stage-1" }),
     );
   });
 
@@ -80,7 +107,7 @@ describe("POST /api/teacher/students", () => {
     createStudentByTeacher.mockRejectedValue(new ForbiddenError());
 
     const res = await POST(
-      makeRequest({ email: "sara@example.com", displayName: "Sara", stageId: "stage-1" }),
+      makeRequest({ email: "sara@example.com", displayName: "Sara", phone: "01000000000", age: 12, stageId: "stage-1" }),
     );
 
     expect(res.status).toBe(403);
@@ -89,7 +116,20 @@ describe("POST /api/teacher/students", () => {
   it("returns 400 for an invalid body (missing stageId)", async () => {
     requireSession.mockResolvedValue({ uid: "teacher-1", email: "t@b.com", role: "teacher" });
 
-    const res = await POST(makeRequest({ email: "sara@example.com", displayName: "Sara" }));
+    const res = await POST(
+      makeRequest({ email: "sara@example.com", displayName: "Sara", phone: "01000000000", age: 12 }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(createStudentByTeacher).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for an invalid body (missing phone)", async () => {
+    requireSession.mockResolvedValue({ uid: "teacher-1", email: "t@b.com", role: "teacher" });
+
+    const res = await POST(
+      makeRequest({ email: "sara@example.com", displayName: "Sara", age: 12, stageId: "stage-1" }),
+    );
 
     expect(res.status).toBe(400);
     expect(createStudentByTeacher).not.toHaveBeenCalled();

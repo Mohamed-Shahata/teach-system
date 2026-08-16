@@ -8,7 +8,7 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
 }
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, id, error, label, hint, disabled, rows = 3, ...props }, ref) => {
+  ({ className, id, error, label, hint, disabled, required, rows = 3, ...props }, ref) => {
     const generatedId = React.useId();
     const textareaId = id ?? generatedId;
     const errorId = error ? `${textareaId}-error` : undefined;
@@ -18,6 +18,11 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label htmlFor={textareaId} className="text-sm font-medium text-foreground text-start">
             {label}
+            {required && (
+              <span className="text-error" aria-hidden="true">
+                {" "}*
+              </span>
+            )}
           </label>
         )}
         <textarea
@@ -25,6 +30,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={textareaId}
           rows={rows}
           disabled={disabled}
+          required={required}
           aria-invalid={!!error || undefined}
           aria-describedby={cn(errorId, hintId).split(" ").filter(Boolean).join(" ") || undefined}
           className={cn(

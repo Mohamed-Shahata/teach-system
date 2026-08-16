@@ -244,4 +244,24 @@ describe("accountService.createStudentByTeacher", () => {
     ).rejects.toBeInstanceOf(ForbiddenError);
     expect(createUser).not.toHaveBeenCalled();
   });
+
+  it("derives a placeholder email from the phone when none is given", async () => {
+    const session = makeSession("teacher", "teacher-1");
+
+    const result = await accountService.createStudentByTeacher(session, {
+      displayName: "Sara",
+      phone: "01000000000",
+      age: 12,
+      stageId: "stage-1",
+    });
+
+    expect(createUser).toHaveBeenCalledWith(
+      expect.objectContaining({ email: expect.stringContaining("01000000000") }),
+    );
+    expect(createUserDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: "01000000000", age: 12 }),
+    );
+    expect(result.email).toContain("01000000000");
+    expect(result.email).toContain("@placeholder.local");
+  });
 });

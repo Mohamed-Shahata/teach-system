@@ -14,7 +14,7 @@ export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectE
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, id, options, label, error, placeholder, disabled, ...props }, ref) => {
+  ({ className, id, options, label, error, placeholder, disabled, required, ...props }, ref) => {
     const generatedId = React.useId();
     const selectId = id ?? generatedId;
     return (
@@ -22,6 +22,11 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label htmlFor={selectId} className="text-sm font-medium text-foreground text-start">
             {label}
+            {required && (
+              <span className="text-error" aria-hidden="true">
+                {" "}*
+              </span>
+            )}
           </label>
         )}
         <div className="relative">
@@ -29,6 +34,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             disabled={disabled}
+            required={required}
             aria-invalid={!!error || undefined}
             className={cn(
               "h-10 w-full appearance-none rounded-full border bg-surface ps-4 pe-9 text-sm text-foreground text-start",

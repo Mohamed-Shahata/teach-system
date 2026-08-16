@@ -46,11 +46,11 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         className={cn(
-          "animate-fade-up relative z-10 w-full rounded-3xl border border-border bg-surface p-6 text-start shadow-2xl shadow-foreground/10",
+          "animate-fade-up relative z-10 flex max-h-[85vh] w-full flex-col rounded-3xl border border-border bg-surface p-6 text-start shadow-2xl shadow-foreground/10",
           SIZE_CLASS[size]
         )}
       >
-        <div className="mb-4 flex items-start justify-between gap-2">
+        <div className="mb-4 flex shrink-0 items-start justify-between gap-2">
           <h2 id={titleId} className="text-lg font-semibold text-foreground">{title}</h2>
           <button
             type="button"
@@ -64,9 +64,9 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
             ✕
           </button>
         </div>
-        {description && <p id={descId} className="mb-4 text-sm text-foreground/60">{description}</p>}
-        <div className="text-sm text-foreground">{children}</div>
-        {footer && <div className="mt-6 flex items-center justify-end gap-2">{footer}</div>}
+        {description && <p id={descId} className="mb-4 shrink-0 text-sm text-foreground/60">{description}</p>}
+        <div className="themed-scrollbar min-h-0 flex-1 overflow-y-auto text-sm text-foreground">{children}</div>
+        {footer && <div className="mt-6 flex shrink-0 items-center justify-end gap-2">{footer}</div>}
       </div>
     </div>
   );
