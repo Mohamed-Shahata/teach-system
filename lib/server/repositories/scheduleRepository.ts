@@ -19,13 +19,18 @@ export interface ScheduleSlotDoc {
   startTime: string;
   durationMinutes: number;
   label?: LocalizedText;
+  /** Google Meet / Zoom link the teacher set for this recurring slot's live session (Phase 6). */
+  meetingUrl?: string;
   createdAt: number;
   updatedAt: number;
 }
 
 export type CreateScheduleSlotDoc = Omit<ScheduleSlotDoc, "id">;
 export type UpdateScheduleSlotDoc = Partial<
-  Pick<ScheduleSlotDoc, "subjectId" | "stageId" | "courseId" | "dayOfWeek" | "startTime" | "durationMinutes" | "label">
+  Pick<
+    ScheduleSlotDoc,
+    "subjectId" | "stageId" | "courseId" | "dayOfWeek" | "startTime" | "durationMinutes" | "label" | "meetingUrl"
+  >
 > & { updatedAt: number };
 
 const COLLECTION = "schedule";
@@ -41,6 +46,7 @@ function toScheduleSlotDoc(id: string, data: FirebaseFirestore.DocumentData): Sc
     startTime: String(data.startTime),
     durationMinutes: Number(data.durationMinutes),
     ...(data.label ? { label: data.label as LocalizedText } : {}),
+    ...(data.meetingUrl ? { meetingUrl: String(data.meetingUrl) } : {}),
     createdAt: Number(data.createdAt),
     updatedAt: Number(data.updatedAt),
   };

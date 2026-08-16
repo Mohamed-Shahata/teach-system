@@ -5,8 +5,9 @@ import {
   EMPTY_TEACHER_PROFILE_STATS,
   teacherProfileRepository,
 } from "@/lib/server/repositories/teacherProfileRepository";
+import { systemStatsRepository } from "@/lib/server/repositories/systemStatsRepository";
 import { assertRole } from "@/lib/auth/guards";
-import { ConflictError } from "@/lib/errors";
+import { ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import type { Session } from "@/lib/auth/session";
 import type { CreateAccountInput, CreateStudentInput } from "@/lib/validation/account.schema";
 
@@ -49,7 +50,11 @@ interface ProvisionAccountParams {
   email: string;
   displayName: string;
   role: "teacher" | "student";
+  phone?: string;
   stageId?: string;
+  age?: number;
+  /** teacher-only: single ref into `subjects` — a teacher has exactly one specialization, stored on `teacherProfiles.subjectId`. */
+  subjectId?: string;
   createdBy: { uid: string; role: "admin" | "teacher" };
 }
 
@@ -126,9 +131,11 @@ async function provisionAccount(params: ProvisionAccountParams): Promise<Created
       createdAt,
       // Firestore Admin SDK rejects `undefined` field values (no
       // `ignoreUndefinedProperties` configured — see firebaseAdmin.ts), so
-      // the key is only present at all when there's a real stageId
-      // (students), never sent as `stageId: undefined` for teachers.
+      // each optional key is only present at all when there's a real
+      // value, never sent as `key: undefined`.
       ...(params.stageId ? { stageId: params.stageId } : {}),
+      ...(params.phone ? { phone: params.phone } : {}),
+      ...(params.role === "student" && params.age !== undefined ? { age: params.age } : {}),
     });
 
     if (params.role === "teacher") {
@@ -137,10 +144,17 @@ async function provisionAccount(params: ProvisionAccountParams): Promise<Created
         slug: await uniqueTeacherSlug(params.displayName),
         displayName: params.displayName,
         isPublic: false,
+        ...(params.subjectId ? { subjectId: params.subjectId } : {}),
         stats: { ...EMPTY_TEACHER_PROFILE_STATS },
         createdAt,
       });
     }
+
+    // TASK-1902 — keep the Admin's system-wide counters in sync with the
+    // one place a `users` doc is ever created.
+    await systemStatsRepository.incrementStats(
+      params.role === "teacher" ? { totalTeachers: 1 } : { totalStudents: 1 },
+    );
   } catch (err) {
     // Roll back the Auth-only account so a failed Firestore write doesn't
     // leave an orphaned account nobody can see or recreate.
@@ -161,14 +175,28 @@ export const accountService = {
       email: input.email,
       displayName: input.displayName,
       role: input.role,
+      phone: input.phone,
       stageId: input.stageId,
+      age: input.age,
+      subjectId: input.role === "teacher" ? input.subjectId : undefined,
       createdBy: { uid: session.uid, role: "admin" },
     });
   },
 
-  /** `POST /api/teacher/students` — Teacher creates a Student account of their own. */
+  /**
+   * `POST /api/teacher/students` — Teacher creates a Student account of
+   * their own. Gated by `Phase 5`'s per-teacher `canCreateStudents` flag
+   * (`users/{uid}.canCreateStudents`, Admin-toggleable in the Teachers
+   * screen); a missing flag means "not yet restricted" and defaults to
+   * allowed, so existing teachers keep working unchanged.
+   */
   async createStudentByTeacher(session: Session, input: CreateStudentInput): Promise<CreatedAccount> {
     assertRole(session, "teacher");
+
+    const teacher = await userRepository.findById(session.uid);
+    if (!teacher) throw new NotFoundError();
+    if (teacher.canCreateStudents === false) throw new ForbiddenError();
+
     return provisionAccount({
       email: input.email,
       displayName: input.displayName,

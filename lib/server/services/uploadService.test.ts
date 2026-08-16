@@ -35,6 +35,20 @@ describe("uploadService.signUpload", () => {
     }));
   });
 
+  it("signs an avatar upload for a student session into a per-uid folder", async () => {
+    const result = await uploadService.signUpload(makeSession("student", "student-1"), {
+      target: "avatar",
+    });
+    expect(result.folder).toBe("students/student-1/avatar");
+  });
+
+  it("signs an avatar upload for a teacher session too", async () => {
+    const result = await uploadService.signUpload(makeSession("teacher", "teacher-1"), {
+      target: "avatar",
+    });
+    expect(result.folder).toBe("teachers/teacher-1/avatar");
+  });
+
   it("rejects non-teacher sessions", async () => {
     await expect(
       uploadService.signUpload(makeSession("student"), { target: "course-thumbnail" }),

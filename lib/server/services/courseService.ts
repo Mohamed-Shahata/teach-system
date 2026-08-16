@@ -5,6 +5,7 @@ import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { courseRepository } from "@/lib/server/repositories/courseRepository";
 import { assertWritableByTeacher } from "@/lib/server/repositories/base";
 import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
+import { systemStatsRepository } from "@/lib/server/repositories/systemStatsRepository";
 import { subjectRepository } from "@/lib/server/repositories/subjectRepository";
 import { educationStageRepository } from "@/lib/server/repositories/educationStageRepository";
 import type { CreateCourseInput, UpdateCourseInput } from "@/lib/validation/course.schema";
@@ -94,6 +95,7 @@ export const courseService = {
       updatedAt: now,
     });
     await teacherProfileRepository.incrementStats(session.uid, { totalCourses: 1 });
+    await systemStatsRepository.incrementStats({ totalCourses: 1 });
     return course;
   },
 
@@ -123,6 +125,7 @@ export const courseService = {
     const updated = await courseRepository.update(session, id, { status: "published", updatedAt: Date.now() });
     if (existing?.status !== "published") {
       await teacherProfileRepository.incrementStats(updated.teacherId, { totalPublishedCourses: 1 });
+      await systemStatsRepository.incrementStats({ totalPublishedCourses: 1 });
     }
     return updated;
   },
@@ -133,6 +136,7 @@ export const courseService = {
     const updated = await courseRepository.update(session, id, { status: "draft", updatedAt: Date.now() });
     if (existing?.status === "published") {
       await teacherProfileRepository.incrementStats(updated.teacherId, { totalPublishedCourses: -1 });
+      await systemStatsRepository.incrementStats({ totalPublishedCourses: -1 });
     }
     return updated;
   },
@@ -141,6 +145,10 @@ export const courseService = {
     assertRole(session, "teacher");
     const deleted = await courseRepository.delete(session, id);
     await teacherProfileRepository.incrementStats(deleted.teacherId, {
+      totalCourses: -1,
+      ...(deleted.status === "published" ? { totalPublishedCourses: -1 } : {}),
+    });
+    await systemStatsRepository.incrementStats({
       totalCourses: -1,
       ...(deleted.status === "published" ? { totalPublishedCourses: -1 } : {}),
     });

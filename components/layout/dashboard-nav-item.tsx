@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+import { useSidebarCollapse } from "@/components/layout/sidebar-context";
 
 export interface DashboardNavItemProps {
   href: string;
@@ -15,27 +16,42 @@ export interface DashboardNavItemProps {
  * Single sidebar link. "Active" is matched by exact path or by the item's
  * href being a leading segment of the current path (so `/teacher/courses`
  * stays highlighted on `/teacher/courses/abc123`).
+ *
+ * When the persistent desktop sidebar is collapsed, the label is hidden
+ * and the icon centers itself -- the link keeps its accessible name via
+ * `title` so it's still identifiable on hover/focus.
  */
 export function DashboardNavItem({ href, label, icon }: DashboardNavItemProps) {
   const pathname = usePathname();
   const isActive = pathname === href || pathname.startsWith(`${href}/`);
+  const { collapsed } = useSidebarCollapse();
 
   return (
     <Link
       href={href}
       aria-current={isActive ? "page" : undefined}
+      title={collapsed ? label : undefined}
       className={cn(
-        "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+        collapsed && "justify-center px-0",
         isActive
           ? "bg-primary/8 text-primary"
           : "text-foreground/70 hover:bg-surface-muted hover:text-foreground"
       )}
     >
-      {isActive && <span className="absolute inset-y-2 start-0 w-0.5 rounded-full bg-primary" aria-hidden="true" />}
+      {isActive && (
+        <span
+          className={cn(
+            "absolute inset-y-2 start-0 w-0.5 rounded-full bg-primary",
+            collapsed && "hidden"
+          )}
+          aria-hidden="true"
+        />
+      )}
       <span className="grid h-5 w-5 shrink-0 place-items-center text-current" aria-hidden="true">
         {icon}
       </span>
-      <span className="truncate">{label}</span>
+      <span className={cn("truncate", collapsed && "hidden")}>{label}</span>
     </Link>
   );
 }

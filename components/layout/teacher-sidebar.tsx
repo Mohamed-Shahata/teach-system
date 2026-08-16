@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { DashboardNavItem } from "@/components/layout/dashboard-nav-item";
+import { useSidebarCollapse } from "@/components/layout/sidebar-context";
+import { LogoMark } from "@/components/brand/logo-mark";
+import { cn } from "@/lib/utils/cn";
 
 function Icon({ path }: { path: string }) {
   return (
@@ -61,12 +64,18 @@ const NAV_ITEMS = [
 export function TeacherSidebar() {
   const t = useTranslations("teacherDashboard.nav");
   const locale = useLocale();
+  const { collapsed } = useSidebarCollapse();
 
   return (
     <div className="flex h-full flex-col bg-surface">
-      <div className="border-b border-border px-6 py-6">
-        <p className="text-2xl font-bold text-primary">{t("brand")}</p>
-        <p className="mt-1 text-xs font-medium text-foreground/50">{t("subtitle")}</p>
+      <div className={cn("flex items-center gap-3 border-b border-border px-6 py-5", collapsed && "justify-center px-3")}>
+        <LogoMark className="h-9 w-9 shrink-0" />
+        {!collapsed && (
+          <div className="min-w-0">
+            <p className="truncate text-base font-bold text-foreground">{t("brand")}</p>
+            <p className="truncate text-xs font-medium text-foreground/50">{t("subtitle")}</p>
+          </div>
+        )}
       </div>
 
       <nav aria-label={t("landmark")} className="flex flex-1 flex-col gap-1 px-4 py-5">
@@ -80,13 +89,14 @@ export function TeacherSidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-border p-5">
+      <div className={cn("border-t border-border p-5", collapsed && "p-3")}>
         <Link
           href={`/${locale}/teacher/courses`}
+          title={collapsed ? t("createCourse") : undefined}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         >
           <span aria-hidden="true">+</span>
-          <span>{t("createCourse")}</span>
+          {!collapsed && <span>{t("createCourse")}</span>}
         </Link>
       </div>
     </div>

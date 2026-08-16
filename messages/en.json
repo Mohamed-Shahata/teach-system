@@ -6,8 +6,8 @@
     "comingSoon": "Coming soon"
   },
   "layout": {
-    "title": "Teacher's Private Platform",
-    "description": "A private educational platform: courses, lessons, students, enrollments, quizzes, and files."
+    "title": "Darsi",
+    "description": "Darsi is a private educational platform for courses, lessons, students, enrollments, quizzes, and files."
   },
   "locale": {
     "en": "English",
@@ -151,6 +151,21 @@
       "errors": {
         "save": "Could not save this schedule slot.",
         "delete": "Could not delete this schedule slot."
+      },
+      "meetingLink": {
+        "liveNow": "Live now",
+        "createLink": "Create link",
+        "editLink": "Edit link",
+        "sendToAll": "Send to all students",
+        "sentCount": "{count, plural, one {Sent to # student} other {Sent to # students}}",
+        "dialogTitle": "Meeting link",
+        "dialogDescription": "Add or update the Google Meet / Zoom link for this class.",
+        "urlLabel": "Meeting URL",
+        "save": "Save link",
+        "errors": {
+          "save": "Could not save the meeting link.",
+          "send": "Could not send the link to students."
+        }
       }
     },
     "courses": {
@@ -432,6 +447,33 @@
           "correctAnswerRequired": "Select at least one correct answer."
         }
       }
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Your account — profile picture, display name, and password.",
+      "profile": {
+        "title": "Profile",
+        "email": "Email",
+        "displayName": "Display name",
+        "save": "Save changes",
+        "success": "Your display name was updated."
+      },
+      "avatar": {
+        "title": "Profile picture",
+        "change": "Change picture",
+        "hint": "JPG or PNG, shown across your courses and profile."
+      },
+      "password": {
+        "title": "Password",
+        "description": "For security, password changes go through a one-time reset link, the same one your account got when it was created.",
+        "generate": "Generate reset link",
+        "linkReady": "Open this link to set a new password:"
+      },
+      "errors": {
+        "updateName": "Couldn't update your display name. Please try again.",
+        "updateAvatar": "Couldn't update your profile picture. Please try again.",
+        "resetLink": "Couldn't generate a reset link. Please try again."
+      }
     }
   },
   "studentDashboard": {
@@ -439,8 +481,10 @@
       "brand": "Student Hub",
       "subtitle": "Learning Portal",
       "landmark": "Student navigation",
-      "myCourses": "My courses"
+      "myCourses": "My courses",
+      "settings": "Settings"
     },
+    "topbarTitle": "Student Dashboard",
     "title": "My courses",
     "subtitle": "Your enrolled courses and how far along you are in each one.",
     "emptyTitle": "No courses yet",
@@ -452,6 +496,39 @@
       "active": "Active",
       "completed": "Completed",
       "cancelled": "Cancelled"
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Your account — profile picture, display name, and password.",
+      "profile": {
+        "title": "Profile",
+        "email": "Email",
+        "displayName": "Display name",
+        "save": "Save changes",
+        "success": "Your display name was updated."
+      },
+      "avatar": {
+        "title": "Profile picture",
+        "change": "Change picture",
+        "hint": "JPG or PNG, shown across your courses and profile."
+      },
+      "password": {
+        "title": "Password",
+        "description": "For security, password changes go through a one-time reset link, the same one your account got when it was created.",
+        "generate": "Generate reset link",
+        "linkReady": "Open this link to set a new password:"
+      },
+      "errors": {
+        "updateName": "Couldn't update your display name. Please try again.",
+        "updateAvatar": "Couldn't update your profile picture. Please try again.",
+        "resetLink": "Couldn't generate a reset link. Please try again."
+      }
+    },
+    "meetingNotifications": {
+      "title": "Live class links",
+      "new": "New",
+      "message": "Your teacher shared the meeting link for {subject}.",
+      "join": "Join"
     }
   },
   "studentQuiz": {
@@ -470,11 +547,17 @@
   "adminDashboard": {
     "nav": {
       "landmark": "Admin dashboard navigation",
-      "brand": "Admin Console",
-      "subtitle": "Center Management",
+      "brand": "Darsi",
+      "subtitle": "Admin Dashboard",
       "overview": "Overview",
-      "education": "Education Setup"
+      "analytics": "Analytics",
+      "education": "Education Setup",
+      "teachers": "Teachers",
+      "students": "Students",
+      "payments": "Payments",
+      "settings": "Settings"
     },
+    "topbarTitle": "Admin Dashboard",
     "education": {
       "edit": "Edit",
       "delete": "Delete",
@@ -534,7 +617,263 @@
           "nameAr": "Name (Arabic)"
         }
       }
+    },
+    "overviewSubtitle": "A system-wide snapshot of the center — every teacher, student, course, and enrollment.",
+    "stats": {
+      "teachers": "Teachers",
+      "students": "Students",
+      "courses": "Courses",
+      "publishedCourses": "Published Courses",
+      "lessons": "Lessons",
+      "enrollments": "Enrollments"
+    },
+    "teachers": {
+      "title": "Teachers",
+      "subtitle": "Every teacher account at the center, with their course, student, and enrollment counts.",
+      "searchPlaceholder": "Search by name or email",
+      "search": "Search",
+      "empty": "No teachers found.",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "status": "Status",
+        "courses": "Courses",
+        "students": "Students",
+        "enrollments": "Enrollments",
+        "permissions": "Permissions"
+      },
+      "status": {
+        "active": "Active",
+        "deactivated": "Deactivated"
+      },
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "cancel": "Cancel",
+      "activateConfirmTitle": "Reactivate this teacher?",
+      "activateConfirmDescription": "They'll be able to sign in again immediately.",
+      "deactivateConfirmTitle": "Deactivate this teacher?",
+      "deactivateConfirmDescription": "They won't be able to sign in until reactivated. Their courses and data stay intact.",
+      "errors": {
+        "list": "Couldn't load teachers. Please try again.",
+        "activate": "Couldn't reactivate this teacher. Please try again.",
+        "deactivate": "Couldn't deactivate this teacher. Please try again.",
+        "create": "Couldn't create the teacher, try again.",
+        "offerings": "Couldn't load/update pricing, try again.",
+        "permissions": "Couldn't update the permission. Please try again."
+      },
+      "create": "Create teacher",
+      "createTitle": "Create a new teacher account",
+      "createDescription": "A password-setup link will be sent to their email.",
+      "fields": {
+        "displayName": "Name",
+        "email": "Email",
+        "phone": "Phone number",
+        "subjects": "Subjects they teach"
+      },
+      "submit": "Create",
+      "offerings": "Pricing",
+      "offeringsTitle": "{name}'s monthly pricing",
+      "offeringsDescription": "A monthly price for each subject at each grade level.",
+      "addOffering": "Add price",
+      "offeringSubject": "Subject",
+      "offeringStage": "Grade level",
+      "offeringPrice": "Monthly price (EGP)",
+      "offeringsEmpty": "No prices added yet.",
+      "removeOffering": "Remove",
+      "permissions": {
+        "canCreateStudents": "Can create students",
+        "enable": "Enable",
+        "disable": "Disable",
+        "enableConfirmTitle": "Allow this teacher to create students?",
+        "enableConfirmDescription": "They'll be able to create new student accounts of their own again.",
+        "disableConfirmTitle": "Block this teacher from creating students?",
+        "disableConfirmDescription": "They won't be able to create new student accounts until re-enabled. Existing students are unaffected."
+      }
+    },
+    "students": {
+      "title": "Students",
+      "subtitle": "Every student account at the center, with their enrollment counts.",
+      "searchPlaceholder": "Search by name or email",
+      "search": "Search",
+      "empty": "No students found.",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "stage": "Stage",
+        "status": "Status",
+        "enrollments": "Enrollments",
+        "active": "Active"
+      },
+      "status": {
+        "active": "Active",
+        "deactivated": "Deactivated"
+      },
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "cancel": "Cancel",
+      "activateConfirmTitle": "Reactivate this student?",
+      "activateConfirmDescription": "They'll be able to sign in again immediately.",
+      "deactivateConfirmTitle": "Deactivate this student?",
+      "deactivateConfirmDescription": "They won't be able to sign in until reactivated. Their enrollments and data stay intact.",
+      "errors": {
+        "list": "Couldn't load students. Please try again.",
+        "activate": "Couldn't reactivate this student. Please try again.",
+        "deactivate": "Couldn't deactivate this student. Please try again.",
+        "create": "Couldn't create the student, try again.",
+        "subscriptions": "Couldn't load/update subscriptions, try again.",
+        "invoice": "Something went wrong generating the invoice."
+      },
+      "create": "Create student",
+      "createTitle": "Create a new student account",
+      "createDescription": "A password-setup link will be sent to their email.",
+      "fields": {
+        "displayName": "Name",
+        "email": "Email",
+        "phone": "Phone number",
+        "age": "Age",
+        "stage": "Grade level"
+      },
+      "submit": "Create",
+      "subscriptions": "Subscriptions",
+      "subscriptionsTitle": "{name}'s subscriptions",
+      "subscriptionsDescription": "Teachers this student is subscribed to, and each teacher's priced subjects for the student's grade.",
+      "subscribe": "Subscribe",
+      "unsubscribe": "Unsubscribe",
+      "subscriptionsEmpty": "This student isn't subscribed to any teacher yet.",
+      "noOfferingsForStage": "No teacher has priced this student's grade level yet.",
+      "generateInvoice": "Generate this month's invoice",
+      "invoiceGenerated": "Invoice generated",
+      "invoiceStatus": {
+        "pending": "Awaiting payment",
+        "confirmed": "Paid",
+        "rejected": "Rejected"
+      }
+    },
+    "analytics": {
+      "title": "Analytics",
+      "subtitle": "Revenue and growth across the whole center.",
+      "refresh": "Refresh",
+      "currency": "EGP",
+      "cards": {
+        "totalStudents": "Total students",
+        "totalTeachers": "Total teachers",
+        "activeSubscriptions": "Active subscriptions",
+        "totalRevenue": "Total confirmed revenue"
+      },
+      "charts": {
+        "revenue": "Monthly revenue",
+        "growth": "Subscription growth"
+      },
+      "pendingNote": "{count, plural, one {# invoice is still awaiting confirmation and isn't counted yet.} other {# invoices are still awaiting confirmation and aren't counted yet.}}",
+      "errors": {
+        "load": "Couldn't load analytics. Please try again."
+      }
+    },
+    "payments": {
+      "title": "Payments",
+      "subtitle": "Every payment across every teacher's courses, for support and dispute handling. Read-only — confirm/reject stays with the owning teacher.",
+      "empty": "No payments found.",
+      "columns": {
+        "student": "Student",
+        "course": "Course",
+        "teacher": "Teacher",
+        "method": "Method",
+        "amount": "Amount",
+        "status": "Status"
+      },
+      "filters": {
+        "all": "All statuses",
+        "status": "Filter by status"
+      },
+      "status": {
+        "pending": "Pending",
+        "succeeded": "Succeeded",
+        "confirmed": "Confirmed",
+        "rejected": "Rejected"
+      },
+      "methods": {
+        "card": "Card",
+        "fawry": "Fawry",
+        "vodafoneCash": "Vodafone Cash",
+        "bankTransfer": "Bank transfer",
+        "other": "Other"
+      },
+      "errors": {
+        "list": "Couldn't load payments. Please try again."
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Your own admin account — display name and password.",
+      "profile": {
+        "title": "Profile",
+        "email": "Email",
+        "displayName": "Display name",
+        "save": "Save changes",
+        "success": "Your display name was updated."
+      },
+      "password": {
+        "title": "Password",
+        "description": "For security, password changes go through a one-time reset link, the same one new accounts get.",
+        "generate": "Generate reset link",
+        "linkReady": "Open this link to set a new password:"
+      },
+      "errors": {
+        "updateName": "Couldn't update your display name. Please try again.",
+        "resetLink": "Couldn't generate a reset link. Please try again.",
+        "updateAvatar": "Couldn't update your profile picture. Please try again."
+      },
+      "avatar": {
+        "title": "Profile picture",
+        "change": "Change picture",
+        "hint": "JPG or PNG, shown across the admin dashboard."
+      }
     }
+  },
+  "landing": {
+    "metaTitle": "Darsi",
+    "metaDescription": "Darsi — manage courses, lessons, students, enrollments, quizzes, and files from a single trusted platform built for educators.",
+    "signIn": "Sign in",
+    "hero": {
+      "badge": "Private educational platform",
+      "title": "Teach, learn, and grow — all in one place",
+      "subtitle": "Manage courses, lessons, students, enrollments, quizzes, and files from a single trusted platform built for educators.",
+      "ctaPrimary": "Get started",
+      "ctaSecondary": "Explore features"
+    },
+    "features": {
+      "heading": "Everything you need to run your classes",
+      "subtitle": "A complete toolkit for teachers and students, designed for clarity and focus.",
+      "courses": {
+        "title": "Courses & lessons",
+        "description": "Organize your curriculum with structured courses, rich lesson content, and publish when you're ready."
+      },
+      "students": {
+        "title": "Students & enrollments",
+        "description": "Invite learners, track enrollments, and keep every class roster up to date."
+      },
+      "quizzes": {
+        "title": "Quizzes & assessments",
+        "description": "Create quizzes, collect attempts, and measure progress with built-in assessment tools."
+      },
+      "files": {
+        "title": "Files & resources",
+        "description": "Share materials securely with students through an integrated file manager."
+      }
+    },
+    "cta": {
+      "title": "Ready to get started?",
+      "subtitle": "Sign in to access your dashboard and continue where you left off.",
+      "button": "Sign in to your account"
+    },
+    "footer": {
+      "rights": "All rights reserved."
+    },
+    "nav": {
+      "home": "Home",
+      "features": "Features"
+    },
+    "dashboard": "Dashboard"
   },
   "publicPages": {
     "teacherProfile": {

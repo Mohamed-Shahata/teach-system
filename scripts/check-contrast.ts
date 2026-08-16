@@ -27,12 +27,12 @@ const light: ThemeTokens = {
 };
 
 const dark: ThemeTokens = {
-  background: "#0F1420",
-  foreground: "#E5E7EB",
-  surface: "#161B29",
-  "surface-muted": "#1E2433",
-  primary: "#5B84F5",
-  "primary-foreground": "#0B1020",
+  background: "#1B1C1E",
+  foreground: "#E8E9EA",
+  surface: "#232427",
+  "surface-muted": "#2B2C2F",
+  primary: "#A1A1AA",
+  "primary-foreground": "#1B1C1E",
   secondary: "#3FCBB8",
   "secondary-foreground": "#04211C",
   success: "#4ADE80",

@@ -17,6 +17,14 @@ const intlMiddleware = createIntlMiddleware({
  */
 const PROTECTED_SEGMENTS = new Set(["teacher", "student", "admin"]);
 
+/**
+ * Auth-only pages that make no sense for an already-signed-in visitor.
+ * If a valid session cookie is present, these bounce to the user's own
+ * dashboard instead of rendering (e.g. so `/login` never shows for a
+ * signed-in user who lands on it via a stale bookmark or back-button).
+ */
+const AUTH_ONLY_SEGMENTS = new Set(["login", "forgot-password", "reset-password"]);
+
 function splitLocaleAndPath(pathname: string): { locale: string; segments: string[] } {
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length > 0 && (locales as readonly string[]).includes(segments[0])) {
@@ -47,6 +55,10 @@ function splitLocaleAndPath(pathname: string): { locale: string; segments: strin
  *   each route/service.
  * - Attaches the resolved `uid`/`role` to the (locale-handled) response as
  *   headers, so downstream code can read them without re-verifying.
+ * - For auth-only pages (`login`, `forgot-password`, `reset-password`),
+ *   bounces an already-signed-in visitor to their own dashboard instead
+ *   of rendering the auth page. Only verifies when a session cookie is
+ *   actually present, so anonymous visits stay on the no-verify fast path.
  */
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -72,6 +84,19 @@ export default async function proxy(request: NextRequest) {
     response.headers.set("x-user-id", session.uid);
     response.headers.set("x-user-role", session.role);
     return response;
+  }
+
+  if (topSegment && AUTH_ONLY_SEGMENTS.has(topSegment)) {
+    const cookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+    // No cookie at all → definitely a visitor, not signed in. Skip the
+    // verify call entirely (avoids an Admin SDK round-trip on every
+    // anonymous hit to /login, mirroring the "no session" fast path).
+    if (cookie) {
+      const session = await verifySessionCookieValue(cookie);
+      if (session) {
+        return NextResponse.redirect(new URL(`/${locale}/${session.role}`, request.url));
+      }
+    }
   }
 
   return intlMiddleware(request);

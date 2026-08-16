@@ -9,6 +9,8 @@ export interface TeacherProfileDoc {
   bio?: string;
   avatarUrl?: string;
   isPublic: boolean;
+  /** ref into `subjects` — the single subject this teacher is assigned to teach (one specialization per teacher), set by an Admin at creation. */
+  subjectId?: string;
   stats?: TeacherProfileStats;
   createdAt: number;
 }
@@ -73,6 +75,24 @@ export const teacherProfileRepository = {
       ...(data.bio ? { bio: String(data.bio) } : {}),
       ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
       isPublic: Boolean(data.isPublic),
+      ...(typeof data.subjectId === "string" ? { subjectId: data.subjectId } : {}),
+      stats: normalizeStats(data.stats),
+      createdAt: Number(data.createdAt),
+    };
+  },
+
+  async findByTeacherId(teacherId: string): Promise<TeacherProfileDoc | null> {
+    const snap = await adminDb.collection(COLLECTION).doc(teacherId).get();
+    if (!snap.exists) return null;
+    const data = snap.data() ?? {};
+    return {
+      teacherId: snap.id,
+      slug: String(data.slug),
+      displayName: String(data.displayName),
+      ...(data.bio ? { bio: String(data.bio) } : {}),
+      ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
+      isPublic: Boolean(data.isPublic),
+      ...(typeof data.subjectId === "string" ? { subjectId: data.subjectId } : {}),
       stats: normalizeStats(data.stats),
       createdAt: Number(data.createdAt),
     };

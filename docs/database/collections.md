@@ -122,6 +122,7 @@ Purpose: a teacher's recurring weekly class slot for a subject/stage
 | dayOfWeek | number | yes | `0`–`6` |
 | startTime | string | yes | `"HH:mm"`, 24h |
 | durationMinutes | number | yes | |
+| meetingUrl | string | no | Google Meet / Zoom link for this slot's live session; set by the teacher around class time (Phase 6) |
 | label | map `{ en, ar }` | no | free-text note, e.g. "Revision session" |
 | createdAt / updatedAt | timestamp | yes | |
 
@@ -239,6 +240,35 @@ only by the server-side gateway webhook handler, never by client input.
 | url | string | yes | Cloudinary secure URL |
 | publicId | string | yes | Cloudinary public id (for deletion) |
 | createdAt | timestamp | yes | |
+
+## `notifications/{notificationId}`
+
+Purpose: fan-out of a schedule slot's meeting link to the matching
+students (Phase 6, TASK-1602) — one doc per recipient, so each student's
+read state is independent.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| studentId | string | yes | recipient |
+| teacherId | string | yes | sender, denormalized |
+| type | `"meeting_link"` | yes | extensible enum; only value in the MVP |
+| scheduleId | string | yes | ref into `schedule` |
+| subjectId | string | yes | denormalized from the schedule slot |
+| stageId | string | yes | denormalized from the schedule slot |
+| meetingUrl | string | yes | copied from `schedule.meetingUrl` at send time |
+| read | boolean | yes | default `false`, flips to `true` client-side |
+| createdAt | timestamp | yes | |
+
+Indexes: `(studentId, createdAt desc)`.
+
+Authorization: server-created only (`notificationService.sendMeetingLink`,
+via the Admin SDK) — never client-created. A student may read and mark
+read only their own notifications; an Admin may read any.
+
+Recipient rule (item 18 of Phase 6): a schedule slot's meeting link is
+sent to every student who (a) has an *active* enrollment with the slot's
+owning teacher (any course), and (b) has `users.stageId` exactly equal to
+the slot's `stageId` — not merely "one of this teacher's students".
 
 ## Relationship diagram
 

@@ -24,6 +24,16 @@ Only the owning teacher or Admin can create/edit/delete a schedule
 entry. Students and public visitors get read-only access, scoped to
 published/public teachers.
 
+## Live meeting link (Phase 6)
+A slot may carry an optional `meetingUrl` (Google Meet / Zoom). The
+owning teacher can add/edit it from the schedule row once the slot is
+"live" — from 15 minutes before `startTime` through the end of
+`durationMinutes` — and can then send it to every actively-enrolled
+student in *exactly* the slot's `stageId` (see `notifications` in
+`database/collections.md`). This is a one-off push per click, not a
+subscription — students who enroll after the link is sent don't get a
+retroactive notification.
+
 ## i18n / RTL
 Day-of-week labels and times must respect locale (Arabic day names) and
 be direction-agnostic (a Tue/Thu badge row uses `flex` with logical

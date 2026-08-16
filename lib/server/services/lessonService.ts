@@ -5,6 +5,7 @@ import { NotFoundError, ValidationError } from "@/lib/errors";
 import { lessonRepository } from "@/lib/server/repositories/lessonRepository";
 import { courseRepository } from "@/lib/server/repositories/courseRepository";
 import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
+import { systemStatsRepository } from "@/lib/server/repositories/systemStatsRepository";
 import { courseService } from "@/lib/server/services/courseService";
 import type { CreateLessonInput, UpdateLessonInput } from "@/lib/validation/lesson.schema";
 
@@ -51,6 +52,7 @@ export const lessonService = {
       updatedAt: now,
     });
     await teacherProfileRepository.incrementStats(course.teacherId, { totalLessons: 1 });
+    await systemStatsRepository.incrementStats({ totalPublishedLessons: 1 });
     return lesson;
   },
 
@@ -80,6 +82,7 @@ export const lessonService = {
       updatedAt: Date.now(),
     });
     await teacherProfileRepository.incrementStats(course.teacherId, { totalLessons: -1 });
+    await systemStatsRepository.incrementStats({ totalPublishedLessons: -1 });
   },
 
   /**

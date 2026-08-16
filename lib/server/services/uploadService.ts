@@ -16,7 +16,12 @@ import type { SignUploadInput } from "@/lib/validation/upload.schema";
  */
 export const uploadService = {
   async signUpload(session: Session, input: SignUploadInput): Promise<CloudinarySignature> {
-    assertRole(session, "teacher");
+    // `avatar` is the one self-service target open to every role
+    // (admin/teacher/student each get a profile picture); the
+    // course/lesson targets stay teacher-only, checked per-case below.
+    if (input.target !== "avatar") {
+      assertRole(session, "teacher");
+    }
 
     const folder = await resolveFolder(session, input);
     const timestamp = Math.floor(Date.now() / 1000);
@@ -25,9 +30,13 @@ export const uploadService = {
 };
 
 async function resolveFolder(session: Session, input: SignUploadInput): Promise<string> {
-  // A switch keeps this ready to extend (avatar, ...) in later phases
-  // without reshaping the function.
+  // A switch keeps this ready to extend without reshaping the function.
   switch (input.target) {
+    case "avatar": {
+      // Own-uid folder, keyed by role so cleanup/inspection mirrors the
+      // rest of docs/cloudinary/README.md's `{role}s/{uid}/...` layout.
+      return `${session.role}s/${session.uid}/avatar`;
+    }
     case "course-thumbnail": {
       if (input.courseId) {
         // Editing an existing course — ownership check via the same

@@ -5,6 +5,7 @@ import { NotFoundError } from "@/lib/errors";
 import { courseRepository } from "@/lib/server/repositories/courseRepository";
 import { enrollmentRepository, type EnrollmentDoc } from "@/lib/server/repositories/enrollmentRepository";
 import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
+import { systemStatsRepository } from "@/lib/server/repositories/systemStatsRepository";
 import type { EnrollmentStatus } from "@/lib/validation/enrollment.schema";
 
 /**
@@ -47,6 +48,7 @@ export const enrollmentService = {
         progress: { completedLessonIds: [], percent: 0 },
       });
       await teacherProfileRepository.incrementStats(params.teacherId, { totalEnrollments: 1 });
+      await systemStatsRepository.incrementStats({ totalEnrollments: 1 });
       return enrollment;
     } catch (err) {
       // Lost a race with a concurrent create for the same pair (e.g. a

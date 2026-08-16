@@ -18,6 +18,11 @@ vi.mock("@/lib/server/repositories/teacherProfileRepository", () => ({
   teacherProfileRepository: { incrementStats },
 }));
 
+const incrementSystemStats = vi.fn();
+vi.mock("@/lib/server/repositories/systemStatsRepository", () => ({
+  systemStatsRepository: { incrementStats: incrementSystemStats },
+}));
+
 vi.mock("@/lib/server/repositories/subjectRepository", () => ({
   subjectRepository: { findById: subjectFindById },
 }));

@@ -35,10 +35,15 @@ Status: Not Started | In Progress | Blocked | Done
 | 12 | Quiz / Exam System | Done |
 | 13 | File Management | Done |
 | 14 | Public Pages | Done |
+| 19 | Admin Dashboard & System Analytics | In Progress |
 | 15 | Security | Not Started |
 | 16 | Testing | Not Started |
 | 17 | Deployment | Not Started |
 | 18 | MVP Finalization | Not Started |
-| 19 | Admin Dashboard & System Analytics | Not Started |
+
+> Reordered: Phase 19 (Admin Dashboard) was pulled ahead of Phase 15
+> (Security) at the user's request. It has no hard dependency on the
+> phases after it, so this is safe; Security still lands before Testing
+> and Deployment as originally planned.
 
 Before starting any task, follow `development/ai-agent-workflow.md`.

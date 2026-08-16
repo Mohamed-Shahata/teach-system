@@ -28,15 +28,19 @@ The signing route (`/api/uploads/sign`) is the enforcement point for
 
 ```text
 {cloudName}/
+  admins/{uid}/avatar/
   teachers/{teacherId}/avatar/
   teachers/{teacherId}/courses/{courseId}/thumbnail/
   teachers/{teacherId}/courses/{courseId}/lessons/{lessonId}/video/
   teachers/{teacherId}/courses/{courseId}/lessons/{lessonId}/files/
+  students/{uid}/avatar/
 ```
 
-Folder paths always begin with the owning `teacherId`, which keeps
-owner media naturally isolated and makes bulk cleanup (e.g. on account
-deletion) a single folder-delete API call.
+Folder paths always begin with the owning `{role}s/{uid}` segment, which
+keeps owner media naturally isolated and makes bulk cleanup (e.g. on
+account deletion) a single folder-delete API call. `avatar` is the one
+upload target open to every role (TASK-1005) — course/lesson targets
+stay teacher-only.
 
 ## Image optimization
 

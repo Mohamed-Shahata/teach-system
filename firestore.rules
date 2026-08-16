@@ -128,5 +128,29 @@ service cloud.firestore {
       allow update, delete: if isOwner(resource.data.teacherId)
         && request.resource.data.teacherId == resource.data.teacherId;
     }
+
+    // ---------------------------------------------------------------
+    // notifications/{notificationId} — server-created only (Phase 6,
+    // TASK-1602). A student may read/mark-read their own; a teacher never
+    // reads another user's notification doc directly (they only trigger
+    // creation through the Admin SDK via notificationService).
+    // ---------------------------------------------------------------
+    match /notifications/{notificationId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.studentId);
+
+      // Always created server-side (Admin SDK bypasses rules) — no
+      // client-facing create path.
+      allow create: if false;
+
+      // A student may only flip their own notification to read=true;
+      // every other field is immutable from the client.
+      allow update: if (isAdmin() || (isSignedIn() && request.auth.uid == resource.data.studentId))
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.teacherId == resource.data.teacherId
+        && request.resource.data.scheduleId == resource.data.scheduleId
+        && request.resource.data.meetingUrl == resource.data.meetingUrl;
+
+      allow delete: if false;
+    }
   }
 }

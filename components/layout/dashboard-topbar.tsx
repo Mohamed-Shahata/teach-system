@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 export interface DashboardTopbarProps {
   displayName: string;
   onMenuClick: () => void;
+  /** Overrides the default ("Teacher Dashboard") title -- pass this from role-specific layouts (admin, student) so the topbar doesn't always say "Teacher". */
+  title?: string;
 }
 
 /**
@@ -16,12 +18,15 @@ export interface DashboardTopbarProps {
  * button only renders visibly on small screens (`lg:hidden`) — the
  * sidebar itself is always visible at `lg` and up, per
  * `docs/design-system/theming.md` breakpoint conventions.
+ *
+ * Background matches the page background (not `--color-surface`) so it
+ * blends into its parent instead of reading as a separate panel.
  */
-export function DashboardTopbar({ displayName, onMenuClick }: DashboardTopbarProps) {
+export function DashboardTopbar({ displayName, onMenuClick, title }: DashboardTopbarProps) {
   const t = useTranslations("teacherDashboard");
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/70 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
+    <header className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="flex min-h-16 items-center gap-3 px-4 sm:px-6">
         <Button
           type="button"
@@ -43,7 +48,7 @@ export function DashboardTopbar({ displayName, onMenuClick }: DashboardTopbarPro
         </Button>
 
         <span className="hidden min-w-44 text-xl font-bold text-primary md:inline">
-          {t("topbarTitle")}
+          {title ?? t("topbarTitle")}
         </span>
 
         <div className="hidden flex-1 items-center gap-3 md:flex">

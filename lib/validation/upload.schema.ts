@@ -6,7 +6,7 @@ import { z } from "zod";
  * the client never supplies a raw folder string. See
  * docs/cloudinary/README.md "Folder structure".
  */
-export const uploadTargetSchema = z.enum(["course-thumbnail", "lesson-file"]);
+export const uploadTargetSchema = z.enum(["course-thumbnail", "lesson-file", "avatar"]);
 export type UploadTarget = z.infer<typeof uploadTargetSchema>;
 
 export const signUploadSchema = z.object({

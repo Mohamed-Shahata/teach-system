@@ -27,6 +27,7 @@ export const scheduleService = {
       ...withoutUndefined({
         courseId: input.courseId,
         label: input.label,
+        meetingUrl: input.meetingUrl,
       }),
       dayOfWeek: input.dayOfWeek,
       startTime: input.startTime,

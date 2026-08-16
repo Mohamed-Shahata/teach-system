@@ -2,10 +2,12 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/session";
 import { assertRole } from "@/lib/auth/guards";
 import { enrollmentService } from "@/lib/server/services/enrollmentService";
+import { notificationService } from "@/lib/server/services/notificationService";
 import { courseRepository, type LocalizedText } from "@/lib/server/repositories/courseRepository";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
+import { MeetingNotifications } from "@/components/student/meeting-notifications";
 
 /**
  * TASK-1103 — the student's own courses, each with a progress bar built
@@ -34,6 +36,7 @@ export default async function StudentDashboardPage() {
 
   const enrollments = await enrollmentService.listMyEnrollments(session);
   const courses = await courseRepository.findByIds(enrollments.map((enrollment) => enrollment.courseId));
+  const notifications = await notificationService.listMyNotifications(session);
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,6 +44,8 @@ export default async function StudentDashboardPage() {
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">{t("title")}</h1>
         <p className="max-w-2xl text-sm leading-6 text-foreground/60">{t("subtitle")}</p>
       </div>
+
+      <MeetingNotifications initialNotifications={notifications} />
 
       {enrollments.length === 0 ? (
         <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />

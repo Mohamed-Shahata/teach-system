@@ -13,6 +13,8 @@ const scheduleBaseSchema = z.object({
   startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   durationMinutes: z.coerce.number().int().min(15).max(360),
   label: localizedTextSchema.optional(),
+  /** Google Meet / Zoom link for this recurring slot's live session (Phase 6, TASK-1601). */
+  meetingUrl: z.string().trim().url().max(500).optional(),
 });
 
 export const createScheduleSlotSchema = scheduleBaseSchema;

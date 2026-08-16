@@ -4,6 +4,7 @@ const createUser = vi.fn();
 const deleteUser = vi.fn();
 const generatePasswordResetLink = vi.fn();
 const createUserDoc = vi.fn();
+const findUserById = vi.fn();
 const createTeacherProfile = vi.fn();
 const findTeacherProfileBySlug = vi.fn();
 
@@ -13,7 +14,7 @@ vi.mock("@/lib/server/firebaseAdmin", () => ({
 }));
 
 vi.mock("@/lib/server/repositories/userRepository", () => ({
-  userRepository: { create: createUserDoc },
+  userRepository: { create: createUserDoc, findById: findUserById },
 }));
 
 vi.mock("@/lib/server/repositories/teacherProfileRepository", () => ({
@@ -27,8 +28,13 @@ vi.mock("@/lib/server/repositories/teacherProfileRepository", () => ({
   teacherProfileRepository: { create: createTeacherProfile, findBySlug: findTeacherProfileBySlug },
 }));
 
+const incrementSystemStats = vi.fn();
+vi.mock("@/lib/server/repositories/systemStatsRepository", () => ({
+  systemStatsRepository: { incrementStats: incrementSystemStats },
+}));
+
 const { accountService } = await import("./accountService");
-const { ForbiddenError, ConflictError } = await import("@/lib/errors");
+const { ForbiddenError, ConflictError, NotFoundError } = await import("@/lib/errors");
 
 function makeSession(role: "admin" | "teacher" | "student", uid = "uid-1") {
   return { uid, email: `${uid}@example.com`, role };
@@ -156,6 +162,7 @@ describe("accountService.createStudentByTeacher", () => {
     createUser.mockResolvedValue({ uid: "new-uid" });
     createUserDoc.mockResolvedValue(undefined);
     generatePasswordResetLink.mockResolvedValue("https://example.com/reset?oobCode=xyz");
+    findUserById.mockResolvedValue({ uid: "teacher-1", role: "teacher" });
   });
 
   it("creates a student account with createdBy = the acting teacher", async () => {
@@ -176,6 +183,47 @@ describe("accountService.createStudentByTeacher", () => {
     );
     expect(createTeacherProfile).not.toHaveBeenCalled();
     expect(result.role).toBe("student");
+  });
+
+  it("blocks a teacher whose canCreateStudents flag was turned off by the Admin", async () => {
+    findUserById.mockResolvedValue({ uid: "teacher-1", role: "teacher", canCreateStudents: false });
+    const session = makeSession("teacher", "teacher-1");
+
+    await expect(
+      accountService.createStudentByTeacher(session, {
+        email: "sara@example.com",
+        displayName: "Sara",
+        stageId: "stage-1",
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    expect(createUser).not.toHaveBeenCalled();
+  });
+
+  it("allows creation when canCreateStudents is undefined (default-allowed, pre-Phase-5 teachers)", async () => {
+    findUserById.mockResolvedValue({ uid: "teacher-1", role: "teacher" });
+    const session = makeSession("teacher", "teacher-1");
+
+    const result = await accountService.createStudentByTeacher(session, {
+      email: "sara@example.com",
+      displayName: "Sara",
+      stageId: "stage-1",
+    });
+
+    expect(result.role).toBe("student");
+  });
+
+  it("throws NotFoundError if the acting teacher's own user doc is missing", async () => {
+    findUserById.mockResolvedValue(null);
+    const session = makeSession("teacher", "teacher-1");
+
+    await expect(
+      accountService.createStudentByTeacher(session, {
+        email: "sara@example.com",
+        displayName: "Sara",
+        stageId: "stage-1",
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(createUser).not.toHaveBeenCalled();
   });
 
   it("rejects a non-teacher session", async () => {

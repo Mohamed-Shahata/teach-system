@@ -52,6 +52,7 @@ interface SeedAccount {
 }
 
 const RESET_PASSWORD = process.argv.includes("--reset-password");
+const RESET_DATA = process.argv.includes("--reset");
 
 function readRequiredEnv(name: string): string {
   const value = process.env[name];
@@ -180,9 +181,41 @@ async function main() {
   const teacher = ACCOUNTS.find((a) => a.role === "teacher")!;
   const student = ACCOUNTS.find((a) => a.role === "student")!;
 
+  if (RESET_DATA) {
+    console.log("--reset: wiping this script's previously-seeded accounts...");
+    for (const account of ACCOUNTS) {
+      try {
+        const user = await adminAuth.getUserByEmail(account.email);
+        await adminDb.collection("users").doc(user.uid).delete();
+        if (account.role === "teacher") {
+          await adminDb.collection("teacherProfiles").doc(user.uid).delete();
+        }
+        await adminAuth.deleteUser(user.uid);
+      } catch (err) {
+        const code = typeof err === "object" && err !== null && "code" in err ? (err as { code?: unknown }).code : undefined;
+        if (code !== "auth/user-not-found") throw err;
+      }
+    }
+    console.log("Wipe complete.\n");
+  }
+
   const adminUid = await seedAccount(admin, null);
   await seedAccount(teacher, adminUid);
   await seedAccount(student, adminUid);
+
+  // Recompute `systemStats/global` from actual counts — this script
+  // writes `users`/`teacherProfiles` docs directly and bypasses
+  // `accountService`'s `systemStatsRepository.incrementStats` calls, so
+  // without this the Admin dashboard would show zero teachers/students
+  // even after this script runs.
+  const [teachersCount, studentsCount] = await Promise.all([
+    adminDb.collection("users").where("role", "==", "teacher").count().get(),
+    adminDb.collection("users").where("role", "==", "student").count().get(),
+  ]);
+  await adminDb.collection("systemStats").doc("global").set(
+    { totalTeachers: teachersCount.data().count, totalStudents: studentsCount.data().count },
+    { merge: true },
+  );
 
   console.log("\nDone. Log in at /en/login (or /ar/login) with any account above.");
 }

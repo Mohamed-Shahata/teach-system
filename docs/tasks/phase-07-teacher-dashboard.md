@@ -93,3 +93,29 @@
 > the component level in this codebase) and the Admin "confirm on any
 > teacher's behalf" view mentioned in `features/payments.md`, which isn't
 > in scope for this task (no Admin dashboard yet — see Phase 19).
+
+## TASK-705: Teacher account settings
+
+- Description: Fills in the `teacher/settings` placeholder left by
+  TASK-701 (nav had to link somewhere real, not 404) with real
+  self-service settings — display name, password, and profile picture.
+- Dependencies: TASK-701, TASK-1005 (introduces the shared avatar upload
+  target and `users.avatarUrl`/`avatarPublicId` fields this reuses)
+- Affected modules: `lib/server/services/teacherSettingsService.ts`,
+  `app/api/teacher/settings/route.ts`,
+  `app/api/teacher/settings/password-reset-link/route.ts`,
+  `app/api/teacher/settings/avatar/route.ts`,
+  `components/teacher/teacher-settings-form.tsx`,
+  `app/[locale]/(protected)/teacher/settings/page.tsx`
+- Status: Done — `teacherSettingsService` mirrors `adminSettingsService`
+  (TASK-1907) exactly: `GET`/`PATCH` for the Teacher's own display name
+  (dual write: Firebase Auth + `users` doc), a `POST
+  .../password-reset-link` reusing `accountService`'s credential-delivery
+  mechanism (ADR 0005), and a `PATCH .../avatar` that persists a
+  Cloudinary upload already completed client-side and destroys the
+  previous asset (best-effort — a destroy failure is logged, not thrown).
+  Note: this is the Teacher's own account picture
+  (`users/{uid}.avatarUrl`), distinct from
+  `teacherProfiles/{teacherId}.avatarUrl` used on the public
+  `/teachers/[slug]` page — syncing that public profile is a separate,
+  not-yet-built feature.

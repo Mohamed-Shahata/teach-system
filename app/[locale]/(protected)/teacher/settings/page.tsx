@@ -1,17 +1,16 @@
-import { getTranslations } from "next-intl/server";
+import { requireSession } from "@/lib/auth/session";
+import { teacherSettingsService } from "@/lib/server/services/teacherSettingsService";
+import { TeacherSettingsForm } from "@/components/teacher/teacher-settings-form";
 
 /**
- * Placeholder route landed by TASK-701 (nav must link somewhere real,
- * not 404). Real teacher settings aren't scheduled in their own task yet
- * — see docs/tasks/README.md.
+ * TASK-705 — Teacher account settings (display name, password, profile
+ * picture). Replaces the `docs/tasks/README.md`-tracked placeholder from
+ * Phase 7; mirrors `student/settings/page.tsx` (TASK-1005) /
+ * `admin/settings/page.tsx` (TASK-1907).
  */
 export default async function TeacherSettingsPage() {
-  const t = await getTranslations();
+  const session = await requireSession();
+  const profile = await teacherSettingsService.getProfile(session);
 
-  return (
-    <div className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold text-foreground">{t("teacherDashboard.nav.settings")}</h1>
-      <p className="text-sm text-foreground/60">{t("common.comingSoon")}</p>
-    </div>
-  );
+  return <TeacherSettingsForm initialProfile={profile} />;
 }

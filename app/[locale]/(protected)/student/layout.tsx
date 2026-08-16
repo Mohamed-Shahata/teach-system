@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/session";
 import { userRepository } from "@/lib/server/repositories/userRepository";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
@@ -21,9 +22,10 @@ export default async function StudentLayout({ children, params }: LayoutProps<"/
 
   const user = await userRepository.findById(session.uid);
   const displayName = user?.displayName ?? session.email ?? "";
+  const t = await getTranslations("studentDashboard");
 
   return (
-    <DashboardShell sidebar={<StudentSidebar />} displayName={displayName}>
+    <DashboardShell sidebar={<StudentSidebar />} displayName={displayName} topbarTitle={t("topbarTitle")}>
       {children}
     </DashboardShell>
   );

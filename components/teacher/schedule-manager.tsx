@@ -2,8 +2,28 @@
 
 import * as React from "react";
 import { useFormatter, useTranslations } from "next-intl";
-import { Alert, Button, Card, CardContent, Input, Select } from "@/components/ui";
+import { Alert, Button, Card, CardContent, Dialog, Input, Select } from "@/components/ui";
 import type { ScheduleSlotDoc } from "@/lib/server/repositories/scheduleRepository";
+
+/**
+ * A slot is "live" (its meeting-link controls should show, TASK-1601 item
+ * 17) from `LIVE_WINDOW_BEFORE_MINUTES` before `startTime` through the end
+ * of `durationMinutes` — not just at the exact start second. Recomputed
+ * every `LIVE_CHECK_INTERVAL_MS` so the button appears/disappears live
+ * without a page refresh.
+ */
+const LIVE_WINDOW_BEFORE_MINUTES = 15;
+const LIVE_CHECK_INTERVAL_MS = 30_000;
+
+function isSlotLive(slot: ScheduleSlotDoc, now: Date): boolean {
+  if (now.getDay() !== slot.dayOfWeek) return false;
+  const [hours, minutes] = slot.startTime.split(":").map(Number);
+  const startMinutes = hours * 60 + minutes;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const windowStart = startMinutes - LIVE_WINDOW_BEFORE_MINUTES;
+  const windowEnd = startMinutes + slot.durationMinutes;
+  return nowMinutes >= windowStart && nowMinutes <= windowEnd;
+}
 
 interface ScheduleManagerProps {
   initialSlots: ScheduleSlotDoc[];
@@ -69,6 +89,20 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [pendingAction, setPendingAction] = React.useState<"save" | "delete" | null>(null);
 
+  // Meeting-link dialog + "send to all students" state (Phase 6, items 17-18).
+  const [now, setNow] = React.useState(() => new Date());
+  const [meetingSlotId, setMeetingSlotId] = React.useState<string | null>(null);
+  const [meetingUrlInput, setMeetingUrlInput] = React.useState("");
+  const [meetingError, setMeetingError] = React.useState<string | null>(null);
+  const [meetingPending, setMeetingPending] = React.useState(false);
+  const [notifyPendingId, setNotifyPendingId] = React.useState<string | null>(null);
+  const [notifyResult, setNotifyResult] = React.useState<{ slotId: string; sentCount: number } | null>(null);
+
+  React.useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), LIVE_CHECK_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const dayOptions = Array.from({ length: 7 }, (_, day) => ({
     value: String(day),
     label: format.dateTime(new Date(Date.UTC(2024, 0, day + 7)), { weekday: "long", timeZone: "UTC" }),
@@ -124,6 +158,51 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
     }
   }
 
+  function openMeetingDialog(slot: ScheduleSlotDoc) {
+    setMeetingSlotId(slot.id);
+    setMeetingUrlInput(slot.meetingUrl ?? "");
+    setMeetingError(null);
+    setNotifyResult(null);
+  }
+
+  async function saveMeetingUrl() {
+    if (!meetingSlotId) return;
+    setMeetingError(null);
+    setMeetingPending(true);
+    try {
+      const res = await fetch("/api/teacher/schedule", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: meetingSlotId, meetingUrl: meetingUrlInput }),
+      });
+      if (!res.ok) throw new Error("save");
+      await refresh();
+      setMeetingSlotId(null);
+    } catch {
+      setMeetingError(t("meetingLink.errors.save"));
+    } finally {
+      setMeetingPending(false);
+    }
+  }
+
+  async function sendToAllStudents(slot: ScheduleSlotDoc) {
+    setError(null);
+    setNotifyPendingId(slot.id);
+    setNotifyResult(null);
+    try {
+      const res = await fetch(`/api/teacher/schedule/${slot.id}/notify`, { method: "POST" });
+      if (!res.ok) throw new Error("notify");
+      const body = (await res.json()) as { sentCount: number };
+      setNotifyResult({ slotId: slot.id, sentCount: body.sentCount });
+    } catch {
+      setError(t("meetingLink.errors.send"));
+    } finally {
+      setNotifyPendingId(null);
+    }
+  }
+
+  const meetingSlot = slots.find((slot) => slot.id === meetingSlotId) ?? null;
+
   return (
     <section className="flex flex-col gap-4">
       {error && <Alert variant="error">{error}</Alert>}
@@ -153,30 +232,58 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
                 <span>{t("columns.stage")}</span>
                 <span className="text-end">{t("columns.actions")}</span>
               </div>
-              {slots.map((slot) => (
-                <div key={slot.id} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-3 px-3 py-3 text-sm">
-                  <span className="text-foreground">
-                    {dayOptions[slot.dayOfWeek]?.label} - {slot.startTime} -{" "}
-                    {t("duration", { count: slot.durationMinutes })}
-                  </span>
-                  <span className="text-foreground/70">{slot.subjectId}</span>
-                  <span className="text-foreground/70">{slot.stageId}</span>
-                  <span className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setForm(toFormState(slot))}>
-                      {t("edit")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      loading={pendingAction === "delete"}
-                      onClick={() => deleteSlot(slot.id)}
-                    >
-                      {t("delete")}
-                    </Button>
-                  </span>
-                </div>
-              ))}
+              {slots.map((slot) => {
+                const live = isSlotLive(slot, now);
+                return (
+                  <div key={slot.id} className="flex flex-col gap-2 border-b border-border/60 px-3 py-3 last:border-b-0">
+                    <div className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-3 text-sm">
+                      <span className="text-foreground">
+                        {dayOptions[slot.dayOfWeek]?.label} - {slot.startTime} -{" "}
+                        {t("duration", { count: slot.durationMinutes })}
+                      </span>
+                      <span className="text-foreground/70">{slot.subjectId}</span>
+                      <span className="text-foreground/70">{slot.stageId}</span>
+                      <span className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => setForm(toFormState(slot))}>
+                          {t("edit")}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          loading={pendingAction === "delete"}
+                          onClick={() => deleteSlot(slot.id)}
+                        >
+                          {t("delete")}
+                        </Button>
+                      </span>
+                    </div>
+                    {live && (
+                      <div className="flex flex-wrap items-center justify-end gap-2 rounded-md bg-surface-muted px-3 py-2">
+                        <span className="me-auto text-xs font-medium text-primary">{t("meetingLink.liveNow")}</span>
+                        <Button type="button" variant="outline" size="sm" onClick={() => openMeetingDialog(slot)}>
+                          {slot.meetingUrl ? t("meetingLink.editLink") : t("meetingLink.createLink")}
+                        </Button>
+                        {slot.meetingUrl && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            loading={notifyPendingId === slot.id}
+                            onClick={() => sendToAllStudents(slot)}
+                          >
+                            {t("meetingLink.sendToAll")}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    {notifyResult && notifyResult.slotId === slot.id && (
+                      <p className="text-end text-xs text-foreground/60">
+                        {t("meetingLink.sentCount", { count: notifyResult.sentCount })}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -258,6 +365,35 @@ export function ScheduleManager({ initialSlots }: ScheduleManagerProps) {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog
+        open={meetingSlot !== null}
+        onOpenChange={(open) => !open && setMeetingSlotId(null)}
+        title={t("meetingLink.dialogTitle")}
+        description={t("meetingLink.dialogDescription")}
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setMeetingSlotId(null)}>
+              {t("cancel")}
+            </Button>
+            <Button type="button" loading={meetingPending} onClick={saveMeetingUrl}>
+              {t("meetingLink.save")}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          {meetingError && <Alert variant="error">{meetingError}</Alert>}
+          <Input
+            label={t("meetingLink.urlLabel")}
+            type="url"
+            placeholder="https://meet.google.com/xxx-xxxx-xxx"
+            value={meetingUrlInput}
+            onChange={(event) => setMeetingUrlInput(event.target.value)}
+            required
+          />
+        </div>
+      </Dialog>
     </section>
   );
 }

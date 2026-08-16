@@ -74,3 +74,37 @@
 > `teacherDashboard.students.list` and `.detail` in both locales. No
 > component-level UI tests, same as every other teacher-dashboard
 > component in this codebase (Phase 16, Not Started).
+
+## TASK-1005: Student account settings + shared avatar upload
+
+- Description: The center had no self-service Student settings page at
+  all (unlike the Admin/Teacher, which at least had a placeholder or a
+  real page). Adds one, and — since every role gets a profile picture —
+  introduces a shared `target: "avatar"` upload path other settings
+  pages (TASK-705, TASK-1907) also use.
+- Dependencies: TASK-1000 (student accounts), TASK-604 (upload
+  signing/`uploadService`)
+- Affected modules: `lib/validation/upload.schema.ts` (new `"avatar"`
+  target), `lib/validation/account.schema.ts` (`updateAvatarSchema`),
+  `lib/server/repositories/userRepository.ts` (`avatarUrl`/
+  `avatarPublicId` fields + `updateAvatar`), `lib/server/services/
+  uploadService.ts` (avatar target open to every role, not just
+  teacher), `lib/server/services/studentSettingsService.ts`,
+  `app/api/student/settings/route.ts`,
+  `app/api/student/settings/password-reset-link/route.ts`,
+  `app/api/student/settings/avatar/route.ts`,
+  `components/student/student-settings-form.tsx`,
+  `app/[locale]/(protected)/student/settings/page.tsx`,
+  `components/layout/student-sidebar.tsx` (new "Settings" nav item).
+- Status: Done — `studentSettingsService` mirrors `adminSettingsService`
+  (TASK-1907): display name (dual write), password (one-time reset link,
+  ADR 0005), and avatar (persists a client-completed Cloudinary upload,
+  destroys the previous asset best-effort). The avatar upload itself
+  reuses the existing signed-upload flow end to end
+  (`lib/client/upload.ts`'s `uploadImage`, `POST /api/uploads/sign`) —
+  `uploadService.signUpload` now only requires `role === "teacher"` for
+  the course/lesson targets, not for `avatar`, and folders it into
+  `{role}s/{uid}/avatar` so cleanup mirrors the existing
+  `docs/cloudinary/README.md` folder layout. No Firestore rules change
+  needed — `users/{uid}` self-update was already permitted for any field
+  except `role`/`createdBy`.

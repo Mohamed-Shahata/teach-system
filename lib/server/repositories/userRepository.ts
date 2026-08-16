@@ -16,6 +16,30 @@ export interface UserDoc {
   createdBy: { uid: string; role: "admin" | "teacher" };
   /** ref into `educationStages` — required for students, optional otherwise. */
   stageId?: string;
+  /** Contact number — used for manual-payment matching and general contact. */
+  phone?: string;
+  /** Student's age in years, if the admin/teacher recorded it at creation. */
+  age?: number;
+  /**
+   * Mirrors the Firebase Auth account's `disabled` flag (TASK-1903/1904's
+   * deactivate action). Kept here too — not just on the Auth user — so
+   * admin list/detail views can render status without an extra
+   * `adminAuth.getUser` round trip per row.
+   */
+  disabled?: boolean;
+  /**
+   * Teacher-only permission flag (Phase 5): whether this teacher may
+   * create their own student accounts via `POST /api/teacher/students`
+   * (`accountService.createStudentByTeacher`). Admin-toggleable per
+   * teacher; absent/`undefined` is treated as `true` (every teacher can
+   * create students by default, matching pre-Phase-5 behavior) so
+   * existing teacher docs don't need a migration.
+   */
+  canCreateStudents?: boolean;
+  /** Cloudinary delivery URL for the user's profile picture, if set (any role). */
+  avatarUrl?: string;
+  /** Cloudinary `public_id` backing `avatarUrl` — needed to destroy the old asset when it's replaced. */
+  avatarPublicId?: string;
   createdAt: number;
 }
 
@@ -56,5 +80,58 @@ export const userRepository = {
     // `create()` (not `set()`) so this fails if the document already
     // exists, instead of silently overwriting a prior registration.
     await adminDb.collection(COLLECTION).doc(user.uid).create(user);
+  },
+
+  /**
+   * All users of a given role — TASK-1903/1904's center-wide Teacher/
+   * Student management lists. `search` does a client-side substring match
+   * on `displayName`/`email` (Firestore has no native contains query, and
+   * the center's user count doesn't justify a search index for the MVP).
+   */
+  async listByRole(role: UserRole, search?: string): Promise<UserDoc[]> {
+    const snap = await adminDb.collection(COLLECTION).where("role", "==", role).get();
+    let users = snap.docs.map((doc) => doc.data() as UserDoc);
+    if (search) {
+      const needle = search.trim().toLowerCase();
+      if (needle) {
+        users = users.filter(
+          (user) =>
+            user.displayName.toLowerCase().includes(needle) || user.email.toLowerCase().includes(needle),
+        );
+      }
+    }
+    return users.sort((a, b) => a.displayName.localeCompare(b.displayName));
+  },
+
+  /** Mirrors a Firebase Auth `disabled` flag change onto the `users` doc. */
+  async setDisabled(uid: string, disabled: boolean): Promise<void> {
+    await adminDb.collection(COLLECTION).doc(uid).update({ disabled });
+  },
+
+  /** Admin-set teacher permission flag — see `UserDoc.canCreateStudents`. */
+  async setCanCreateStudents(uid: string, canCreateStudents: boolean): Promise<void> {
+    await adminDb.collection(COLLECTION).doc(uid).update({ canCreateStudents });
+  },
+
+  /**
+   * Updates a user's own `displayName` — TASK-1907's Admin account
+   * settings (and reusable by any future self-service profile edit).
+   * Callers are responsible for also updating the Firebase Auth
+   * account's `displayName` (`adminAuth.updateUser`) so the two stay in
+   * sync, the same dual-write pattern `setDisabled` uses.
+   */
+  async updateDisplayName(uid: string, displayName: string): Promise<void> {
+    await adminDb.collection(COLLECTION).doc(uid).update({ displayName });
+  },
+
+  /**
+   * Updates a user's own profile picture (any role — TASK-1005's student
+   * settings, reusable for the equivalent teacher/admin settings later).
+   * Callers are responsible for destroying the previous `avatarPublicId`
+   * on Cloudinary first if one existed, same compound-operation ordering
+   * as course thumbnail/file replacement (`security/error-handling.md`).
+   */
+  async updateAvatar(uid: string, avatarUrl: string, avatarPublicId: string): Promise<void> {
+    await adminDb.collection(COLLECTION).doc(uid).update({ avatarUrl, avatarPublicId });
   },
 };
