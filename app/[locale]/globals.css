@@ -43,26 +43,6 @@
   --color-info: #6d9bff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-background: #16181c;
-    --color-foreground: #e4e6eb;
-    --color-surface: #1e2126;
-    --color-surface-muted: #262a31;
-    --color-border: #333841;
-    --color-input: #262a31;
-    --color-primary: #6d9bff;
-    --color-primary-foreground: #0e1420;
-    --color-secondary: #2dd4bf;
-    --color-secondary-foreground: #05231f;
-    --color-accent: #232a3a;
-    --color-success: #4ade80;
-    --color-warning: #fbbf24;
-    --color-error: #f87171;
-    --color-info: #6d9bff;
-  }
-}
-
 @theme inline {
   --color-background: var(--color-background);
   --color-foreground: var(--color-foreground);
@@ -122,12 +102,6 @@ label[for] {
   filter: brightness(0.7);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .empty-schedule-illustration {
-    filter: brightness(0.7);
-  }
-}
-
 /*
  * Fonts per docs/design-system/typography.md.
  * Self-hosted via @fontsource (npm packages bundled at build time — no
@@ -153,6 +127,17 @@ label[for] {
 
 body {
   font-family: var(--font-sans);
+}
+
+/* Smooth in-page scrolling for the landing page's section nav links. */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /*

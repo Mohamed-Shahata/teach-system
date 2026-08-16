@@ -4,6 +4,8 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { useTranslations } from "next-intl";
+import { LogOut } from "lucide-react";
+
 import { clientAuth } from "@/lib/client/firebaseClient";
 import { Button, type ButtonProps } from "@/components/ui/button";
 
@@ -14,13 +16,11 @@ export function LogoutButton(props: Omit<ButtonProps, "onClick" | "loading">) {
 
   const handleLogout = async () => {
     setIsPending(true);
+
     try {
-      // Clear the server session (revokes refresh tokens) first, then the
-      // client SDK's local state — if the network call fails we don't
-      // want the UI to look signed-out while the session cookie is still
-      // valid server-side.
       await fetch("/api/auth/logout", { method: "POST" });
       await signOut(clientAuth);
+
       router.push("/login");
       router.refresh();
     } finally {
@@ -29,7 +29,32 @@ export function LogoutButton(props: Omit<ButtonProps, "onClick" | "loading">) {
   };
 
   return (
-    <Button variant="destructive" {...props} loading={isPending} onClick={handleLogout}>
+    <Button
+      {...props}
+      variant="ghost"
+      size="sm"
+      loading={isPending}
+      onClick={handleLogout}
+      startIcon={<LogOut className="h-4 w-4" />}
+      className="
+  h-10
+  rounded-xl
+  border border-border/60
+  bg-background/40
+  px-3.5
+  text-error
+  shadow-sm
+  backdrop-blur-sm
+  transition-all duration-200
+
+  hover:border-error/30
+  hover:bg-error/10
+  hover:shadow-md
+  hover:shadow-error/5
+
+  active:scale-[0.97]
+"
+    >
       {t("label")}
     </Button>
   );

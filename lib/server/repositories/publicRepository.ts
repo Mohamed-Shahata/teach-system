@@ -124,4 +124,24 @@ export const publicRepository = {
     const first = snap.docs[0];
     return first ? toPublicCourse(first.id, first.data()) : null;
   },
+
+  /** Lists published courses across all teachers (public fields only), for the landing page's public catalog section. Order is not guaranteed — callers sort/slice as needed. */
+  async listPublishedCourses(limitCount: number): Promise<PublicCourse[]> {
+    const snap = await adminDb
+      .collection(COURSES)
+      .where("status", "==", "published")
+      .limit(limitCount)
+      .get();
+    return snap.docs.map((doc) => toPublicCourse(doc.id, doc.data()));
+  },
+
+  /** Lists teacher profiles with `isPublic == true` (public fields only), for the landing page's public teacher directory. */
+  async listPublicTeacherProfiles(limitCount: number): Promise<PublicTeacherProfile[]> {
+    const snap = await adminDb
+      .collection(TEACHER_PROFILES)
+      .where("isPublic", "==", true)
+      .limit(limitCount)
+      .get();
+    return snap.docs.map((doc) => toPublicTeacherProfile(doc.id, doc.data()));
+  },
 };

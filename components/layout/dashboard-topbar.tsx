@@ -38,12 +38,18 @@ export interface DashboardTopbarProps {
  * Background matches the page background (not `--color-surface`) so it
  * blends into its parent instead of reading as a separate panel.
  */
-export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl, unreadCount }: DashboardTopbarProps) {
+export function DashboardTopbar({
+  displayName,
+  onMenuClick,
+  title,
+  avatarUrl,
+  unreadCount,
+}: DashboardTopbarProps) {
   const t = useTranslations("teacherDashboard");
   const settingsHref = useSettingsHref();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
       <div className="flex min-h-16 items-center gap-3 px-4 sm:px-6">
         <Button
           type="button"
@@ -70,7 +76,11 @@ export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl, un
 
         <div className="hidden flex-1 items-center gap-3 md:flex">
           <label className="flex max-w-md flex-1 items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm text-foreground/60 focus-within:ring-2 focus-within:ring-primary">
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4 shrink-0"
+            >
               <path
                 d="M10.5 4.5a6 6 0 1 1 3.9 10.57l4.26 4.26-1.06 1.06-4.26-4.26A6 6 0 0 1 10.5 4.5Z"
                 fill="currentColor"
@@ -83,7 +93,9 @@ export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl, un
               className="w-full truncate bg-transparent text-foreground outline-none placeholder:text-foreground/60"
             />
           </label>
-          <span className="text-sm text-foreground/60">{t("greeting", { name: displayName })}</span>
+          <span className="text-sm text-foreground/60">
+            {t("greeting", { name: displayName })}
+          </span>
         </div>
 
         <div className="ms-auto flex items-center gap-2">
@@ -101,13 +113,16 @@ export function DashboardTopbar({ displayName, onMenuClick, title, avatarUrl, un
                 />
               </svg>
               {unreadCount > 0 && (
-                <span className="absolute -end-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-error px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                <span className="absolute -inset-e-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-error px-1 text-[10px] font-semibold leading-none text-primary-foreground">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </span>
           )}
-          <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
+          <span
+            className="mx-1 hidden h-6 w-px bg-border sm:block"
+            aria-hidden="true"
+          />
           <Link
             href={settingsHref}
             aria-label={t("nav.settings")}

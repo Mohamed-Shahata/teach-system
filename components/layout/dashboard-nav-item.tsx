@@ -36,19 +36,22 @@ export function DashboardNavItem({ href, label, icon }: DashboardNavItemProps) {
         collapsed && "justify-center px-0",
         isActive
           ? "bg-primary/8 text-primary"
-          : "text-foreground/70 hover:bg-surface-muted hover:text-foreground"
+          : "text-foreground/70 hover:bg-surface-muted hover:text-foreground",
       )}
     >
       {isActive && (
         <span
           className={cn(
-            "absolute inset-y-2 start-0 w-0.5 rounded-full bg-primary",
-            collapsed && "hidden"
+            "absolute inset-y-2 inset-s-0 w-0.5 rounded-full bg-primary",
+            collapsed && "hidden",
           )}
           aria-hidden="true"
         />
       )}
-      <span className="grid h-5 w-5 shrink-0 place-items-center text-current" aria-hidden="true">
+      <span
+        className="grid h-5 w-5 shrink-0 place-items-center text-current"
+        aria-hidden="true"
+      >
         {icon}
       </span>
       <span className={cn("truncate", collapsed && "hidden")}>{label}</span>

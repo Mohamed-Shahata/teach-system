@@ -7,8 +7,8 @@
     "actions": "Actions"
   },
   "layout": {
-    "title": "Darsi",
-    "description": "Darsi is a private educational platform for courses, lessons, students, enrollments, quizzes, and files."
+    "title": "Drosi",
+    "description": "Drosi is a private educational platform for courses, lessons, students, enrollments, quizzes, and files."
   },
   "locale": {
     "en": "English",
@@ -636,7 +636,7 @@
   "adminDashboard": {
     "nav": {
       "landmark": "Admin dashboard navigation",
-      "brand": "Darsi",
+      "brand": "Drosi",
       "subtitle": "Admin Dashboard",
       "overview": "Overview",
       "analytics": "Analytics",
@@ -956,8 +956,8 @@
     }
   },
   "landing": {
-    "metaTitle": "Darsi",
-    "metaDescription": "Darsi — manage courses, lessons, students, enrollments, quizzes, and files from a single trusted platform built for educators.",
+    "metaTitle": "Drosi",
+    "metaDescription": "Drosi — manage courses, lessons, students, enrollments, quizzes, and files from a single trusted platform built for educators.",
     "signIn": "Sign in",
     "hero": {
       "badge": "Private educational platform",
@@ -996,9 +996,110 @@
     },
     "nav": {
       "home": "Home",
-      "features": "Features"
+      "features": "Features",
+      "showcase": "Dashboard",
+      "howItWorks": "How it works",
+      "courses": "Courses",
+      "teachers": "Teachers",
+      "testimonials": "Testimonials",
+      "faq": "FAQ"
     },
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "stats": {
+      "heading": "Numbers that speak for themselves",
+      "students": {
+        "value": "3,200+",
+        "label": "active students"
+      },
+      "teachers": {
+        "value": "180+",
+        "label": "teachers"
+      },
+      "courses": {
+        "value": "540+",
+        "label": "published courses"
+      },
+      "satisfaction": {
+        "value": "98%",
+        "label": "satisfaction rate"
+      }
+    },
+    "howItWorks": {
+      "heading": "Get started in 3 simple steps",
+      "subtitle": "From creating an account to your first lesson, the whole journey is fast and clear.",
+      "step1": {
+        "title": "Create your account",
+        "description": "Fill in your basic details and choose your role as a teacher or center admin in under two minutes."
+      },
+      "step2": {
+        "title": "Set up your courses",
+        "description": "Add lessons, files, and quizzes, and organize them the way that fits your students best."
+      },
+      "step3": {
+        "title": "Invite your students",
+        "description": "Share your invite link and track enrollments, attendance, and progress as they happen."
+      }
+    },
+    "testimonials": {
+      "heading": "Teachers and students trust Drosi",
+      "subtitle": "Real experiences from educational centers using the platform every day.",
+      "items": [
+        {
+          "quote": "From the first week, we saved a huge amount of time tracking enrollments and grades instead of paper and spreadsheets.",
+          "name": "Mariam Hassan",
+          "role": "Educational center director"
+        },
+        {
+          "quote": "A simple, fast interface — my students find everything they need, lessons and files, in one place.",
+          "name": "Kareem Abdallah",
+          "role": "Math teacher"
+        },
+        {
+          "quote": "Online quizzes made things so much easier — I can now track every student's level accurately and quickly.",
+          "name": "Sara Youssef",
+          "role": "English teacher"
+        }
+      ]
+    },
+    "showcase": {
+      "badge": "One dashboard",
+      "heading": "Every detail of your educational center, in one place",
+      "subtitle": "From attendance and grades to payments and schedules, everything is organized and easy to reach.",
+      "point1": "A complete dashboard for every role",
+      "point2": "Real-time reports and analytics on student performance",
+      "point3": "Instant notifications for every important event"
+    },
+    "faq": {
+      "heading": "Frequently asked questions",
+      "subtitle": "Can't find your answer? Reach out and we'll help.",
+      "items": [
+        {
+          "question": "Is the platform suitable for small and large centers?",
+          "answer": "Yes, Drosi is designed to scale with you, from a single teacher to a center with dozens of teachers and thousands of students."
+        },
+        {
+          "question": "Is my students' data and files secure?",
+          "answer": "All data is encrypted and protected with precise role-based permissions, visible only to those authorized."
+        },
+        {
+          "question": "Can I use the platform from my phone?",
+          "answer": "Absolutely, Drosi runs smoothly in the browser on any mobile device, tablet, or computer."
+        }
+      ]
+    },
+    "publicCourses": {
+      "heading": "Explore public courses",
+      "subtitle": "A sample of courses teachers have published and made public on Drosi.",
+      "byTeacher": "By {name}",
+      "viewCourse": "View course",
+      "empty": "No public courses yet — be the first to publish one."
+    },
+    "publicTeachers": {
+      "heading": "Meet our teachers",
+      "subtitle": "Public profiles of teachers building their courses on Drosi.",
+      "viewProfile": "View profile",
+      "empty": "No public teacher profiles yet."
+    }
   },
   "publicPages": {
     "teacherProfile": {

@@ -54,4 +54,14 @@ export const publicService = {
     const teacher = await publicRepository.findTeacherProfile(course.teacherId);
     return { course, teacher };
   },
+
+  /** Landing page "public courses" section — a bounded sample of published courses from any teacher. */
+  async listShowcaseCourses(limitCount = 6): Promise<PublicCourse[]> {
+    return publicRepository.listPublishedCourses(limitCount);
+  },
+
+  /** Landing page "public teachers" section — a bounded sample of teachers who opted their profile public. */
+  async listShowcaseTeachers(limitCount = 6): Promise<PublicTeacherProfile[]> {
+    return publicRepository.listPublicTeacherProfiles(limitCount);
+  },
 };
