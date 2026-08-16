@@ -28,7 +28,9 @@ function Icon({ path }: { path: string }) {
  * Teachers/Students/Payments/Settings land as `common.comingSoon`
  * placeholders here until their own tasks (TASK-1903, TASK-1904,
  * TASK-1906, TASK-1907) are picked up, same pattern as the old
- * `teacher/exams` placeholder before Phase 12 landed.
+ * `teacher/exams` placeholder before Phase 12 landed. "Courses"
+ * (TASK-2401) added after the fact — a read-only, center-wide view, not
+ * one of the original six sections.
  */
 const NAV_ITEMS = [
   {
@@ -46,6 +48,13 @@ const NAV_ITEMS = [
     labelKey: "teachers",
     icon: (
       <Icon path="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 20c0-3.5 3.6-6 8-6s8 2.5 8 6" />
+    ),
+  },
+  {
+    segment: "courses",
+    labelKey: "courses",
+    icon: (
+      <Icon path="M12 6.5c-1.5-1-4-1.5-6-1.2v12.5c2 -.3 4.5.2 6 1.2 1.5-1 4-1.5 6-1.2V5.3c-2-.3-4.5.2-6 1.2zM12 6.5v12" />
     ),
   },
   {

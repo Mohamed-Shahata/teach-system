@@ -67,6 +67,22 @@ export const quizRepository = {
     return snap.docs.map((doc) => toQuizDoc(doc.id, doc.data())).sort((a, b) => a.createdAt - b.createdAt);
   },
 
+  /**
+   * TASK-2105 — every quiz owned by a teacher, standalone (course-less)
+   * exams only, for the `teacher/exams` builder list. Queries `teacherId
+   * ==` only (same one-field-query idiom as `listByCourse`/`listByStage`)
+   * and filters out course-attached quizzes in JS, since a single
+   * teacher can own both kinds and Firestore can't combine an equality
+   * filter with a "field is absent" filter in one query.
+   */
+  async listByTeacher(teacherId: string): Promise<QuizDoc[]> {
+    const snap = await adminDb.collection(COLLECTION).where("teacherId", "==", teacherId).get();
+    return snap.docs
+      .map((doc) => toQuizDoc(doc.id, doc.data()))
+      .filter((quiz) => !quiz.courseId)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  },
+
   /** Every quiz targeting an education stage — standalone exams only (`courseId`-bearing quizzes never set `stageId`); `quizService.listExamsForStudent` (TASK-2104) filters to published + open in JS, same "filter/sort after the query" idiom as `listByCourse`. */
   async listByStage(stageId: string): Promise<QuizDoc[]> {
     const snap = await adminDb.collection(COLLECTION).where("stageId", "==", stageId).get();

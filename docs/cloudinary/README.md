@@ -82,6 +82,7 @@ Vercel env vars — never in the repo (see TASK-104).
 - Upload presets, if used, are restricted (not "unsigned").
 
 ## Lesson video upload (Phase 22)
-The `.../lessons/{lessonId}/video/` folder above is already reserved,
-but the lesson form doesn't yet drive an actual upload through it — see
+The `.../lessons/{lessonId}/video/` folder above is signed via the
+`lesson-video` upload target (TASK-2201) and driven end-to-end by the
+lesson form's upload dropzone (TASK-2202/2203) — see
 `docs/tasks/phase-22-lesson-video-upload.md`.

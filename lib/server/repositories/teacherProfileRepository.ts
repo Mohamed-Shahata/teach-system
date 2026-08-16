@@ -9,8 +9,8 @@ export interface TeacherProfileDoc {
   bio?: string;
   avatarUrl?: string;
   isPublic: boolean;
-  /** ref into `subjects` — the single subject this teacher is assigned to teach (one specialization per teacher), set by an Admin at creation. */
-  subjectId?: string;
+  /** refs into `subjects` — the subject(s) this teacher is assigned to teach, set by an Admin at creation or later edited (TASK-2402; previously a single `subjectId`). */
+  subjectIds?: string[];
   stats?: TeacherProfileStats;
   createdAt: number;
 }
@@ -32,6 +32,16 @@ export const EMPTY_TEACHER_PROFILE_STATS: TeacherProfileStats = {
 };
 
 const COLLECTION = "teacherProfiles";
+
+/** Reads `subjectIds` defensively — old docs may still carry a single legacy `subjectId` string field. */
+function normalizeSubjectIds(data: Record<string, unknown>): string[] | undefined {
+  if (Array.isArray(data.subjectIds)) {
+    const ids = data.subjectIds.filter((id): id is string => typeof id === "string");
+    return ids.length > 0 ? ids : undefined;
+  }
+  if (typeof data.subjectId === "string") return [data.subjectId];
+  return undefined;
+}
 
 function readNumber(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -75,7 +85,7 @@ export const teacherProfileRepository = {
       ...(data.bio ? { bio: String(data.bio) } : {}),
       ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
       isPublic: Boolean(data.isPublic),
-      ...(typeof data.subjectId === "string" ? { subjectId: data.subjectId } : {}),
+      ...(normalizeSubjectIds(data) ? { subjectIds: normalizeSubjectIds(data) } : {}),
       stats: normalizeStats(data.stats),
       createdAt: Number(data.createdAt),
     };
@@ -92,10 +102,44 @@ export const teacherProfileRepository = {
       ...(data.bio ? { bio: String(data.bio) } : {}),
       ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
       isPublic: Boolean(data.isPublic),
-      ...(typeof data.subjectId === "string" ? { subjectId: data.subjectId } : {}),
+      ...(normalizeSubjectIds(data) ? { subjectIds: normalizeSubjectIds(data) } : {}),
       stats: normalizeStats(data.stats),
       createdAt: Number(data.createdAt),
     };
+  },
+
+  /**
+   * Bulk lookup for joining a set of teacherIds to their profiles (TASK-2301
+   * — a student's "my teachers" list, joining `enrollments.teacherId` to
+   * name/subject/slug). Mirrors `userRepository.findByIds`'s chunked `in`
+   * query and "missing ids are simply absent" behavior — doc id is the
+   * teacherId itself, same as `findByTeacherId`.
+   */
+  async findByIds(teacherIds: string[]): Promise<Map<string, TeacherProfileDoc>> {
+    const unique = Array.from(new Set(teacherIds));
+    const result = new Map<string, TeacherProfileDoc>();
+    const CHUNK = 30;
+
+    for (let i = 0; i < unique.length; i += CHUNK) {
+      const chunk = unique.slice(i, i + CHUNK);
+      if (chunk.length === 0) continue;
+      const snap = await adminDb.collection(COLLECTION).where("__name__", "in", chunk).get();
+      for (const doc of snap.docs) {
+        const data = doc.data();
+        result.set(doc.id, {
+          teacherId: doc.id,
+          slug: String(data.slug),
+          displayName: String(data.displayName),
+          ...(data.bio ? { bio: String(data.bio) } : {}),
+          ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
+          isPublic: Boolean(data.isPublic),
+          ...(normalizeSubjectIds(data) ? { subjectIds: normalizeSubjectIds(data) } : {}),
+          stats: normalizeStats(data.stats),
+          createdAt: Number(data.createdAt),
+        });
+      }
+    }
+    return result;
   },
 
   /**
@@ -104,7 +148,7 @@ export const teacherProfileRepository = {
    * behavior. `displayName` is duplicated onto `teacherProfiles` (it's
    * also on `users`) since the public teacher page reads it from here.
    */
-  async updateProfileFields(teacherId: string, fields: Partial<Pick<TeacherProfileDoc, "displayName" | "subjectId">>): Promise<void> {
+  async updateProfileFields(teacherId: string, fields: Partial<Pick<TeacherProfileDoc, "displayName" | "subjectIds">>): Promise<void> {
     const data: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) data[key] = value;

@@ -13,8 +13,8 @@ import { CourseManager } from "@/components/teacher/course-manager";
  * `subjects`/`educationStages` lookup collections (TASK-1905) rather
  * than free text, so a course can only ever reference a real subject
  * and stage. The subject list is further narrowed to the teacher's own
- * assigned subject (`teacherProfiles.subjectId`, set by an Admin) --
- * a teacher only teaches one subject unless an Admin grants more.
+ * assigned subject(s) (`teacherProfiles.subjectIds`, set by an Admin;
+ * TASK-2402) -- a teacher may teach more than one subject.
  */
 export default async function TeacherCoursesPage() {
   const t = await getTranslations();
@@ -27,8 +27,8 @@ export default async function TeacherCoursesPage() {
     centerConfigService.listEducationStages(session),
     teacherProfileRepository.findByTeacherId(session.uid),
   ]);
-  const subjects = teacherProfile?.subjectId
-    ? allSubjects.filter((subject) => subject.id === teacherProfile.subjectId)
+  const subjects = teacherProfile?.subjectIds && teacherProfile.subjectIds.length > 0
+    ? allSubjects.filter((subject) => teacherProfile.subjectIds!.includes(subject.id))
     : allSubjects;
 
   return (

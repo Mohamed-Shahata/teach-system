@@ -105,3 +105,68 @@ export async function uploadLessonFile({ lessonId, file }: UploadLessonFileOptio
   });
   return { secureUrl, publicId, fileName: file.name, fileType, fileSize: file.size };
 }
+
+export interface UploadLessonVideoOptions {
+  lessonId: string;
+  file: File;
+  /** TASK-2203 — called with 0–100 as the upload progresses. */
+  onProgress?: (percent: number) => void;
+}
+
+/**
+ * TASK-2202 — signs + uploads a lesson's own video (the reserved
+ * `.../lessons/{lessonId}/video/` folder, a `lesson-video`-targeted
+ * signature) directly to Cloudinary as `resource_type: "video"`. Uses
+ * `XMLHttpRequest` rather than `signAndUpload`'s `fetch` so upload
+ * progress (TASK-2203) can be reported — `fetch` has no cross-browser
+ * upload-progress event. The signing half is identical in spirit to
+ * `signAndUpload`'s, just inlined here for the progress callback.
+ */
+export async function uploadLessonVideo({
+  lessonId,
+  file,
+  onProgress,
+}: UploadLessonVideoOptions): Promise<UploadImageResult> {
+  const signRes = await fetch("/api/uploads/sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target: "lesson-video", lessonId }),
+  });
+  if (!signRes.ok) {
+    throw new Error("sign-failed");
+  }
+  const { signature, timestamp, apiKey, cloudName, folder } = (await signRes.json()) as {
+    signature: string;
+    timestamp: number;
+    apiKey: string;
+    cloudName: string;
+    folder: string;
+  };
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", apiKey);
+  formData.append("timestamp", String(timestamp));
+  formData.append("signature", signature);
+  formData.append("folder", folder);
+
+  return new Promise<UploadImageResult>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+    xhr.onerror = () => reject(new Error("upload-failed"));
+    xhr.onload = () => {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error("upload-failed"));
+        return;
+      }
+      const body = JSON.parse(xhr.responseText) as { secure_url: string; public_id: string };
+      resolve({ secureUrl: body.secure_url, publicId: body.public_id });
+    };
+    xhr.send(formData);
+  });
+}

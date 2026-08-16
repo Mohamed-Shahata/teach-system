@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { Alert, Badge, Button, Dialog, Input, Pagination, Select, Table } from "@/components/ui";
+import { Alert, Badge, Button, Checkbox, Dialog, Input, Pagination, Table } from "@/components/ui";
 import type { Column } from "@/components/ui/table";
 import type { TeacherSummary } from "@/lib/server/services/teacherManagementService";
 import type { SubjectDoc } from "@/lib/server/repositories/subjectRepository";
@@ -20,17 +21,17 @@ interface CreateTeacherFormState {
   email: string;
   phone: string;
   age: string;
-  subjectId: string;
+  subjectIds: string[];
 }
 
-const EMPTY_CREATE_FORM: CreateTeacherFormState = { displayName: "", email: "", phone: "", age: "", subjectId: "" };
+const EMPTY_CREATE_FORM: CreateTeacherFormState = { displayName: "", email: "", phone: "", age: "", subjectIds: [] };
 
 interface EditTeacherFormState {
   uid: string;
   displayName: string;
   email: string;
   phone: string;
-  subjectId: string;
+  subjectIds: string[];
 }
 
 function editFormFromTeacher(teacher: TeacherSummary): EditTeacherFormState {
@@ -39,8 +40,13 @@ function editFormFromTeacher(teacher: TeacherSummary): EditTeacherFormState {
     displayName: teacher.displayName,
     email: teacher.email,
     phone: teacher.phone ?? "",
-    subjectId: teacher.subjectId ?? "",
+    subjectIds: teacher.subjectIds ?? [],
   };
+}
+
+/** Toggles `id` in/out of a subject-id selection array (TASK-2402 multi-select). */
+function toggleSubject(current: string[], id: string): string[] {
+  return current.includes(id) ? current.filter((existing) => existing !== id) : [...current, id];
 }
 
 const PAGE_SIZE = 10;
@@ -159,8 +165,8 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
     }
   }
 
-  function selectCreateSubject(subjectId: string) {
-    setCreateForm((current) => ({ ...current, subjectId }));
+  function toggleCreateSubject(subjectId: string) {
+    setCreateForm((current) => ({ ...current, subjectIds: toggleSubject(current.subjectIds, subjectId) }));
   }
 
   async function submitCreate(event: React.FormEvent<HTMLFormElement>) {
@@ -177,7 +183,7 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
           email: createForm.email,
           phone: createForm.phone,
           ...(createForm.age ? { age: Number(createForm.age) } : {}),
-          ...(createForm.subjectId ? { subjectId: createForm.subjectId } : {}),
+          ...(createForm.subjectIds.length > 0 ? { subjectIds: createForm.subjectIds } : {}),
         }),
       });
       if (!res.ok) throw new Error("create");
@@ -210,7 +216,7 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
           displayName: editForm.displayName,
           email: editForm.email,
           phone: editForm.phone,
-          ...(editForm.subjectId ? { subjectId: editForm.subjectId } : {}),
+          ...(editForm.subjectIds.length > 0 ? { subjectIds: editForm.subjectIds } : {}),
         }),
       });
       if (!res.ok) throw new Error("update");
@@ -225,16 +231,23 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
     }
   }
 
-  function subjectLabel(subjectId?: string): string {
-    if (!subjectId) return "—";
-    const subject = subjects.find((s) => s.id === subjectId);
-    return subject ? localizedName(subject.name) : "—";
+  function toggleEditSubject(subjectId: string) {
+    setEditForm((current) => (current ? { ...current, subjectIds: toggleSubject(current.subjectIds, subjectId) } : current));
+  }
+
+  function subjectLabel(subjectIds?: string[]): string {
+    if (!subjectIds || subjectIds.length === 0) return "—";
+    const names = subjectIds
+      .map((id) => subjects.find((s) => s.id === id))
+      .filter((s): s is SubjectDoc => Boolean(s))
+      .map((s) => localizedName(s.name));
+    return names.length > 0 ? names.join(", ") : "—";
   }
 
   const columns: Column<TeacherSummary>[] = [
     { key: "displayName", header: t("columns.name") },
     { key: "email", header: t("columns.email") },
-    { key: "subject", header: t("columns.subject"), render: (row) => subjectLabel(row.subjectId) },
+    { key: "subject", header: t("columns.subject"), render: (row) => subjectLabel(row.subjectIds) },
     {
       key: "status",
       header: t("columns.status"),
@@ -304,6 +317,12 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
             <Button type="button" size="sm" variant="outline" onClick={() => openEdit(row)}>
               {t("edit")}
             </Button>
+            <Link
+              href={`/${locale}/admin/teachers/${row.uid}/students`}
+              className="inline-flex h-8 items-center justify-center rounded-full border border-border bg-transparent px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              {t("viewStudents")}
+            </Link>
             <Button type="button" size="sm" variant="outline" onClick={() => setOfferingsTarget(row)}>
               {t("offerings")}
             </Button>
@@ -437,12 +456,16 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-foreground">{t("fields.subjects")}</span>
-            <Select
-              value={createForm.subjectId}
-              onChange={(event) => selectCreateSubject(event.target.value)}
-              placeholder={t("fields.selectSubject")}
-              options={subjects.map((subject) => ({ value: subject.id, label: localizedName(subject.name) }))}
-            />
+            <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-md border border-border p-3">
+              {subjects.map((subject) => (
+                <Checkbox
+                  key={subject.id}
+                  label={localizedName(subject.name)}
+                  checked={createForm.subjectIds.includes(subject.id)}
+                  onChange={() => toggleCreateSubject(subject.id)}
+                />
+              ))}
+            </div>
           </label>
 
           <div className="flex justify-end gap-2">
@@ -506,12 +529,16 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
 
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-foreground">{t("fields.subjects")}</span>
-              <Select
-                value={editForm.subjectId}
-                onChange={(event) => setEditForm((c) => (c ? { ...c, subjectId: event.target.value } : c))}
-                placeholder={t("fields.selectSubject")}
-                options={subjects.map((subject) => ({ value: subject.id, label: localizedName(subject.name) }))}
-              />
+              <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-md border border-border p-3">
+                {subjects.map((subject) => (
+                  <Checkbox
+                    key={subject.id}
+                    label={localizedName(subject.name)}
+                    checked={editForm.subjectIds.includes(subject.id)}
+                    onChange={() => toggleEditSubject(subject.id)}
+                  />
+                ))}
+              </div>
             </label>
 
             <div className="flex justify-end gap-2">

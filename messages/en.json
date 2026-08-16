@@ -260,10 +260,18 @@
         "titleAr": "Title (Arabic)",
         "descriptionEn": "Description (English)",
         "descriptionAr": "Description (Arabic)",
-        "videoProvider": "Video provider",
-        "videoProviderPlaceholder": "No video",
+        "video": "Video",
         "videoUrl": "Video URL",
-        "videoPublicId": "Video public ID"
+        "uploadVideo": "Upload a video",
+        "videoUploaded": "Video uploaded",
+        "videoUploadProgress": "Uploading… {percent}%",
+        "removeVideo": "Remove video"
+      },
+      "videoMode": {
+        "youtube": "Paste a YouTube link",
+        "upload": "Upload a video",
+        "external": "Other embeddable link",
+        "none": "No video"
       },
       "videoProvider": {
         "youtube": "YouTube",
@@ -271,7 +279,8 @@
         "external": "External link"
       },
       "hints": {
-        "video": "Optional. Paste a YouTube or external video link, or a Cloudinary public ID for uploaded video."
+        "video": "Optional. Pick a YouTube link, upload a video file directly, or paste any other embeddable link.",
+        "videoDragDrop": "Drag and drop a video file here, or click to browse."
       },
       "create": "Create lesson",
       "save": "Save changes",
@@ -285,7 +294,11 @@
         "load": "Could not load lessons.",
         "save": "Could not save this lesson.",
         "delete": "Could not delete this lesson.",
-        "reorder": "Could not save the new order."
+        "reorder": "Could not save the new order.",
+        "videoType": "This video format isn't supported (use MP4, WebM, MOV, or MKV).",
+        "videoSize": "This video is too large (max 500 MB).",
+        "videoUpload": "Could not upload this video.",
+        "videoUploadNeedsLesson": "Save the lesson first, then upload its video."
       },
       "preview": "Preview",
       "hidePreview": "Hide preview",
@@ -363,6 +376,26 @@
         "progressValue": "{percent}%"
       }
     },
+    "courseStudentsPanel": {
+      "title": "Student watch progress",
+      "subtitle": "Overall progress plus a per-lesson watch breakdown for each enrolled student.",
+      "refresh": "Refresh",
+      "viewBreakdown": "View breakdown",
+      "dialogDescription": "Watch percentage per lesson for this student.",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "overallProgress": "Overall progress"
+      },
+      "progressValue": "{percent}%",
+      "completedBadge": "Completed",
+      "noLessons": "This course has no lessons yet.",
+      "emptyTitle": "No enrolled students yet",
+      "emptyDescription": "Students who enroll in this course will show up here with their watch progress.",
+      "errors": {
+        "refresh": "Could not refresh student progress."
+      }
+    },
     "payments": {
       "title": "Pending payments",
       "subtitle": "Manual Vodafone Cash / bank transfer payments awaiting your review.",
@@ -404,7 +437,10 @@
       },
       "fields": {
         "titleEn": "Title (English)",
-        "titleAr": "Title (Arabic)"
+        "titleAr": "Title (Arabic)",
+        "stage": "Education stage",
+        "stagePlaceholder": "Select a stage",
+        "scheduledAt": "Opens at"
       },
       "create": "Create quiz",
       "save": "Save changes",
@@ -522,7 +558,8 @@
       "landmark": "Student navigation",
       "myCourses": "My courses",
       "exams": "Exams",
-      "settings": "Settings"
+      "settings": "Settings",
+      "myTeachers": "My teachers"
     },
     "topbarTitle": "Student Dashboard",
     "title": "My courses",
@@ -607,7 +644,8 @@
       "teachers": "Teachers",
       "students": "Students",
       "payments": "Payments",
-      "settings": "Settings"
+      "settings": "Settings",
+      "courses": "Courses"
     },
     "topbarTitle": "Admin Dashboard",
     "education": {
@@ -724,7 +762,6 @@
         "email": "Email",
         "phone": "Phone number",
         "subjects": "Subjects they teach",
-        "selectSubject": "Select a subject",
         "age": "Age"
       },
       "submit": "Create",
@@ -748,7 +785,9 @@
       },
       "edit": "Edit",
       "editTitle": "Edit teacher account",
-      "editDescription": "Update this teacher's details."
+      "editDescription": "Update this teacher's details.",
+      "viewStudents": "View students",
+      "studentsPageTitle": "{name}'s students"
     },
     "students": {
       "title": "Students",
@@ -892,6 +931,28 @@
         "change": "Change picture",
         "hint": "JPG or PNG, shown across the admin dashboard."
       }
+    },
+    "courseOverview": {
+      "title": "Courses",
+      "subtitle": "Every course across every teacher, read-only.",
+      "searchPlaceholder": "Search by title or teacher",
+      "columns": {
+        "title": "Title",
+        "teacher": "Teacher",
+        "subject": "Subject",
+        "stage": "Stage",
+        "status": "Status",
+        "enrollments": "Enrollments"
+      },
+      "filters": {
+        "allTeachers": "All teachers",
+        "allSubjects": "All subjects",
+        "allStages": "All stages",
+        "allStatuses": "All statuses"
+      },
+      "statusDraft": "Draft",
+      "statusPublished": "Published",
+      "empty": "No courses match these filters."
     }
   },
   "landing": {
@@ -951,5 +1012,16 @@
       "notFoundTitle": "Course not found",
       "notFoundDescription": "This course doesn't exist or isn't published."
     }
+  },
+  "studentTeachers": {
+    "title": "My teachers",
+    "subtitle": "Teachers you're enrolled with.",
+    "emptyTitle": "No teachers yet",
+    "emptyDescription": "Once you enroll in a course, the teacher will show up here.",
+    "viewCourses": "View courses",
+    "coursesCount": "{count, plural, =0 {No courses} one {# course} other {# courses}}",
+    "emptyCoursesTitle": "No published courses yet",
+    "enrolledBadge": "Enrolled",
+    "availableBadge": "Available"
   }
 }

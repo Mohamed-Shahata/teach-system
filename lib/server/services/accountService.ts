@@ -61,8 +61,8 @@ interface ProvisionAccountParams {
   phone?: string;
   stageId?: string;
   age?: number;
-  /** teacher-only: single ref into `subjects` — a teacher has exactly one specialization, stored on `teacherProfiles.subjectId`. */
-  subjectId?: string;
+  /** teacher-only: refs into `subjects` — the subject(s) a teacher may create courses under, stored on `teacherProfiles.subjectIds` (TASK-2402). */
+  subjectIds?: string[];
   createdBy: { uid: string; role: "admin" | "teacher" };
 }
 
@@ -167,7 +167,7 @@ async function provisionAccount(params: ProvisionAccountParams): Promise<Created
         slug: await uniqueTeacherSlug(params.displayName),
         displayName: params.displayName,
         isPublic: false,
-        ...(params.subjectId ? { subjectId: params.subjectId } : {}),
+        ...(params.subjectIds && params.subjectIds.length > 0 ? { subjectIds: params.subjectIds } : {}),
         stats: { ...EMPTY_TEACHER_PROFILE_STATS },
         createdAt,
       });
@@ -201,7 +201,7 @@ export const accountService = {
       phone: input.phone,
       stageId: input.stageId,
       age: input.age,
-      subjectId: input.role === "teacher" ? input.subjectId : undefined,
+      subjectIds: input.role === "teacher" ? input.subjectIds : undefined,
       createdBy: { uid: session.uid, role: "admin" },
     });
   },

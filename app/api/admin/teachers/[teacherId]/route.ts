@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
 }
 
 /**
- * Body: `{ disabled?: boolean, displayName?, email?, phone?, subjectId? }`.
+ * Body: `{ disabled?: boolean, displayName?, email?, phone?, subjectIds? }`.
  * `disabled` toggles activation; the rest is the Teacher management "Edit"
  * action's profile update. Either or both may be present in one request.
  */

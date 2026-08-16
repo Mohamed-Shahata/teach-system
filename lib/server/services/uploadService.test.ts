@@ -119,4 +119,39 @@ describe("uploadService.signUpload", () => {
 
     expect(result.folder).toBe("teachers/teacher-7/courses/course-1/lessons/lesson-1/files");
   });
+
+  it("rejects a lesson-video target without a lessonId", async () => {
+    const session = makeSession("teacher", "teacher-7");
+    await expect(uploadService.signUpload(session, { target: "lesson-video" })).rejects.toThrow();
+    expect(signCloudinaryUpload).not.toHaveBeenCalled();
+  });
+
+  it("throws NotFoundError for a lesson-video target with an unknown lessonId", async () => {
+    findLessonById.mockResolvedValue(null);
+    await expect(
+      uploadService.signUpload(makeSession("teacher", "teacher-7"), {
+        target: "lesson-video",
+        lessonId: "nope",
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("rejects a lesson-video target for another teacher's lesson", async () => {
+    findLessonById.mockResolvedValue({ id: "lesson-1", teacherId: "teacher-1", courseId: "course-1" });
+    await expect(
+      uploadService.signUpload(makeSession("teacher", "teacher-7"), {
+        target: "lesson-video",
+        lessonId: "lesson-1",
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("signs a lesson-video target into the reserved .../video/ folder, distinct from lesson-file's", async () => {
+    findLessonById.mockResolvedValue({ id: "lesson-1", teacherId: "teacher-7", courseId: "course-1" });
+    const session = makeSession("teacher", "teacher-7");
+
+    const result = await uploadService.signUpload(session, { target: "lesson-video", lessonId: "lesson-1" });
+
+    expect(result.folder).toBe("teachers/teacher-7/courses/course-1/lessons/lesson-1/video");
+  });
 });

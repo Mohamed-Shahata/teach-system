@@ -260,10 +260,18 @@
         "titleAr": "العنوان (عربي)",
         "descriptionEn": "الوصف (إنجليزي)",
         "descriptionAr": "الوصف (عربي)",
-        "videoProvider": "مصدر الفيديو",
-        "videoProviderPlaceholder": "بدون فيديو",
+        "video": "الفيديو",
         "videoUrl": "رابط الفيديو",
-        "videoPublicId": "معرّف الفيديو على Cloudinary"
+        "uploadVideo": "رفع فيديو",
+        "videoUploaded": "تم رفع الفيديو",
+        "videoUploadProgress": "جارٍ الرفع… {percent}%",
+        "removeVideo": "إزالة الفيديو"
+      },
+      "videoMode": {
+        "youtube": "الصق رابط يوتيوب",
+        "upload": "رفع فيديو",
+        "external": "رابط تضمين آخر",
+        "none": "بدون فيديو"
       },
       "videoProvider": {
         "youtube": "يوتيوب",
@@ -271,7 +279,8 @@
         "external": "رابط خارجي"
       },
       "hints": {
-        "video": "اختياري. الصق رابط يوتيوب أو رابط خارجي، أو معرّف الفيديو على Cloudinary."
+        "video": "اختياري. اختر رابط يوتيوب، أو ارفع ملف فيديو مباشرة، أو الصق أي رابط تضمين آخر.",
+        "videoDragDrop": "اسحب ملف الفيديو وأفلته هنا، أو اضغط للتصفح."
       },
       "create": "إنشاء الدرس",
       "save": "حفظ التعديلات",
@@ -285,7 +294,11 @@
         "load": "تعذر تحميل الدروس.",
         "save": "تعذر حفظ هذا الدرس.",
         "delete": "تعذر حذف هذا الدرس.",
-        "reorder": "تعذر حفظ الترتيب الجديد."
+        "reorder": "تعذر حفظ الترتيب الجديد.",
+        "videoType": "صيغة الفيديو غير مدعومة (استخدم MP4 أو WebM أو MOV أو MKV).",
+        "videoSize": "حجم الفيديو كبير جدًا (الحد الأقصى 500 ميجابايت).",
+        "videoUpload": "تعذر رفع هذا الفيديو.",
+        "videoUploadNeedsLesson": "احفظ الدرس أولًا، ثم ارفع الفيديو."
       },
       "preview": "معاينة",
       "hidePreview": "إخفاء المعاينة",
@@ -363,6 +376,26 @@
         "progressValue": "{percent}%"
       }
     },
+    "courseStudentsPanel": {
+      "title": "تقدّم مشاهدة الطلاب",
+      "subtitle": "التقدم الإجمالي بالإضافة إلى تفصيل نسبة المشاهدة لكل درس لكل طالب مسجّل.",
+      "refresh": "تحديث",
+      "viewBreakdown": "عرض التفاصيل",
+      "dialogDescription": "نسبة المشاهدة لكل درس لهذا الطالب.",
+      "columns": {
+        "name": "الاسم",
+        "email": "البريد الإلكتروني",
+        "overallProgress": "التقدم الإجمالي"
+      },
+      "progressValue": "{percent}%",
+      "completedBadge": "مكتمل",
+      "noLessons": "لا توجد دروس في هذه الدورة بعد.",
+      "emptyTitle": "لا يوجد طلاب مسجّلون بعد",
+      "emptyDescription": "سيظهر هنا الطلاب المسجّلون في هذه الدورة مع تقدّم مشاهدتهم.",
+      "errors": {
+        "refresh": "تعذّر تحديث تقدّم الطلاب."
+      }
+    },
     "payments": {
       "title": "المدفوعات المعلّقة",
       "subtitle": "مدفوعات فودافون كاش / التحويل البنكي بانتظار المراجعة.",
@@ -404,7 +437,10 @@
       },
       "fields": {
         "titleEn": "العنوان (إنجليزي)",
-        "titleAr": "العنوان (عربي)"
+        "titleAr": "العنوان (عربي)",
+        "stage": "المرحلة التعليمية",
+        "stagePlaceholder": "اختر مرحلة",
+        "scheduledAt": "يفتح في"
       },
       "create": "إنشاء اختبار",
       "save": "حفظ التغييرات",
@@ -522,7 +558,8 @@
       "landmark": "قائمة تنقل الطالب",
       "myCourses": "كورساتي",
       "exams": "الاختبارات",
-      "settings": "الإعدادات"
+      "settings": "الإعدادات",
+      "myTeachers": "معلّميّ"
     },
     "topbarTitle": "لوحة الطالب",
     "title": "كورساتي",
@@ -607,7 +644,8 @@
       "teachers": "المعلمون",
       "students": "الطلاب",
       "payments": "المدفوعات",
-      "settings": "الإعدادات"
+      "settings": "الإعدادات",
+      "courses": "الكورسات"
     },
     "topbarTitle": "لوحة تحكم الأدمن",
     "education": {
@@ -724,7 +762,6 @@
         "email": "الإيميل",
         "phone": "رقم التليفون",
         "subjects": "المواد اللي هيدرّسها",
-        "selectSubject": "اختر المادة",
         "age": "العمر"
       },
       "submit": "إنشاء",
@@ -748,7 +785,9 @@
       },
       "edit": "تعديل",
       "editTitle": "تعديل حساب المعلم",
-      "editDescription": "قم بتحديث بيانات هذا المعلم."
+      "editDescription": "قم بتحديث بيانات هذا المعلم.",
+      "viewStudents": "عرض الطلاب",
+      "studentsPageTitle": "طلاب {name}"
     },
     "students": {
       "title": "الطلاب",
@@ -892,6 +931,28 @@
         "change": "تغيير الصورة",
         "hint": "JPG أو PNG، تظهر في لوحة تحكم الأدمن."
       }
+    },
+    "courseOverview": {
+      "title": "الكورسات",
+      "subtitle": "كل الكورسات لدى جميع المعلمين، للعرض فقط.",
+      "searchPlaceholder": "ابحث بالعنوان أو اسم المعلم",
+      "columns": {
+        "title": "العنوان",
+        "teacher": "المعلم",
+        "subject": "المادة",
+        "stage": "المرحلة",
+        "status": "الحالة",
+        "enrollments": "عدد المسجَّلين"
+      },
+      "filters": {
+        "allTeachers": "كل المعلمين",
+        "allSubjects": "كل المواد",
+        "allStages": "كل المراحل",
+        "allStatuses": "كل الحالات"
+      },
+      "statusDraft": "مسودة",
+      "statusPublished": "منشور",
+      "empty": "لا توجد كورسات مطابقة لهذه الفلاتر."
     }
   },
   "landing": {
@@ -951,5 +1012,16 @@
       "notFoundTitle": "الكورس غير موجود",
       "notFoundDescription": "الكورس ده مش موجود أو لسه مانشرش."
     }
+  },
+  "studentTeachers": {
+    "title": "معلّميّ",
+    "subtitle": "المعلمون المسجّل معهم.",
+    "emptyTitle": "لا يوجد معلمون بعد",
+    "emptyDescription": "بمجرد التسجيل في كورس، سيظهر المعلم هنا.",
+    "viewCourses": "عرض الكورسات",
+    "coursesCount": "{count, plural, =0 {لا كورسات} one {كورس واحد} other {# كورسات}}",
+    "emptyCoursesTitle": "لا توجد كورسات منشورة بعد",
+    "enrolledBadge": "مسجَّل",
+    "availableBadge": "متاح"
   }
 }

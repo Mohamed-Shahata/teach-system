@@ -36,8 +36,8 @@ export interface TeacherSummary {
   disabled: boolean;
   /** Phase 5 — whether this teacher may create their own students (`users.canCreateStudents`, default `true`). */
   canCreateStudents: boolean;
-  /** ref into `subjects`, mirrored from `teacherProfiles.subjectId` — the "Edit" dialog's subject field. */
-  subjectId?: string;
+  /** refs into `subjects`, mirrored from `teacherProfiles.subjectIds` — the "Edit" dialog's subjects field (TASK-2402). */
+  subjectIds?: string[];
   stats: TeacherProfileStats;
 }
 
@@ -45,7 +45,7 @@ export interface TeacherDetail extends TeacherSummary {
   createdAt: number;
 }
 
-function toSummary(user: UserDoc, stats: TeacherProfileStats, subjectId?: string): TeacherSummary {
+function toSummary(user: UserDoc, stats: TeacherProfileStats, subjectIds?: string[]): TeacherSummary {
   return {
     uid: user.uid,
     displayName: user.displayName,
@@ -53,7 +53,7 @@ function toSummary(user: UserDoc, stats: TeacherProfileStats, subjectId?: string
     phone: user.phone,
     disabled: Boolean(user.disabled),
     canCreateStudents: user.canCreateStudents !== false,
-    subjectId,
+    subjectIds,
     stats,
   };
 }
@@ -85,13 +85,13 @@ export const teacherManagementService = {
    * Admin edit of a teacher's profile fields — the Teacher management
    * "Edit" action. `displayName`/`email` also update the Firebase Auth
    * account (same dual-write `setTeacherDisabled` uses); `displayName`/
-   * `subjectId` are mirrored onto `teacherProfiles` since that's what the
+   * `subjectIds` are mirrored onto `teacherProfiles` since that's what the
    * public teacher page and offerings dialog read.
    */
   async updateTeacherProfile(
     session: Session,
     teacherId: string,
-    input: { displayName?: string; email?: string; phone?: string; subjectId?: string },
+    input: { displayName?: string; email?: string; phone?: string; subjectIds?: string[] },
   ): Promise<TeacherSummary> {
     assertRole(session, "admin");
     const user = await userRepository.findById(teacherId);
@@ -112,11 +112,11 @@ export const teacherManagementService = {
     });
     await teacherProfileRepository.updateProfileFields(teacherId, {
       displayName: input.displayName,
-      subjectId: input.subjectId,
+      subjectIds: input.subjectIds,
     });
 
     const stats = await teacherProfileRepository.findStatsByTeacherId(teacherId);
-    return toSummary({ ...user, ...input }, stats ?? EMPTY_TEACHER_PROFILE_STATS, input.subjectId);
+    return toSummary({ ...user, ...input }, stats ?? EMPTY_TEACHER_PROFILE_STATS, input.subjectIds);
   },
 
   /** `disabled: true` deactivates the account; `false` reactivates it. */

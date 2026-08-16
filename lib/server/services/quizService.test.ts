@@ -17,6 +17,7 @@ const getCourse = vi.fn();
 const findByStudentAndCourse = vi.fn();
 const userFindById = vi.fn();
 const quizListByStage = vi.fn();
+const quizListByTeacher = vi.fn();
 const stageFindById = vi.fn();
 
 vi.mock("@/lib/server/repositories/enrollmentRepository", () => ({
@@ -35,6 +36,7 @@ vi.mock("@/lib/server/repositories/quizRepository", () => ({
   quizRepository: {
     listByCourse: quizListByCourse,
     listByStage: quizListByStage,
+    listByTeacher: quizListByTeacher,
     findById: quizFindById,
     create: quizCreate,
     update: quizUpdate,
@@ -348,5 +350,43 @@ describe("quizService — standalone stage-wide exams (TASK-2104)", () => {
     const exams = await quizService.listExamsForStudent(makeSession("student", "student-1"));
     expect(exams).toEqual([]);
     expect(quizListByStage).not.toHaveBeenCalled();
+  });
+});
+
+describe("quizService — standalone exam builder list (TASK-2105)", () => {
+  const standaloneQuiz = {
+    id: "quiz-5",
+    teacherId: "teacher-1",
+    title: { en: "Stage exam", ar: "اختبار المرحلة" },
+    status: "draft" as const,
+    questionIds: [],
+    stageId: "stage-1",
+    scheduledAt: 1_000,
+    autoGrade: true,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    quizListByTeacher.mockResolvedValue([standaloneQuiz]);
+  });
+
+  it("lists the signed-in teacher's own standalone exams", async () => {
+    const quizzes = await quizService.listStandaloneQuizzes(makeSession("teacher", "teacher-1"));
+    expect(quizzes).toEqual([standaloneQuiz]);
+    expect(quizListByTeacher).toHaveBeenCalledWith("teacher-1");
+  });
+
+  it("rejects a student", async () => {
+    await expect(quizService.listStandaloneQuizzes(makeSession("student", "student-1"))).rejects.toThrow(
+      ForbiddenError,
+    );
+  });
+
+  it("rejects an admin (no own teacherId to scope by)", async () => {
+    await expect(quizService.listStandaloneQuizzes(makeSession("admin", "admin-1"))).rejects.toThrow(
+      ForbiddenError,
+    );
   });
 });

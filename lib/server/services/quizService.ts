@@ -208,6 +208,19 @@ export const quizService = {
       .sort((a, b) => (b.scheduledAt ?? 0) - (a.scheduledAt ?? 0));
   },
 
+  /**
+   * TASK-2105 — a teacher's own standalone (course-less) exams, for the
+   * `teacher/exams` builder list. Admin has no `teacherId` of their own
+   * to scope by, so this is teacher-only (the route it backs lives
+   * under `teacher/*`, already role-gated by `proxy.ts`) — an Admin
+   * managing a specific teacher's standalone exam does so via the same
+   * `teacherId`-on-create path TASK-2101 already added, not this list.
+   */
+  async listStandaloneQuizzes(session: Session): Promise<QuizDoc[]> {
+    assertRole(session, "teacher");
+    return quizRepository.listByTeacher(session.uid);
+  },
+
   // -- Questions --------------------------------------------------------
 
   /** Teacher/Admin full read — includes `correctOptionIds`, for the builder UI. */

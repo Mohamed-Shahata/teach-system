@@ -4,6 +4,7 @@ import type { Session } from "@/lib/auth/session";
 import { NotFoundError } from "@/lib/errors";
 import { courseRepository } from "@/lib/server/repositories/courseRepository";
 import { enrollmentRepository, type EnrollmentDoc } from "@/lib/server/repositories/enrollmentRepository";
+import { lessonProgressRepository } from "@/lib/server/repositories/lessonProgressRepository";
 import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
 import { systemStatsRepository } from "@/lib/server/repositories/systemStatsRepository";
 import type { EnrollmentStatus } from "@/lib/validation/enrollment.schema";
@@ -21,8 +22,50 @@ function isAlreadyExists(err: unknown): boolean {
   return typeof err === "object" && err !== null && "code" in err && (err as { code?: unknown }).code === 6;
 }
 
-function computeProgress(completedLessonIds: string[], totalLessons: number): EnrollmentDoc["progress"] {
-  const percent = totalLessons > 0 ? Math.min(100, Math.round((completedLessonIds.length / totalLessons) * 100)) : 0;
+/**
+ * One lesson's watch percentage from its `lessonProgress` doc
+ * (TASK-2503) — `0` if the lesson has no video, no duration recorded
+ * yet, or was never watched at all (no doc). Exported so TASK-2504's
+ * teacher-facing per-student/per-lesson view (`studentService
+ * .getCourseStudentsProgress`) can reuse the exact same rule instead of
+ * re-deriving it, per `development/coding-rules.md`'s "No Duplicate
+ * Functionality".
+ */
+export function watchPercent(videoDurationSeconds: number, watchedSeconds: number): number {
+  if (videoDurationSeconds <= 0) return 0;
+  return Math.min(100, Math.round((watchedSeconds / videoDurationSeconds) * 100));
+}
+
+/**
+ * `enrollment.progress` roll-up (TASK-2503) — per lesson in the course,
+ * a manually-completed lesson (`completedLessonIds`, TASK-1101's
+ * existing signal) always counts as 100%; every other lesson counts at
+ * its watch percentage from `lessonProgress` (0% if never watched).
+ * `progress.percent` is the average across all lessons in the course,
+ * so "mark as completed" remains a real override a student can still
+ * trigger regardless of watch time, per this phase's own note in
+ * `docs/tasks/phase-25-watch-progress-tracking.md`.
+ */
+async function computeProgress(
+  courseId: string,
+  studentId: string,
+  completedLessonIds: string[],
+): Promise<EnrollmentDoc["progress"]> {
+  const course = await courseRepository.findById(courseId);
+  const lessonIds = course?.lessonOrder ?? [];
+  const totalLessons = lessonIds.length;
+  if (totalLessons === 0) return { completedLessonIds, percent: 0 };
+
+  const watchDocs = await lessonProgressRepository.listByStudentForLessons(studentId, lessonIds);
+  const watchByLessonId = new Map(watchDocs.map((doc) => [doc.lessonId, doc]));
+
+  const totalPercent = lessonIds.reduce((sum, lessonId) => {
+    if (completedLessonIds.includes(lessonId)) return sum + 100;
+    const doc = watchByLessonId.get(lessonId);
+    return sum + (doc ? watchPercent(doc.videoDurationSeconds, doc.watchedSeconds) : 0);
+  }, 0);
+
+  const percent = Math.min(100, Math.round(totalPercent / totalLessons));
   return { completedLessonIds, percent };
 }
 
@@ -88,16 +131,34 @@ export const enrollmentService = {
     if (!enrollment) throw new NotFoundError();
     assertStudentEnrolled(session, enrollment);
 
-    const course = await courseRepository.findById(enrollment.courseId);
-    const totalLessons = course?.lessonOrder.length ?? 0;
-
     const completedLessonIds = enrollment.progress.completedLessonIds.includes(lessonId)
       ? enrollment.progress.completedLessonIds
       : [...enrollment.progress.completedLessonIds, lessonId];
 
-    const progress = computeProgress(completedLessonIds, totalLessons);
+    const progress = await computeProgress(enrollment.courseId, session.uid, completedLessonIds);
     const status: EnrollmentStatus = progress.percent >= 100 ? "completed" : enrollment.status;
 
     return enrollmentRepository.updateProgress(enrollmentId, progress, status);
+  },
+
+  /**
+   * Re-rolls `progress.percent` from current watch data, keeping
+   * `completedLessonIds` as-is — called by `lessonProgressService
+   * .reportProgress` (TASK-2503) after each throttled watch-time
+   * report, so `enrollment.progress` stays live without the student
+   * needing to hit "mark complete". Returns `null` rather than
+   * throwing when no enrollment exists for the pair — the caller
+   * (`lessonProgressService`) has already gated the report on
+   * `assertStudentEnrolled`, so this is only a defensive no-op path
+   * (e.g. a cancelled enrollment), not an error condition to surface.
+   */
+  async recalculateWatchProgress(studentId: string, courseId: string): Promise<EnrollmentDoc | null> {
+    const enrollment = await enrollmentRepository.findByStudentAndCourse(studentId, courseId);
+    if (!enrollment) return null;
+
+    const progress = await computeProgress(courseId, studentId, enrollment.progress.completedLessonIds);
+    const status: EnrollmentStatus = progress.percent >= 100 ? "completed" : enrollment.status;
+
+    return enrollmentRepository.updateProgress(enrollment.id, progress, status);
   },
 };

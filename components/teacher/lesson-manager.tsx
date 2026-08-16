@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { Alert, Badge, Button, Dialog, EmptyState, Input, Select, Textarea } from "@/components/ui";
+import { Alert, Badge, Button, Dialog, EmptyState, Input, Textarea } from "@/components/ui";
 import { VideoPlayer } from "@/components/lesson/video-player";
 import { LessonFileManager } from "@/components/lesson/lesson-file-manager";
+import { uploadLessonVideo } from "@/lib/client/upload";
+import { cn } from "@/lib/utils/cn";
 import type { LessonDoc } from "@/lib/server/repositories/lessonRepository";
 import type { VideoProvider } from "@/lib/validation/lesson.schema";
 
@@ -13,12 +15,16 @@ interface LessonManagerProps {
   initialLessons: LessonDoc[];
 }
 
+/** TASK-2202 — the form's own entry-mode, distinct from the stored `VideoProvider`: "upload" always resolves to `provider: "cloudinary"` once the file lands, but starts out as neither URL. */
+type VideoMode = "" | "youtube" | "upload" | "external";
+
 interface FormState {
   id?: string;
   titleEn: string;
   titleAr: string;
   descriptionEn: string;
   descriptionAr: string;
+  videoMode: VideoMode;
   videoProvider: VideoProvider | "";
   videoUrl: string;
   videoPublicId: string;
@@ -29,19 +35,22 @@ const EMPTY_FORM: FormState = {
   titleAr: "",
   descriptionEn: "",
   descriptionAr: "",
+  videoMode: "",
   videoProvider: "",
   videoUrl: "",
   videoPublicId: "",
 };
 
 function toFormState(lesson: LessonDoc): FormState {
+  const provider = lesson.video?.provider ?? "";
   return {
     id: lesson.id,
     titleEn: lesson.title.en,
     titleAr: lesson.title.ar,
     descriptionEn: lesson.description?.en ?? "",
     descriptionAr: lesson.description?.ar ?? "",
-    videoProvider: lesson.video?.provider ?? "",
+    videoMode: provider === "cloudinary" ? "upload" : provider,
+    videoProvider: provider,
     videoUrl: lesson.video?.url ?? "",
     videoPublicId: lesson.video?.publicId ?? "",
   };
@@ -70,6 +79,10 @@ function toRequestBody(form: FormState) {
   };
 }
 
+/** TASK-2203 — 500 MB, generous enough for a full lesson recording while still catching an obviously-wrong file before it ties up the teacher's upload bandwidth. */
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-matroska"];
+
 export function LessonManager({ courseId, initialLessons }: LessonManagerProps) {
   const t = useTranslations("teacherDashboard.lessons");
   const [lessons, setLessons] = React.useState(initialLessons);
@@ -82,20 +95,104 @@ export function LessonManager({ courseId, initialLessons }: LessonManagerProps) 
   const [dragOverId, setDragOverId] = React.useState<string | null>(null);
   const [previewId, setPreviewId] = React.useState<string | null>(null);
   const [filesOpenId, setFilesOpenId] = React.useState<string | null>(null);
+  const [uploadingVideo, setUploadingVideo] = React.useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = React.useState(0);
+  const [videoError, setVideoError] = React.useState<string | null>(null);
+  const [isDraggingVideo, setIsDraggingVideo] = React.useState(false);
+  const videoFileInputRef = React.useRef<HTMLInputElement>(null);
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function setVideoMode(mode: VideoMode) {
+    setVideoError(null);
+    setForm((current) => ({
+      ...current,
+      videoMode: mode,
+      videoProvider: mode === "upload" ? "cloudinary" : mode === "" ? "" : mode,
+      videoUrl: mode === "upload" ? current.videoUrl : "",
+      videoPublicId: mode === "upload" ? current.videoPublicId : "",
+    }));
+  }
+
+  async function processVideoFile(file: File) {
+    setVideoError(null);
+    if (!form.id) {
+      // A standalone-exam-style "stage first, upload after" flow isn't
+      // available here — a video always attaches to an existing lesson
+      // (same constraint TASK-2201's folder resolution enforces
+      // server-side), so uploading is only offered once a lesson exists.
+      setVideoError(t("errors.videoUploadNeedsLesson"));
+      return;
+    }
+    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+      setVideoError(t("errors.videoType"));
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      setVideoError(t("errors.videoSize"));
+      return;
+    }
+
+    setUploadingVideo(true);
+    setVideoUploadProgress(0);
+    try {
+      const { secureUrl, publicId } = await uploadLessonVideo({
+        lessonId: form.id,
+        file,
+        onProgress: setVideoUploadProgress,
+      });
+      setForm((current) => ({
+        ...current,
+        videoMode: "upload",
+        videoProvider: "cloudinary",
+        videoUrl: secureUrl,
+        videoPublicId: publicId,
+      }));
+    } catch {
+      setVideoError(t("errors.videoUpload"));
+    } finally {
+      setUploadingVideo(false);
+    }
+  }
+
+  async function onVideoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    await processVideoFile(file);
+  }
+
+  function onVideoDragOver(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingVideo(true);
+  }
+
+  function onVideoDragLeave(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingVideo(false);
+  }
+
+  async function onVideoDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingVideo(false);
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    await processVideoFile(file);
+  }
+
   function openCreateDialog() {
     setForm(EMPTY_FORM);
     setError(null);
+    setVideoError(null);
     setDialogOpen(true);
   }
 
   function openEditDialog(lesson: LessonDoc) {
     setForm(toFormState(lesson));
     setError(null);
+    setVideoError(null);
     setDialogOpen(true);
   }
 
@@ -306,32 +403,136 @@ export function LessonManager({ courseId, initialLessons }: LessonManagerProps) 
               onChange={(event) => updateField("descriptionAr", event.target.value)}
             />
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Select
-              label={t("fields.videoProvider")}
-              placeholder={t("fields.videoProviderPlaceholder")}
-              options={[
-                { value: "youtube", label: t("videoProvider.youtube") },
-                { value: "cloudinary", label: t("videoProvider.cloudinary") },
-                { value: "external", label: t("videoProvider.external") },
-              ]}
-              value={form.videoProvider}
-              onChange={(event) => updateField("videoProvider", event.target.value as VideoProvider)}
-            />
-            <Input
-              label={t("fields.videoUrl")}
-              type="url"
-              value={form.videoUrl}
-              onChange={(event) => updateField("videoUrl", event.target.value)}
-              required={!!form.videoProvider}
-            />
-            <Input
-              label={t("fields.videoPublicId")}
-              value={form.videoPublicId}
-              onChange={(event) => updateField("videoPublicId", event.target.value)}
-            />
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-foreground text-start">{t("fields.video")}</span>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("fields.video")}>
+              {(["youtube", "upload", "external"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={form.videoMode === mode}
+                  onClick={() => setVideoMode(mode)}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                    form.videoMode === mode
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-foreground/70 hover:border-primary/50",
+                  )}
+                >
+                  {t(`videoMode.${mode}`)}
+                </button>
+              ))}
+              {form.videoMode && (
+                <button
+                  type="button"
+                  onClick={() => setVideoMode("")}
+                  className="rounded-full px-3 py-1.5 text-xs font-medium text-foreground/50 hover:text-foreground"
+                >
+                  {t("videoMode.none")}
+                </button>
+              )}
+            </div>
+
+            {form.videoMode === "youtube" && (
+              <Input
+                label={t("fields.videoUrl")}
+                type="url"
+                value={form.videoUrl}
+                onChange={(event) => updateField("videoUrl", event.target.value)}
+                required
+              />
+            )}
+
+            {form.videoMode === "external" && (
+              <Input
+                label={t("fields.videoUrl")}
+                type="url"
+                value={form.videoUrl}
+                onChange={(event) => updateField("videoUrl", event.target.value)}
+                required
+              />
+            )}
+
+            {form.videoMode === "upload" && (
+              <div className="flex flex-col gap-1.5">
+                <input
+                  ref={videoFileInputRef}
+                  type="file"
+                  accept={ACCEPTED_VIDEO_TYPES.join(",")}
+                  className="hidden"
+                  onChange={onVideoFileChange}
+                />
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => videoFileInputRef.current?.click()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      videoFileInputRef.current?.click();
+                    }
+                  }}
+                  onDragOver={onVideoDragOver}
+                  onDragLeave={onVideoDragLeave}
+                  onDrop={onVideoDrop}
+                  className={cn(
+                    "relative flex h-24 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border-2 border-dashed text-center transition-colors",
+                    isDraggingVideo ? "border-primary bg-primary/5" : "border-border bg-surface hover:border-primary/50",
+                  )}
+                >
+                  {form.videoUrl ? (
+                    <span className="text-sm font-medium text-foreground">{t("fields.videoUploaded")}</span>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" className="h-8 w-8 text-foreground/40" aria-hidden="true">
+                        <path
+                          d="M12 16V4m0 0-4 4m4-4 4 4M4 16.5V19a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2.5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <span className="text-sm font-medium text-foreground">{t("fields.uploadVideo")}</span>
+                      <span className="max-w-xs text-xs text-foreground/60">{t("hints.videoDragDrop")}</span>
+                    </>
+                  )}
+                  {uploadingVideo && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-background/80">
+                      <span
+                        className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
+                        aria-hidden="true"
+                      />
+                      <span className="text-xs font-medium text-foreground" role="status">
+                        {t("fields.videoUploadProgress", { percent: videoUploadProgress })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {form.videoUrl && (
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => updateField("videoUrl", "")}
+                    >
+                      {t("fields.removeVideo")}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {videoError && (
+              <p role="alert" className="text-xs text-error text-start">
+                {videoError}
+              </p>
+            )}
+            <p className="text-xs text-foreground/60 text-start">{t("hints.video")}</p>
           </div>
-          <p className="text-xs text-foreground/60 text-start">{t("hints.video")}</p>
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
               {t("cancel")}

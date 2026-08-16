@@ -37,6 +37,13 @@ const NAV_ITEMS = [
     ),
   },
   {
+    segment: "teachers",
+    labelKey: "myTeachers",
+    icon: (
+      <Icon path="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 20a7.5 7.5 0 0 1 15 0" />
+    ),
+  },
+  {
     segment: "settings",
     labelKey: "settings",
     icon: (
@@ -46,9 +53,10 @@ const NAV_ITEMS = [
 ] as const;
 
 /**
- * TASK-1103/TASK-1005/TASK-2104 — student sidebar. "My courses",
- * "Exams" (standalone stage-wide exams, TASK-2104), and "Settings"
- * (TASK-1005); the `student/courses/[courseId]/*` lesson/quiz views
+ * TASK-1103/TASK-1005/TASK-2104/TASK-2302 — student sidebar. "My
+ * courses", "Exams" (standalone stage-wide exams, TASK-2104), "My
+ * teachers" (TASK-2302), and "Settings" (TASK-1005); the
+ * `student/courses/[courseId]/*` lesson/quiz views
  * (folder-structure.md) are reached by navigating from a course card,
  * not a top-level nav item.
  */

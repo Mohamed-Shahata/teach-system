@@ -29,12 +29,11 @@ export default async function TeacherDashboardPage() {
     centerConfigService.listSubjects(session),
     centerConfigService.listEducationStages(session),
   ]);
-  // A teacher normally teaches a single assigned subject (`teacherProfiles.subjectId`,
-  // set by an Admin) -- the schedule form's Subject picker is limited to that,
-  // not every subject in the center, unless/until the data model grows to
-  // support an Admin granting a teacher more than one subject.
-  const subjects = teacherProfile?.subjectId
-    ? allSubjects.filter((subject) => subject.id === teacherProfile.subjectId)
+  // A teacher may teach more than one assigned subject (`teacherProfiles.
+  // subjectIds`, set by an Admin -- TASK-2402) -- the schedule form's
+  // Subject picker is limited to those, not every subject in the center.
+  const subjects = teacherProfile?.subjectIds && teacherProfile.subjectIds.length > 0
+    ? allSubjects.filter((subject) => teacherProfile.subjectIds!.includes(subject.id))
     : allSubjects;
   const pendingPayments = (await paymentService.listForTeacher(session, "pending")).filter(
     (payment) => payment.method === "vodafone_cash" || payment.method === "bank_transfer",

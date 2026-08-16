@@ -64,6 +64,22 @@ async function resolveFolder(session: Session, input: SignUploadInput): Promise<
       assertTeacherOwnsResource(session, lesson);
       return `teachers/${session.uid}/courses/${lesson.courseId}/lessons/${lesson.id}/files`;
     }
+    case "lesson-video": {
+      // TASK-2201 — same existing-lesson + ownership check as
+      // `lesson-file`, but a dedicated folder segment
+      // (`docs/cloudinary/README.md`'s reserved `.../video/` path) so a
+      // lesson's single video upload doesn't mix into its attachments
+      // list.
+      if (!input.lessonId) {
+        throw new ValidationError();
+      }
+      const lesson = await lessonRepository.findById(input.lessonId);
+      if (!lesson) {
+        throw new NotFoundError();
+      }
+      assertTeacherOwnsResource(session, lesson);
+      return `teachers/${session.uid}/courses/${lesson.courseId}/lessons/${lesson.id}/video`;
+    }
     default: {
       const _exhaustive: never = input.target;
       throw new ValidationError();

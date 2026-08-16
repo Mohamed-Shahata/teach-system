@@ -155,5 +155,33 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // ---------------------------------------------------------------
+    // lessonProgress/{studentId_lessonId} — TASK-2501 (Phase 25).
+    // Student-reported watch-time signal, not a teacher-editable
+    // resource. `teacherId` is intentionally NOT denormalized onto this
+    // doc (unlike most owned collections) since a teacher only ever
+    // needs read access here, never write — the lesson's own
+    // `teacherId` is what would gate that read in a tighter rule, but
+    // (per the file header) the MVP routes this through the Admin SDK,
+    // which bypasses these rules; the check below is the client-SDK
+    // defense-in-depth floor: any signed-in non-owner is denied.
+    // ---------------------------------------------------------------
+    match /lessonProgress/{progressId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.studentId);
+
+      allow create: if isSignedIn()
+        && request.auth.uid == request.resource.data.studentId
+        && progressId == request.resource.data.studentId + '_' + request.resource.data.lessonId;
+
+      // studentId/lessonId are immutable after creation — only the
+      // watch-time fields and updatedAt may change.
+      allow update: if isSignedIn()
+        && request.auth.uid == resource.data.studentId
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.lessonId == resource.data.lessonId;
+
+      allow delete: if false;
+    }
   }
 }

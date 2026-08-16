@@ -198,4 +198,47 @@
 - Description: A dedicated screen (outside any course) for a teacher to create/edit/publish standalone exams — same builder as `QuizManager`/`QuestionManager` (TASK-1203) but entry point is `teacher/exams`, not a course detail page. The existing `teacher/exams/page.tsx` route already exists as a placeholder per `architecture/folder-structure.md` — this task fills it in.
 - Dependencies: TASK-2101, TASK-1203
 - Affected modules: `app/[locale]/(protected)/teacher/exams/page.tsx`, `components/teacher/quiz-manager.tsx` (branch for course-less mode)
-- Status: Not Started
+- Status: Done
+
+> New `quizRepository.listByTeacher(teacherId)` — queries `teacherId
+> ==` only (same "query one field, filter/sort the rest in JS" idiom
+> as `listByCourse`/`listByStage`), filters out course-attached quizzes
+> in JS since Firestore can't combine an equality filter with a
+> field-is-absent filter in one query.
+> New `quizService.listStandaloneQuizzes(session)` — teacher-only
+> (`assertRole(session, "teacher")`); an Admin has no own `teacherId`
+> to scope a list by, and this list backs a route already under
+> `teacher/*` (role-gated by `proxy.ts`), so Admin support wasn't
+> needed here the way TASK-2101's create endpoint needed it.
+> New route `GET/POST /api/quizzes` — mirrors `/api/courses/[courseId]/
+> quizzes`'s shape minus the `courseId` param; `POST` reuses
+> `createQuizSchema`/`quizService.createQuiz` as-is (TASK-2101 already
+> handles the course-less branch).
+> `teacher/exams/page.tsx` — filled in the TASK-701 placeholder:
+> fetches the teacher's standalone quizzes + `educationStages` (same
+> lookup call `teacher/courses` already makes) and renders `QuizManager`
+> without a `courseId`.
+> `QuizManager` (`components/teacher/quiz-manager.tsx`) gained a
+> course-less branch instead of a new component, per "No Duplicate
+> Functionality": `courseId` is now optional, list/create/update calls
+> switch to `/api/quizzes` when absent, and the create/edit dialog
+> renders `stageId` (`Select`, from a new `stages` prop) + `scheduledAt`
+> (`datetime-local` `Input`, converted to/from epoch ms) fields only in
+> that mode — required by `createQuizSchema`'s `refine`s. Publish
+> toggle, delete, and the "manage questions" link are unchanged and
+> shared between both modes; `teacher/quizzes/[quizId]/page.tsx`
+> (TASK-1203/2104) already handles course-less quizzes on the detail
+> side, so no changes were needed there.
+> Added `messages/en.json`/`ar.json` `teacherDashboard.quizzes.fields.
+> stage`/`stagePlaceholder`/`scheduledAt`. No nav change needed — the
+> `teacher/exams` sidebar entry already existed (TASK-701 placeholder).
+> Extended `quizService.test.ts` (new `describe` block:
+> `listStandaloneQuizzes` — teacher happy path incl. the exact
+> `listByTeacher` call arg, rejects student, rejects admin) and added a
+> `quizListByTeacher` mock to the shared `quizRepository` mock. No
+> repository-level test file exists for `quizRepository` (none did
+> before this task either — same gap TASK-2101's note already
+> flagged). Could not run the suite — no `node_modules`/network in this
+> sandbox (same limitation as every prior task in this phase); did a
+> bracket-balance pass over every touched file instead of `node
+> --check`, since these are `.ts`/`.tsx`.

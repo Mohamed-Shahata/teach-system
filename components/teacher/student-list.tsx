@@ -10,6 +10,8 @@ import type { StudentSummary } from "@/lib/server/services/studentService";
 
 interface StudentListProps {
   students: StudentSummary[];
+  /** Locale-prefixed path the row link/detail action point into. Defaults to the teacher's own students list (TASK-1002); TASK-2403's Admin drill-down passes `/admin/teachers/{teacherId}/students` instead. */
+  basePath?: string;
 }
 
 /**
@@ -18,12 +20,17 @@ interface StudentListProps {
  * links to `/teacher/students/[studentId]` for the detail view (enrolled
  * courses + progress). Create-a-student stays in `StudentManager`
  * (TASK-1000) on the same page, unchanged.
+ *
+ * TASK-2403 reuses this component read-only for the Admin's per-teacher
+ * drill-down (`basePath` swaps the link target; there's no create form
+ * in that context).
  */
-export function StudentList({ students }: StudentListProps) {
+export function StudentList({ students, basePath }: StudentListProps) {
   const t = useTranslations("teacherDashboard.students");
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const format = useFormatter();
+  const base = basePath ?? "/teacher/students";
 
   const columns: Column<StudentSummary>[] = [
     {
@@ -31,7 +38,7 @@ export function StudentList({ students }: StudentListProps) {
       header: t("list.columns.name"),
       render: (student) => (
         <Link
-          href={`/${locale}/teacher/students/${student.uid}`}
+          href={`/${locale}${base}/${student.uid}`}
           className="font-medium text-primary hover:underline"
         >
           {student.displayName}
@@ -68,7 +75,7 @@ export function StudentList({ students }: StudentListProps) {
         actionsLabel={tCommon("actions")}
         rowActions={(student) => (
           <Link
-            href={`/${locale}/teacher/students/${student.uid}`}
+            href={`/${locale}${base}/${student.uid}`}
             className={cn(
               "inline-flex h-8 items-center justify-center rounded-full border border-border bg-transparent px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",

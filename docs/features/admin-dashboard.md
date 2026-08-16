@@ -23,7 +23,11 @@ analytics/BI tooling in the MVP (e.g. no custom date-range reports,
 no export). See `docs/tasks/phase-19-admin-dashboard.md` for the
 task-by-task breakdown.
 
-## Planned additions (Phase 24)
+## Extensions (Phase 24)
 Center-wide course visibility, multi-subject teachers, and a per-teacher
-student drill-down are planned in `docs/tasks/phase-24-admin-
-oversight.md`.
+student drill-down were added per `docs/tasks/phase-24-admin-
+oversight.md` (all three tasks now `Done`): a read-only Admin course
+overview (`admin/courses`), `teacherProfiles.subjectIds` (a teacher may
+now be assigned more than one subject), and a "View students" action on
+each teacher row opening a read-only per-teacher student list + detail
+view (reusing the teacher-facing `StudentList`/`StudentDetailView`).

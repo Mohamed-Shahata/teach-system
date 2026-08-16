@@ -149,6 +149,35 @@ students and other teachers get read-only access.
 
 Indexes: `(courseId, order)`.
 
+## `lessonProgress/{studentId_lessonId}`
+
+Purpose: TASK-2501 (Phase 25) — fine-grained, per-lesson watch-time
+tracking, a second signal alongside `enrollments.progress
+.completedLessonIds` (the existing binary completed/not-completed
+flag, which this collection does not replace). Folded into
+`enrollment.progress.percent` by TASK-2503.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| studentId | string | yes | |
+| lessonId | string | yes | |
+| watchedSeconds | number | yes | cumulative seconds watched, default `0` |
+| videoDurationSeconds | number | yes | from the player, may be updated if it changes |
+| lastPositionSeconds | number | yes | last reported playhead position, default `0` |
+| updatedAt | timestamp | yes | |
+
+Document id: `${studentId}_${lessonId}` (composite key, same pattern as
+`enrollments/{studentId}_{courseId}`) — the common "my progress on this
+lesson" lookup is a direct doc read, so no query index is needed for it.
+No index is added yet for a teacher-side "all students' progress on this
+lesson" query either; TASK-2504 (per-student progress view) adds one if
+its access pattern needs it.
+
+Authorization: a student may only read/write their own doc
+(`studentId == request.auth.uid`); the owning teacher (via the lesson's
+`teacherId`) and Admin may read but not write — this collection is a
+student-reported signal, not something a teacher edits directly.
+
 ## `enrollments/{enrollmentId}`
 
 | Field | Type | Required | Notes |

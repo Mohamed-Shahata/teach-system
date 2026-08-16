@@ -3,24 +3,43 @@
 import * as React from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { Alert, Badge, Button, Dialog, EmptyState, Input, Switch } from "@/components/ui";
+import { Alert, Badge, Button, Dialog, EmptyState, Input, Select, Switch } from "@/components/ui";
 import type { QuizDoc } from "@/lib/server/repositories/quizRepository";
+import type { EducationStageDoc } from "@/lib/server/repositories/educationStageRepository";
 
 interface QuizManagerProps {
-  courseId: string;
+  /** Present for a course's quiz list; absent for the standalone-exam builder (TASK-2105) — see the course-less branch below. */
+  courseId?: string;
   initialQuizzes: QuizDoc[];
+  /** Course-less mode only — the stage picker for a new/edited standalone exam's `stageId`. */
+  stages?: EducationStageDoc[];
 }
 
 interface FormState {
   id?: string;
   titleEn: string;
   titleAr: string;
+  /** Course-less mode only. */
+  stageId: string;
+  /** Course-less mode only — `datetime-local` string; converted to epoch ms on submit. */
+  scheduledAt: string;
 }
 
-const EMPTY_FORM: FormState = { titleEn: "", titleAr: "" };
+const EMPTY_FORM: FormState = { titleEn: "", titleAr: "", stageId: "", scheduledAt: "" };
+
+function toDatetimeLocal(epochMs: number): string {
+  const date = new Date(epochMs - new Date(epochMs).getTimezoneOffset() * 60_000);
+  return date.toISOString().slice(0, 16);
+}
 
 function toFormState(quiz: QuizDoc): FormState {
-  return { id: quiz.id, titleEn: quiz.title.en, titleAr: quiz.title.ar };
+  return {
+    id: quiz.id,
+    titleEn: quiz.title.en,
+    titleAr: quiz.title.ar,
+    stageId: quiz.stageId ?? "",
+    scheduledAt: quiz.scheduledAt ? toDatetimeLocal(quiz.scheduledAt) : "",
+  };
 }
 
 /**
@@ -28,8 +47,16 @@ function toFormState(quiz: QuizDoc): FormState {
  * management for a given quiz lives on its own page — see
  * `QuestionManager` — reached via each quiz's "manage" link, same
  * split as `LessonManager` (course-level) vs a lesson's own fields.
+ *
+ * TASK-2105 — reused as-is for the `teacher/exams` standalone-exam
+ * builder when `courseId` is absent: the list/create/update endpoints
+ * switch to the course-less `/api/quizzes` routes, and the create/edit
+ * dialog gains `stageId`/`scheduledAt` fields (required by
+ * `createQuizSchema` when `courseId` is absent) instead of relying on a
+ * course's own scope. Everything else — publish toggle, delete,
+ * "manage questions" link — is identical between the two modes.
  */
-export function QuizManager({ courseId, initialQuizzes }: QuizManagerProps) {
+export function QuizManager({ courseId, initialQuizzes, stages = [] }: QuizManagerProps) {
   const t = useTranslations("teacherDashboard.quizzes");
   const locale = useLocale();
   const [quizzes, setQuizzes] = React.useState(initialQuizzes);
@@ -38,6 +65,9 @@ export function QuizManager({ courseId, initialQuizzes }: QuizManagerProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [pendingAction, setPendingAction] = React.useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<QuizDoc | null>(null);
+
+  const listUrl = courseId ? `/api/courses/${courseId}/quizzes` : "/api/quizzes";
+  const stageOptions = stages.map((stage) => ({ value: stage.id, label: stage.name.en || stage.name.ar }));
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -56,7 +86,7 @@ export function QuizManager({ courseId, initialQuizzes }: QuizManagerProps) {
   }
 
   async function refresh() {
-    const res = await fetch(`/api/courses/${courseId}/quizzes`);
+    const res = await fetch(listUrl);
     if (!res.ok) throw new Error("refresh");
     const body = (await res.json()) as { quizzes: QuizDoc[] };
     setQuizzes(body.quizzes);
@@ -67,10 +97,15 @@ export function QuizManager({ courseId, initialQuizzes }: QuizManagerProps) {
     setError(null);
     setPendingAction("save");
     try {
-      const res = await fetch(form.id ? `/api/quizzes/${form.id}` : `/api/courses/${courseId}/quizzes`, {
+      const body: Record<string, unknown> = { title: { en: form.titleEn, ar: form.titleAr } };
+      if (!courseId) {
+        body.stageId = form.stageId;
+        body.scheduledAt = new Date(form.scheduledAt).getTime();
+      }
+      const res = await fetch(form.id ? `/api/quizzes/${form.id}` : listUrl, {
         method: form.id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: { en: form.titleEn, ar: form.titleAr } }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         setError(t("errors.save"));
@@ -200,6 +235,25 @@ export function QuizManager({ courseId, initialQuizzes }: QuizManagerProps) {
               required
             />
           </div>
+          {!courseId && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Select
+                label={t("fields.stage")}
+                options={stageOptions}
+                placeholder={t("fields.stagePlaceholder")}
+                value={form.stageId}
+                onChange={(event) => updateField("stageId", event.target.value)}
+                required
+              />
+              <Input
+                type="datetime-local"
+                label={t("fields.scheduledAt")}
+                value={form.scheduledAt}
+                onChange={(event) => updateField("scheduledAt", event.target.value)}
+                required
+              />
+            </div>
+          )}
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
               {t("cancel")}

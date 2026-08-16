@@ -17,8 +17,8 @@ const stageIdField = z.string().min(1);
 const phoneField = z.string().trim().min(6).max(20);
 /** Age in years — optional; shown alongside `stageId` for students and standalone for teachers. */
 const ageField = z.number().int().min(2).max(25);
-/** ref into `subjects` — the single subject a teacher is assigned to teach (one specialization per teacher). */
-const subjectIdField = z.string().min(1);
+/** refs into `subjects` — the subject(s) a teacher is assigned to teach (TASK-2402: a teacher may now have more than one). */
+const subjectIdsField = z.array(z.string().min(1)).min(1);
 
 /** Roles an Admin may assign when creating an account. Never `admin` itself in the MVP. */
 export const adminCreatableRoleSchema = z.enum(["teacher", "student"]);
@@ -39,7 +39,7 @@ export const createAccountSchema = z
     phone: phoneField.optional(),
     stageId: stageIdField.optional(),
     age: ageField.optional(),
-    subjectId: subjectIdField.optional(),
+    subjectIds: subjectIdsField.optional(),
   })
   .refine((data) => data.role !== "student" || !!data.stageId, {
     message: "errors.validation",
@@ -68,7 +68,7 @@ export const updateTeacherProfileSchema = z.object({
   displayName: displayNameField.optional(),
   email: emailField.optional(),
   phone: phoneField.optional(),
-  subjectId: subjectIdField.optional(),
+  subjectIds: subjectIdsField.optional(),
   disabled: z.boolean().optional(),
 });
 export type UpdateTeacherProfileInput = z.infer<typeof updateTeacherProfileSchema>;
