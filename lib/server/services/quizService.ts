@@ -4,6 +4,7 @@ import type { Session } from "@/lib/auth/session";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { enrollmentRepository } from "@/lib/server/repositories/enrollmentRepository";
 import { educationStageRepository } from "@/lib/server/repositories/educationStageRepository";
+import { userRepository } from "@/lib/server/repositories/userRepository";
 import { resolveOwnerTeacherId } from "@/lib/server/repositories/base";
 import { quizRepository, type QuizDoc } from "@/lib/server/repositories/quizRepository";
 import {
@@ -48,17 +49,21 @@ async function loadOwnedQuiz(session: Session, quizId: string): Promise<QuizDoc>
  * below) and the student must hold a non-cancelled enrollment in the
  * quiz's course. Admin bypasses the enrollment check, same as everywhere
  * else `assertStudentEnrolled` is used.
+ *
+ * TASK-2104 — a standalone (course-less) exam has no enrollment to
+ * check: gates on the signed-in student's own `stageId` matching the
+ * quiz's `stageId` instead, and on `scheduledAt` having already
+ * passed (same "doesn't exist yet" `NotFoundError` reasoning as the
+ * draft-quiz case, rather than a distinct "not open yet" error).
  */
 async function loadQuizForStudent(session: Session, quizId: string): Promise<QuizDoc> {
   const quiz = await quizRepository.findById(quizId);
   if (!quiz || quiz.status !== "published") throw new NotFoundError();
   if (!quiz.courseId) {
-    // Standalone stage-wide exams (TASK-2101) aren't student-readable through
-    // this course-enrollment-gated path yet — the stage-targeted read/take
-    // flow is TASK-2104 (Not Started). Treat as not-found in the meantime,
-    // same "doesn't exist as far as this caller is concerned" reasoning as
-    // the draft-quiz case above.
-    throw new NotFoundError();
+    if (!quiz.scheduledAt || quiz.scheduledAt > Date.now()) throw new NotFoundError();
+    const student = await userRepository.findById(session.uid);
+    if (!student || student.stageId !== quiz.stageId) throw new NotFoundError();
+    return quiz;
   }
   const enrollment = await enrollmentRepository.findByStudentAndCourse(session.uid, quiz.courseId);
   assertStudentEnrolled(session, enrollment);
@@ -183,6 +188,24 @@ export const quizService = {
       throw new ValidationError();
     }
     return quizRepository.update(session, id, { questionIds, updatedAt: Date.now() });
+  },
+
+  /**
+   * TASK-2104 — a student's "exams for my stage" list: published,
+   * already-open (`scheduledAt <= now`) standalone exams targeting the
+   * signed-in student's own `stageId`. A student with no `stageId` set
+   * (shouldn't happen per account creation, but not guaranteed at the
+   * type level) simply sees an empty list rather than an error.
+   */
+  async listExamsForStudent(session: Session): Promise<QuizDoc[]> {
+    assertRole(session, "student");
+    const student = await userRepository.findById(session.uid);
+    if (!student?.stageId) return [];
+    const quizzes = await quizRepository.listByStage(student.stageId);
+    const now = Date.now();
+    return quizzes
+      .filter((quiz) => quiz.status === "published" && !!quiz.scheduledAt && quiz.scheduledAt <= now)
+      .sort((a, b) => (b.scheduledAt ?? 0) - (a.scheduledAt ?? 0));
   },
 
   // -- Questions --------------------------------------------------------

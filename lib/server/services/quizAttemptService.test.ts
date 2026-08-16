@@ -8,6 +8,7 @@ const listByStudentAndQuiz = vi.fn();
 const listByQuiz = vi.fn();
 const attemptFindById = vi.fn();
 const attemptUpdate = vi.fn();
+const userFindById = vi.fn();
 
 vi.mock("@/lib/server/repositories/quizRepository", () => ({
   quizRepository: { findById: quizFindById },
@@ -15,6 +16,10 @@ vi.mock("@/lib/server/repositories/quizRepository", () => ({
 
 vi.mock("@/lib/server/repositories/enrollmentRepository", () => ({
   enrollmentRepository: { findByStudentAndCourse },
+}));
+
+vi.mock("@/lib/server/repositories/userRepository", () => ({
+  userRepository: { findById: userFindById },
 }));
 
 vi.mock("@/lib/server/repositories/questionRepository", () => ({
@@ -98,6 +103,7 @@ describe("quizAttemptService.submitAttempt", () => {
     findByStudentAndCourse.mockResolvedValue(enrollment);
     questionFindByIds.mockResolvedValue(questions);
     attemptCreate.mockImplementation(async (doc) => ({ id: "attempt-1", ...doc }));
+    userFindById.mockResolvedValue(null);
   });
 
   it("scores a fully correct submission as 100", async () => {
@@ -208,6 +214,52 @@ describe("quizAttemptService.submitAttempt", () => {
         answers: [{ questionId: "q-1", selectedOptionIds: ["b"] }],
       }),
     ).rejects.toThrow(ValidationError);
+  });
+
+  it("accepts a submission for a standalone exam when the student's stage matches (TASK-2104)", async () => {
+    quizFindById.mockResolvedValue({ ...quiz, courseId: undefined, stageId: "stage-1", scheduledAt: 1_000 });
+    userFindById.mockResolvedValue({ uid: "student-1", stageId: "stage-1" });
+    vi.useFakeTimers();
+    vi.setSystemTime(2_000);
+
+    const attempt = await quizAttemptService.submitAttempt(makeSession("student"), "quiz-1", {
+      answers: [
+        { questionId: "q-1", selectedOptionIds: ["b"] },
+        { questionId: "q-2", selectedOptionIds: ["t"] },
+      ],
+    });
+
+    expect(attempt.score).toBe(100);
+    expect(findByStudentAndCourse).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it("rejects a standalone exam submission from a student in a different stage", async () => {
+    quizFindById.mockResolvedValue({ ...quiz, courseId: undefined, stageId: "stage-1", scheduledAt: 1_000 });
+    userFindById.mockResolvedValue({ uid: "student-1", stageId: "stage-2" });
+    vi.useFakeTimers();
+    vi.setSystemTime(2_000);
+
+    await expect(
+      quizAttemptService.submitAttempt(makeSession("student"), "quiz-1", {
+        answers: [{ questionId: "q-1", selectedOptionIds: ["b"] }],
+      }),
+    ).rejects.toThrow(ForbiddenError);
+    vi.useRealTimers();
+  });
+
+  it("rejects a standalone exam submission before it has opened", async () => {
+    quizFindById.mockResolvedValue({ ...quiz, courseId: undefined, stageId: "stage-1", scheduledAt: 5_000 });
+    userFindById.mockResolvedValue({ uid: "student-1", stageId: "stage-1" });
+    vi.useFakeTimers();
+    vi.setSystemTime(2_000);
+
+    await expect(
+      quizAttemptService.submitAttempt(makeSession("student"), "quiz-1", {
+        answers: [{ questionId: "q-1", selectedOptionIds: ["b"] }],
+      }),
+    ).rejects.toThrow(NotFoundError);
+    vi.useRealTimers();
   });
 });
 

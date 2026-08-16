@@ -521,6 +521,7 @@
       "subtitle": "Learning Portal",
       "landmark": "Student navigation",
       "myCourses": "My courses",
+      "exams": "Exams",
       "settings": "Settings"
     },
     "topbarTitle": "Student Dashboard",
@@ -581,6 +582,18 @@
     "errors": {
       "incomplete": "Answer every question before submitting.",
       "submit": "Could not submit your answers. Please try again."
+    }
+  },
+  "studentExams": {
+    "title": "Exams",
+    "subtitle": "Standalone exams open for your education stage.",
+    "emptyTitle": "No exams open right now",
+    "emptyDescription": "Exams scheduled for your stage will show up here once they open.",
+    "openExam": "Open exam",
+    "breadcrumbExams": "Exams",
+    "takeSubtitle": "Answer every question, then submit to see your score.",
+    "errors": {
+      "load": "Could not load exams."
     }
   },
   "adminDashboard": {

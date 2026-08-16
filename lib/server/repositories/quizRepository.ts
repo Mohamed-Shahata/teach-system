@@ -67,6 +67,12 @@ export const quizRepository = {
     return snap.docs.map((doc) => toQuizDoc(doc.id, doc.data())).sort((a, b) => a.createdAt - b.createdAt);
   },
 
+  /** Every quiz targeting an education stage — standalone exams only (`courseId`-bearing quizzes never set `stageId`); `quizService.listExamsForStudent` (TASK-2104) filters to published + open in JS, same "filter/sort after the query" idiom as `listByCourse`. */
+  async listByStage(stageId: string): Promise<QuizDoc[]> {
+    const snap = await adminDb.collection(COLLECTION).where("stageId", "==", stageId).get();
+    return snap.docs.map((doc) => toQuizDoc(doc.id, doc.data()));
+  },
+
   async findById(id: string): Promise<QuizDoc | null> {
     const snap = await adminDb.collection(COLLECTION).doc(id).get();
     return snap.exists ? toQuizDoc(snap.id, snap.data() ?? {}) : null;

@@ -6,6 +6,7 @@ import { enrollmentRepository } from "@/lib/server/repositories/enrollmentReposi
 import { questionRepository, type QuestionDoc } from "@/lib/server/repositories/questionRepository";
 import { quizAttemptRepository, type QuizAttemptDoc } from "@/lib/server/repositories/quizAttemptRepository";
 import { quizRepository } from "@/lib/server/repositories/quizRepository";
+import { userRepository } from "@/lib/server/repositories/userRepository";
 import type { SubmitQuizAttemptInput } from "@/lib/validation/quiz.schema";
 
 /**
@@ -54,15 +55,22 @@ export const quizAttemptService = {
       throw new ValidationError();
     }
     if (!quiz.courseId) {
-      // Standalone stage-wide exams (TASK-2101) skip the enrollment check by
-      // design, but the stage-gated variant of that skip is TASK-2104 (Not
-      // Started) — until it lands, treat as not-found rather than letting
-      // any student submit against it.
-      throw new NotFoundError();
+      // TASK-2104 — a standalone stage-wide exam has no course
+      // enrollment to check; gate on the student's own `stageId`
+      // matching the quiz's target stage instead. Not open yet
+      // (`scheduledAt` in the future) is treated the same as
+      // not-found, same reasoning as `quizService.loadQuizForStudent`.
+      if (!quiz.scheduledAt || quiz.scheduledAt > Date.now()) {
+        throw new NotFoundError();
+      }
+      const student = await userRepository.findById(session.uid);
+      if (!student || student.stageId !== quiz.stageId) {
+        throw new ForbiddenError();
+      }
+    } else {
+      const enrollment = await enrollmentRepository.findByStudentAndCourse(session.uid, quiz.courseId);
+      assertStudentEnrolled(session, enrollment);
     }
-
-    const enrollment = await enrollmentRepository.findByStudentAndCourse(session.uid, quiz.courseId);
-    assertStudentEnrolled(session, enrollment);
 
     const questions = await questionRepository.findByIds(quiz.questionIds);
 

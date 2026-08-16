@@ -137,7 +137,62 @@
 - Description: A student needs somewhere to see exams that aren't attached to any course — "exams for my stage." New endpoint listing published, `scheduledAt <= now` quizzes where `quiz.stageId === session user's stageId` (and `courseId` is absent). Reuses `quizService.listQuestionsForStudent`/`QuizTaker` (TASK-1204) for the actual taking flow — a standalone exam still needs a `courseId`-free variant of the enrollment check in `quizAttemptService.submitAttempt` (skip `assertStudentEnrolled` when `quiz.courseId` is absent; gate on stage match instead).
 - Dependencies: TASK-2101, TASK-1204
 - Affected modules: `app/api/exams/route.ts` (new, student-facing list), `lib/server/services/quizService.ts`, `lib/server/services/quizAttemptService.ts`, `app/[locale]/(protected)/student/exams/page.tsx` (new)
-- Status: Not Started
+- Status: Done
+
+> New `quizRepository.listByStage(stageId)` — queries `stageId ==`
+> only (course-attached quizzes never set `stageId`), same
+> "query one field, filter/sort the rest in JS" idiom as `listByCourse`.
+> New `quizService.listExamsForStudent(session)`: looks up the
+> signed-in student's own `stageId` via `userRepository.findById`
+> (added as a new dependency of this service), returns `[]` if unset
+> rather than erroring, then filters `listByStage`'s result to
+> `status === "published"` and `scheduledAt <= now`, sorted most-
+> recently-opened first.
+> `quizService`'s `loadQuizForStudent` (the `getQuiz` student branch,
+> TASK-1204/2101) now actually implements the standalone-exam case
+> instead of the placeholder `NotFoundError` TASK-2101 left in its
+> place: for a `courseId`-absent quiz, checks `scheduledAt` has
+> passed and the student's own `stageId` (`userRepository`) matches
+> the quiz's `stageId`, `NotFoundError` either way (same "doesn't
+> exist yet" reasoning as the draft-quiz/unenrolled-student cases it
+> sits next to).
+> `quizAttemptService.submitAttempt` gets the matching change: a
+> `courseId`-absent quiz used to always `throw NotFoundError()`
+> (TASK-2101's explicit placeholder); now checks `scheduledAt` the
+> same way (`NotFoundError` if not open yet) and the student's
+> `stageId` match (`ForbiddenError` if it doesn't — enrollment
+> mismatches throw `ForbiddenError` too via `assertStudentEnrolled`,
+> so this keeps the same error shape as the course-attached path).
+> New route `GET /api/exams` — thin wrapper over
+> `listExamsForStudent`, no `quizId` in the path since it's a list
+> endpoint, mirrors `GET /api/courses`'s shape.
+> New page `student/exams/page.tsx` — card grid of open exams, links
+> to a new (not itemized in the task's affected-modules list, but
+> needed to reach the description's "actual taking flow") `student/
+> exams/[quizId]/page.tsx`, which reuses `quizService.getQuiz` +
+> `quizService.listQuestionsForStudent` + `quizAttemptService.
+> listMyAttempts` + the existing `QuizTaker` component exactly as
+> `student/courses/[courseId]/quizzes/[quizId]/page.tsx` (TASK-1204)
+> does — 404s if the resolved quiz turns out to be course-attached,
+> so the two routes stay mutually exclusive. Added an "Exams" entry
+> to `student-sidebar.tsx` (`NAV_ITEMS`) so the new list page is
+> actually reachable — course quizzes are still only reached by
+> navigating from a course card, this is only for the stage-wide
+> kind. `proxy.ts`'s role-gating already covers any `student/*`
+> segment, so no route-guard changes were needed there.
+> Added `messages/en.json`/`ar.json` under `studentExams` (new
+> namespace) and `studentDashboard.nav.exams`.
+> Extended `quizService.test.ts` (new `describe` block: standalone
+> exam read — matching stage, mismatched stage, not-yet-open;
+> `listExamsForStudent` — happy path, filters unopened/unpublished,
+> empty for no `stageId`) and `quizAttemptService.test.ts`
+> (`submitAttempt` standalone-exam cases: matching stage, mismatched
+> stage, not-yet-open). Also backfilled `userRepository`/
+> `educationStageRepository` mocks into `quizService.test.ts`, which
+> TASK-2101's note had already flagged as missing. Could not run the
+> suite — no `node_modules`/network in this sandbox (same limitation
+> as every prior task here); did a bracket-balance pass over every
+> touched file instead of `node --check`, since these are `.ts`/`.tsx`.
 
 ## TASK-2105: Teacher-facing standalone exam management
 - Description: A dedicated screen (outside any course) for a teacher to create/edit/publish standalone exams — same builder as `QuizManager`/`QuestionManager` (TASK-1203) but entry point is `teacher/exams`, not a course detail page. The existing `teacher/exams/page.tsx` route already exists as a placeholder per `architecture/folder-structure.md` — this task fills it in.

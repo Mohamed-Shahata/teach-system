@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const quizListByCourse = vi.fn();
 const quizFindById = vi.fn();
@@ -15,14 +15,26 @@ const questionDelete = vi.fn();
 
 const getCourse = vi.fn();
 const findByStudentAndCourse = vi.fn();
+const userFindById = vi.fn();
+const quizListByStage = vi.fn();
+const stageFindById = vi.fn();
 
 vi.mock("@/lib/server/repositories/enrollmentRepository", () => ({
   enrollmentRepository: { findByStudentAndCourse },
 }));
 
+vi.mock("@/lib/server/repositories/userRepository", () => ({
+  userRepository: { findById: userFindById },
+}));
+
+vi.mock("@/lib/server/repositories/educationStageRepository", () => ({
+  educationStageRepository: { findById: stageFindById },
+}));
+
 vi.mock("@/lib/server/repositories/quizRepository", () => ({
   quizRepository: {
     listByCourse: quizListByCourse,
+    listByStage: quizListByStage,
     findById: quizFindById,
     create: quizCreate,
     update: quizUpdate,
@@ -106,6 +118,14 @@ describe("quizService", () => {
     questionUpdate.mockImplementation(async (_session, id, patch) => ({ ...question, id, ...patch }));
     questionDelete.mockResolvedValue(question);
     findByStudentAndCourse.mockResolvedValue(null);
+    userFindById.mockResolvedValue(null);
+    quizListByStage.mockResolvedValue([]);
+    stageFindById.mockResolvedValue({
+      id: "stage-1",
+      order: 1,
+      name: { en: "Stage", ar: "مرحلة" },
+      category: "primary",
+    });
   });
 
   it("lists quizzes for a course after verifying course ownership", async () => {
@@ -258,5 +278,75 @@ describe("quizService", () => {
     expect(questionDelete).toHaveBeenCalledWith(session, "q-1");
     expect(questionDelete).toHaveBeenCalledWith(session, "q-2");
     expect(quizDelete).toHaveBeenCalledWith(session, "quiz-1");
+  });
+});
+
+describe("quizService — standalone stage-wide exams (TASK-2104)", () => {
+  const standaloneQuiz = {
+    id: "quiz-2",
+    teacherId: "teacher-1",
+    title: { en: "Stage exam", ar: "اختبار المرحلة" },
+    status: "published" as const,
+    questionIds: ["q-1"],
+    stageId: "stage-1",
+    scheduledAt: 1_000,
+    autoGrade: true,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    quizFindById.mockResolvedValue(standaloneQuiz);
+    userFindById.mockResolvedValue({ uid: "student-1", stageId: "stage-1" });
+    quizListByStage.mockResolvedValue([standaloneQuiz]);
+    vi.useFakeTimers();
+    vi.setSystemTime(2_000);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("lets a student in the matching stage open an open standalone exam", async () => {
+    const found = await quizService.getQuiz(makeSession("student", "student-1"), "quiz-2");
+    expect(found.id).toBe("quiz-2");
+  });
+
+  it("hides a standalone exam from a student in a different stage", async () => {
+    userFindById.mockResolvedValue({ uid: "student-1", stageId: "stage-2" });
+    await expect(quizService.getQuiz(makeSession("student", "student-1"), "quiz-2")).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
+  it("hides a standalone exam that hasn't opened yet", async () => {
+    quizFindById.mockResolvedValue({ ...standaloneQuiz, scheduledAt: 3_000 });
+    await expect(quizService.getQuiz(makeSession("student", "student-1"), "quiz-2")).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
+  it("lists open, published exams for the student's own stage", async () => {
+    const exams = await quizService.listExamsForStudent(makeSession("student", "student-1"));
+    expect(exams).toEqual([standaloneQuiz]);
+    expect(quizListByStage).toHaveBeenCalledWith("stage-1");
+  });
+
+  it("excludes exams that haven't opened yet or aren't published", async () => {
+    quizListByStage.mockResolvedValue([
+      standaloneQuiz,
+      { ...standaloneQuiz, id: "quiz-3", scheduledAt: 5_000 },
+      { ...standaloneQuiz, id: "quiz-4", status: "draft" as const },
+    ]);
+    const exams = await quizService.listExamsForStudent(makeSession("student", "student-1"));
+    expect(exams.map((exam) => exam.id)).toEqual(["quiz-2"]);
+  });
+
+  it("returns an empty list for a student with no stageId set", async () => {
+    userFindById.mockResolvedValue({ uid: "student-1" });
+    const exams = await quizService.listExamsForStudent(makeSession("student", "student-1"));
+    expect(exams).toEqual([]);
+    expect(quizListByStage).not.toHaveBeenCalled();
   });
 });

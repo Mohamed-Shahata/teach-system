@@ -30,6 +30,13 @@ const NAV_ITEMS = [
     ),
   },
   {
+    segment: "exams",
+    labelKey: "exams",
+    icon: (
+      <Icon path="M9 3.5h6l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1ZM9 12h6M9 15.5h6M9 8.5h3" />
+    ),
+  },
+  {
     segment: "settings",
     labelKey: "settings",
     icon: (
@@ -39,10 +46,11 @@ const NAV_ITEMS = [
 ] as const;
 
 /**
- * TASK-1103/TASK-1005 — student sidebar. "My courses" plus "Settings"
- * (TASK-1005); the future `student/courses/[courseId]/*` lesson/quiz
- * views (folder-structure.md) are reached by navigating from a course
- * card, not a top-level nav item.
+ * TASK-1103/TASK-1005/TASK-2104 — student sidebar. "My courses",
+ * "Exams" (standalone stage-wide exams, TASK-2104), and "Settings"
+ * (TASK-1005); the `student/courses/[courseId]/*` lesson/quiz views
+ * (folder-structure.md) are reached by navigating from a course card,
+ * not a top-level nav item.
  */
 export function StudentSidebar() {
   const t = useTranslations("studentDashboard.nav");
