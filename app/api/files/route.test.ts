@@ -47,10 +47,14 @@ describe("/api/files", () => {
     expect(listFiles).toHaveBeenCalledWith(session, { courseId: undefined, lessonId: "lesson-1" });
   });
 
-  it("returns 400 when neither courseId nor lessonId is given", async () => {
+  it("lists every file for the caller's own teacherId when neither courseId nor lessonId is given (TASK-1304)", async () => {
+    listFiles.mockResolvedValue([{ id: "file-1" }, { id: "file-2" }]);
+
     const res = await GET(makeGetRequest(""));
-    expect(res.status).toBe(400);
-    expect(listFiles).not.toHaveBeenCalled();
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ files: [{ id: "file-1" }, { id: "file-2" }] });
+    expect(listFiles).toHaveBeenCalledWith(session, { courseId: undefined, lessonId: undefined });
   });
 
   it("creates a file", async () => {

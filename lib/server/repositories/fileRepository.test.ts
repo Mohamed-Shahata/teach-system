@@ -76,6 +76,20 @@ describe("fileRepository.listByCourse / listByLesson", () => {
     await fileRepository.listByLesson("lesson-1");
     expect(where).toHaveBeenCalledWith("lessonId", "==", "lesson-1");
   });
+
+  it("scopes listByTeacher by teacherId and sorts by createdAt desc (TASK-1304)", async () => {
+    getQuery.mockResolvedValue({
+      docs: [
+        { id: "file-1", data: () => ({ ...rawFileData, createdAt: 1000 }) },
+        { id: "file-2", data: () => ({ ...rawFileData, createdAt: 2000 }) },
+      ],
+    });
+
+    const result = await fileRepository.listByTeacher("teacher-1");
+
+    expect(where).toHaveBeenCalledWith("teacherId", "==", "teacher-1");
+    expect(result.map((f) => f.id)).toEqual(["file-2", "file-1"]);
+  });
 });
 
 describe("fileRepository.create", () => {

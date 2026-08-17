@@ -1,18 +1,18 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useTheme } from "@/components/theme/theme-provider";
 
-// TODO(TASK-204 - Core UI primitives): restyle using the shared `Button`
-// primitive once it exists; this is intentionally minimal/unstyled for now.
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const t = useTranslations("theme");
   const nextTheme = theme === "dark" ? "light" : "dark";
 
   return (
     <button
       type="button"
       onClick={() => setTheme(nextTheme)}
-      aria-label={`Switch to ${nextTheme} theme`}
+      aria-label={t("toggleLabel")}
       className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-foreground/70 hover:bg-surface-muted hover:text-foreground"
     >
       {theme === "dark" ? (

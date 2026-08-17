@@ -57,6 +57,29 @@ export const lessonRepository = {
     return snap.exists ? toLessonDoc(snap.id, snap.data() ?? {}) : null;
   },
 
+  /**
+   * Bulk lookup for joining a set of lesson ids to their docs (e.g. the
+   * teacher's cross-course files list, TASK-1304, joining
+   * `files.lessonId` to a title) — same chunking rationale and
+   * `courseRepository.findByIds`/`userRepository.findByIds` shape.
+   */
+  async findByIds(ids: string[]): Promise<Map<string, LessonDoc>> {
+    const unique = Array.from(new Set(ids));
+    const result = new Map<string, LessonDoc>();
+    const CHUNK = 30;
+
+    for (let i = 0; i < unique.length; i += CHUNK) {
+      const chunk = unique.slice(i, i + CHUNK);
+      if (chunk.length === 0) continue;
+      const snap = await adminDb.collection(COLLECTION).where("__name__", "in", chunk).get();
+      for (const doc of snap.docs) {
+        result.set(doc.id, toLessonDoc(doc.id, doc.data()));
+      }
+    }
+
+    return result;
+  },
+
   async create(lesson: CreateLessonDoc): Promise<LessonDoc> {
     const ref = adminDb.collection(COLLECTION).doc();
     await ref.create(lesson);

@@ -4,6 +4,7 @@ import { notificationRepository } from "@/lib/server/repositories/notificationRe
 import { scheduleRepository } from "@/lib/server/repositories/scheduleRepository";
 import { enrollmentRepository } from "@/lib/server/repositories/enrollmentRepository";
 import { userRepository } from "@/lib/server/repositories/userRepository";
+import { pushDispatchService } from "@/lib/server/services/pushDispatchService";
 import type { Session } from "@/lib/auth/session";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 
@@ -71,6 +72,9 @@ export const notificationService = {
         createdAt: now,
       })),
     );
+
+    // TASK-2603 — best-effort push on top of the in-app bell; never blocks the response.
+    await pushDispatchService.dispatchForNotifications(created);
 
     return { sentCount: created.length };
   },

@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Alert, Button, Dialog, Spinner } from "@/components/ui";
 import { uploadLessonFile } from "@/lib/client/upload";
+import { formatBytes } from "@/lib/utils/format-bytes";
 import type { FileDoc } from "@/lib/server/repositories/fileRepository";
 
 interface LessonFileManagerProps {
@@ -11,12 +12,6 @@ interface LessonFileManagerProps {
 }
 
 const MAX_LESSON_FILE_BYTES = 20 * 1024 * 1024;
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 /**
  * Per-lesson file uploader + list — TASK-1303. Signs + uploads directly

@@ -26,10 +26,24 @@ export interface TeacherProfile {
   email: string;
   displayName: string;
   avatarUrl?: string;
+  /** TASK-2604 — whether OS-level push is enabled; defaults to `true` when never toggled (see `UserDoc.pushEnabled`). */
+  pushEnabled: boolean;
 }
 
-function toProfile(user: { uid: string; email: string; displayName: string; avatarUrl?: string }): TeacherProfile {
-  return { uid: user.uid, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl };
+function toProfile(user: {
+  uid: string;
+  email: string;
+  displayName: string;
+  avatarUrl?: string;
+  pushEnabled?: boolean;
+}): TeacherProfile {
+  return {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    pushEnabled: user.pushEnabled !== false,
+  };
 }
 
 export const teacherSettingsService = {
@@ -82,5 +96,16 @@ export const teacherSettingsService = {
     await userRepository.updateAvatar(session.uid, avatarUrl, avatarPublicId);
 
     return toProfile({ ...user, displayName: user.displayName, avatarUrl });
+  },
+
+  /** TASK-2604 — the self-service push on/off toggle. */
+  async updatePushPreference(session: Session, enabled: boolean): Promise<TeacherProfile> {
+    assertRole(session, "teacher");
+    const user = await userRepository.findById(session.uid);
+    if (!user) throw new NotFoundError();
+
+    await userRepository.updatePushEnabled(session.uid, enabled);
+
+    return toProfile({ ...user, pushEnabled: enabled });
   },
 };

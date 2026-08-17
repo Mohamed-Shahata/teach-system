@@ -6,6 +6,7 @@ const markReminderSentToday = vi.fn();
 const listAllByTeacherId = vi.fn();
 const findByIds = vi.fn();
 const createMany = vi.fn();
+const dispatchForNotifications = vi.fn();
 
 vi.mock("@/lib/server/repositories/scheduleRepository", () => ({
   scheduleRepository: { listAll, markNotifiedToday, markReminderSentToday },
@@ -18,6 +19,9 @@ vi.mock("@/lib/server/repositories/userRepository", () => ({
 }));
 vi.mock("@/lib/server/repositories/notificationRepository", () => ({
   notificationRepository: { createMany },
+}));
+vi.mock("@/lib/server/services/pushDispatchService", () => ({
+  pushDispatchService: { dispatchForNotifications },
 }));
 
 const { runClassNotificationsJob } = await import("./classNotificationsJob");
@@ -70,6 +74,9 @@ describe("runClassNotificationsJob", () => {
     ]);
     expect(markNotifiedToday).toHaveBeenCalledWith("slot-1", "2026-08-18");
     expect(result.notified).toBe(1);
+    expect(dispatchForNotifications).toHaveBeenCalledWith([
+      expect.objectContaining({ recipientId: "student-match" }),
+    ]);
   });
 
   it("skips a slot with no meetingUrl for the class-starting job", async () => {
@@ -103,6 +110,9 @@ describe("runClassNotificationsJob", () => {
     ]);
     expect(markReminderSentToday).toHaveBeenCalledWith("slot-1", "2026-08-18");
     expect(result.reminded).toBe(1);
+    expect(dispatchForNotifications).toHaveBeenCalledWith([
+      expect.objectContaining({ recipientId: "teacher-1" }),
+    ]);
   });
 
   it("doesn't re-send a reminder already sent today (dedupe)", async () => {

@@ -1,11 +1,12 @@
 rules_version = '2';
 
-// Firestore Security Rules v1 — TASK-601.
+// Firestore Security Rules v1 — TASK-601, extended by TASK-1501
+// (Phase 15) to cover every collection in docs/database/collections.md.
 //
 // Scope (per docs/tasks/phase-06-ownership-access.md TASK-601): users,
 // teacherProfiles, educationStages, subjects, courses. TASK-703 adds
-// schedule. Later phases add rules for lessons, enrollments, quizzes, questions,
-// quizAttempts, files, payments — following the same isOwner(teacherId)
+// schedule. TASK-1501 adds lessons, enrollments, payments, quizzes,
+// questions, quizAttempts, files — following the same isOwner(teacherId)
 // pattern documented in docs/architecture/ownership-model.md.
 //
 // Model recap (docs/architecture/ownership-model.md):
@@ -74,6 +75,19 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy;
 
       allow delete: if false;
+
+      // -------------------------------------------------------------
+      // users/{uid}/fcmTokens/{tokenId} — TASK-2602 (Phase 26).
+      // Device push tokens, owner-only. All writes in the app go
+      // through the server (Admin SDK, /api/notifications/fcm-tokens —
+      // TASK-2602), which bypasses these rules; kept as a safety net
+      // in the same style as every other collection, per
+      // docs/firebase/README.md. Token values are never read back to
+      // any client other than their own owner.
+      // -------------------------------------------------------------
+      match /fcmTokens/{tokenId} {
+        allow read, write: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      }
     }
 
     // ---------------------------------------------------------------
@@ -130,6 +144,170 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
+    // lessons/{lessonId} — teacher-owned course content.
+    // features/lessons.md: owning teacher has full read/write; a
+    // student may read only if enrolled in the parent course
+    // (enrollments/{studentId_courseId}, status != 'cancelled') — the
+    // same composite-id lookup pattern as reviews/lessonProgress below.
+    // ---------------------------------------------------------------
+    match /lessons/{lessonId} {
+      function hasActiveEnrollment(courseId) {
+        let enrollmentId = request.auth.uid + '_' + courseId;
+        return exists(/databases/$(database)/documents/enrollments/$(enrollmentId))
+          && get(/databases/$(database)/documents/enrollments/$(enrollmentId)).data.status != 'cancelled';
+      }
+
+      allow read: if isOwner(resource.data.teacherId)
+        || (isSignedIn() && callerRole() == 'student' && hasActiveEnrollment(resource.data.courseId));
+
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+
+      allow update, delete: if isOwner(resource.data.teacherId)
+        && request.resource.data.teacherId == resource.data.teacherId;
+    }
+
+    // ---------------------------------------------------------------
+    // enrollments/{studentId_courseId} — features/enrollment.md.
+    // Server-created only (a side effect of a `payments` doc reaching
+    // succeeded/confirmed — TASK-1101) — no client-facing create path.
+    // A student may read (never write status) their own; a student may
+    // update only their own `progress` fields. The owning teacher/Admin
+    // may read but not write.
+    // ---------------------------------------------------------------
+    match /enrollments/{enrollmentId} {
+      allow read: if isAdmin()
+        || isOwner(resource.data.teacherId)
+        || (isSignedIn() && request.auth.uid == resource.data.studentId);
+
+      // Always created server-side via the payments state machine.
+      allow create: if false;
+
+      // A student may only touch `progress` — never `status`,
+      // `studentId`, `courseId`, or `teacherId`.
+      allow update: if isSignedIn()
+        && request.auth.uid == resource.data.studentId
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.courseId == resource.data.courseId
+        && request.resource.data.teacherId == resource.data.teacherId
+        && request.resource.data.status == resource.data.status;
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // payments/{paymentId} — features/payments.md.
+    // A student may create their own `pending` payment and read their
+    // own history. Only the owning teacher/Admin may confirm/reject a
+    // manual payment; `succeeded` (online gateway) is server-webhook
+    // only, never settable through a client write.
+    // ---------------------------------------------------------------
+    match /payments/{paymentId} {
+      allow read: if isAdmin()
+        || isOwner(resource.data.teacherId)
+        || (isSignedIn() && request.auth.uid == resource.data.studentId);
+
+      allow create: if isSignedIn()
+        && callerRole() == 'student'
+        && request.auth.uid == request.resource.data.studentId
+        && request.resource.data.status == 'pending'
+        && request.resource.data.method in ['vodafone_cash', 'bank_transfer'];
+
+      // Only the owning teacher/Admin may confirm/reject a pending
+      // manual payment — every other field stays immutable through
+      // this path. `succeeded` (online gateway webhook) is written by
+      // the Admin SDK, which bypasses these rules entirely.
+      allow update: if isOwner(resource.data.teacherId)
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['confirmed', 'rejected']
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.courseId == resource.data.courseId
+        && request.resource.data.teacherId == resource.data.teacherId
+        && request.resource.data.amount == resource.data.amount;
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // quizzes/{quizId} — features/quizzes.md. Owning teacher has full
+    // read/write. A published, course-attached quiz is readable by any
+    // signed-in student (enrollment is checked server-side at
+    // submission time, same "read floor, real check server-side"
+    // convention as lessons above — quiz-taking has no purely
+    // rules-expressible enrollment gate since a standalone exam's gate
+    // is a stage match, not an enrollment doc).
+    // ---------------------------------------------------------------
+    match /quizzes/{quizId} {
+      allow read: if isOwner(resource.data.teacherId)
+        || (isSignedIn() && resource.data.status == 'published');
+
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+
+      allow update, delete: if isOwner(resource.data.teacherId)
+        && request.resource.data.teacherId == resource.data.teacherId;
+    }
+
+    // ---------------------------------------------------------------
+    // questions/{questionId} — features/quizzes.md. Owning teacher
+    // only — `correctOptionIds` must never be readable by a student
+    // client, so unlike `quizzes` there is no signed-in-student read
+    // path here at all; the student-facing question list is served
+    // exclusively through the server (`questionRepository.toPublic
+    // Question` strips `correctOptionIds` before it ever reaches a
+    // response), which bypasses these rules via the Admin SDK.
+    // ---------------------------------------------------------------
+    match /questions/{questionId} {
+      allow read, write: if isOwner(resource.data.teacherId);
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------
+    // quizAttempts/{attemptId} — features/quizzes.md. A student may
+    // create/read their own attempts; `score` is always server-
+    // computed (quizAttemptService.submitAttempt), never trusted from
+    // a client write, so create requires `score == 0` — the real,
+    // non-zero auto-graded score is only ever written by the Admin
+    // SDK. The owning teacher/Admin may read every attempt at their
+    // own quiz and grade (TASK-2103) a `pending_review` one.
+    // ---------------------------------------------------------------
+    match /quizAttempts/{attemptId} {
+      allow read: if isAdmin()
+        || isOwner(resource.data.teacherId)
+        || (isSignedIn() && request.auth.uid == resource.data.studentId);
+
+      allow create: if isSignedIn()
+        && callerRole() == 'student'
+        && request.auth.uid == request.resource.data.studentId
+        && request.resource.data.score == 0;
+
+      // Grading (TASK-2103): owning teacher/Admin flips a
+      // pending_review attempt to graded with a final score — every
+      // other field stays immutable through this path.
+      allow update: if isOwner(resource.data.teacherId)
+        && resource.data.status == 'pending_review'
+        && request.resource.data.status == 'graded'
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.quizId == resource.data.quizId
+        && request.resource.data.teacherId == resource.data.teacherId
+        && request.resource.data.answers == resource.data.answers;
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // files/{fileId} — features/files.md. Owning teacher only — the
+    // signed-upload endpoint already enforces ownership before ever
+    // issuing a Cloudinary signature, this is the same defense-in-
+    // depth floor as every other teacher-owned collection. No
+    // student-facing read path is defined here: a lesson's attached
+    // files are served through the server alongside the lesson itself
+    // (Admin SDK, bypasses these rules), same as `questions` above.
+    // ---------------------------------------------------------------
+    match /files/{fileId} {
+      allow read, write: if isOwner(resource.data.teacherId);
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------
     // notifications/{notificationId} — server-created only (Phase 6,
     // TASK-1602; extended Phase 20, TASK-2002/2003). A user may
     // read/mark-read their own — `recipientId` is a student for
@@ -180,6 +358,56 @@ service cloud.firestore {
         && request.auth.uid == resource.data.studentId
         && request.resource.data.studentId == resource.data.studentId
         && request.resource.data.lessonId == resource.data.lessonId;
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // reviews/{teacherId_studentId} — TASK-2701 (Phase 27). A student's
+    // rating + comment for a teacher they have (or had) an enrollment
+    // with, shown on that teacher's public profile (TASK-2703).
+    // Eligibility (student must actually have an enrollment with this
+    // teacher) is enforced server-side by the Admin SDK at submit time
+    // (TASK-2702) — client-SDK writes here are a defense-in-depth floor
+    // only, same caveat as lessonProgress above, and cannot themselves
+    // check the enrollment relationship. `hidden` (TASK-2704) is
+    // Admin-only to set; a student can never hide/unhide their own
+    // review through this path.
+    // ---------------------------------------------------------------
+    match /reviews/{reviewId} {
+      // Public read (teacher profile pages are unauthenticated-visible,
+      // per features/public-pages.md) — but a hidden review is only
+      // visible to Admin or the teacher it's about, never the public.
+      allow read: if resource.data.hidden != true
+        || isAdmin()
+        || (isSignedIn() && request.auth.uid == resource.data.teacherId);
+
+      allow create: if isSignedIn()
+        && callerRole() == 'student'
+        && request.auth.uid == request.resource.data.studentId
+        && reviewId == request.resource.data.teacherId + '_' + request.resource.data.studentId
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.hidden == false;
+
+      // The student may edit their own rating/comment (upsert, per
+      // TASK-2701's one-review-per-pair rule) but never flip `hidden`.
+      // The Admin may only flip `hidden` (moderation, TASK-2704) — not
+      // rewrite the student's rating/comment.
+      allow update: if (isSignedIn()
+          && request.auth.uid == resource.data.studentId
+          && request.resource.data.teacherId == resource.data.teacherId
+          && request.resource.data.studentId == resource.data.studentId
+          && request.resource.data.hidden == resource.data.hidden
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5)
+        || (isAdmin()
+          && request.resource.data.teacherId == resource.data.teacherId
+          && request.resource.data.studentId == resource.data.studentId
+          && request.resource.data.rating == resource.data.rating
+          && request.resource.data.comment == resource.data.comment);
 
       allow delete: if false;
     }

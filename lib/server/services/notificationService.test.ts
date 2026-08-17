@@ -6,6 +6,7 @@ const findByIds = vi.fn();
 const createMany = vi.fn();
 const listByStudent = vi.fn();
 const markRead = vi.fn();
+const dispatchForNotifications = vi.fn();
 
 vi.mock("@/lib/server/repositories/scheduleRepository", () => ({
   scheduleRepository: { findById },
@@ -18,6 +19,9 @@ vi.mock("@/lib/server/repositories/userRepository", () => ({
 }));
 vi.mock("@/lib/server/repositories/notificationRepository", () => ({
   notificationRepository: { createMany, listByStudent, markRead },
+}));
+vi.mock("@/lib/server/services/pushDispatchService", () => ({
+  pushDispatchService: { dispatchForNotifications },
 }));
 
 const { notificationService } = await import("./notificationService");
@@ -68,6 +72,9 @@ describe("notificationService.sendMeetingLink", () => {
       expect.objectContaining({ recipientId: "student-match", meetingUrl: slot.meetingUrl, stageId: "secondary-3" }),
     ]);
     expect(result.sentCount).toBe(1);
+    expect(dispatchForNotifications).toHaveBeenCalledWith([
+      expect.objectContaining({ recipientId: "student-match" }),
+    ]);
   });
 
   it("throws if the slot has no meetingUrl set yet", async () => {

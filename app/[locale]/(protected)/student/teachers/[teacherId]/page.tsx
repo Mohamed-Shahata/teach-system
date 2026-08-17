@@ -4,10 +4,12 @@ import { requireSession } from "@/lib/auth/session";
 import { assertRole } from "@/lib/auth/guards";
 import { NotFoundError } from "@/lib/errors";
 import { teacherDirectoryService } from "@/lib/server/services/teacherDirectoryService";
+import { reviewService } from "@/lib/server/services/reviewService";
 import type { LocalizedText } from "@/lib/server/repositories/subjectRepository";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/states";
 import { Badge, Breadcrumb } from "@/components/ui";
+import { TeacherReviewForm } from "@/components/student/teacher-review-form";
 
 /**
  * TASK-2303 — a single teacher's published courses, reached from
@@ -39,6 +41,11 @@ export default async function StudentTeacherCoursesPage({
     if (err instanceof NotFoundError) notFound();
     throw err;
   }
+
+  // TASK-2702 — this page is only ever reached via the student's own
+  // "my teachers" list (TASK-2301/2303), so eligibility already holds;
+  // this just prefills the form with any existing review, no re-check.
+  const myReview = await reviewService.getMyReview(session, teacherId);
 
   return (
     <div className="flex flex-col gap-6">
@@ -85,6 +92,8 @@ export default async function StudentTeacherCoursesPage({
           ))}
         </div>
       )}
+
+      <TeacherReviewForm teacherId={teacherId} initialReview={myReview} />
     </div>
   );
 }

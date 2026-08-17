@@ -56,6 +56,15 @@ and TASK-2105 (teacher management UI) remain Not Started.
 `autoGrade: false` quizzes still store the student's raw `answers`, but
 the attempt is written with `status: "pending_review"` and `score: 0`
 (a placeholder, not a real result) instead of running `computeScore` —
-a teacher grades it by hand next (TASK-2103, Not Started, which is also
-what will actually surface `pending_review` attempts anywhere in the
-UI). TASK-2103–2105 remain Not Started.
+a teacher grades it by hand instead (TASK-2103).
+
+**Phase 21 is now fully `Done`** (all five tasks, TASK-2101–2105).
+TASK-2103 added the teacher-facing manual grading UI
+(`QuizGrading`, mounted alongside `QuizManager`) for `pending_review`
+attempts. TASK-2104 added the stage-targeted read/list/take flow for
+standalone exams (a student-facing list scoped by `stageId` instead of
+course enrollment, plus the corresponding `getQuiz`/`submitAttempt`
+branch that no longer rejects an absent `courseId`). TASK-2105 added
+the teacher-facing management UI for creating/editing standalone
+exams. See `docs/tasks/phase-21-standalone-exams.md` for the
+per-task detail.

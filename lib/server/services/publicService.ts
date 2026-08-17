@@ -5,6 +5,7 @@ import {
   type PublicCourse,
   type PublicTeacherProfile,
 } from "@/lib/server/repositories/publicRepository";
+import { reviewService, type TeacherReviewSummary } from "@/lib/server/services/reviewService";
 
 /**
  * Public service — TASK-1402.
@@ -21,6 +22,8 @@ import {
 export interface PublicTeacherPage {
   profile: PublicTeacherProfile;
   courses: PublicCourse[];
+  /** TASK-2703 — average rating + visible reviews, always present (zeroed/empty when the teacher has none yet). */
+  reviews: TeacherReviewSummary;
 }
 
 export interface PublicCoursePage {
@@ -37,7 +40,8 @@ export const publicService = {
       throw new NotFoundError();
     }
     const courses = await publicRepository.listPublishedCoursesByTeacher(profile.teacherId);
-    return { profile, courses };
+    const reviews = await reviewService.getPublicSummary(profile.teacherId);
+    return { profile, courses, reviews };
   },
 
   /**

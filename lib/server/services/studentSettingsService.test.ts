@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const findById = vi.fn();
 const updateDisplayName = vi.fn();
 const updateAvatar = vi.fn();
+const updatePushEnabled = vi.fn();
 vi.mock("@/lib/server/repositories/userRepository", () => ({
-  userRepository: { findById, updateDisplayName, updateAvatar },
+  userRepository: { findById, updateDisplayName, updateAvatar, updatePushEnabled },
 }));
 
 const updateUser = vi.fn();
@@ -53,6 +54,7 @@ describe("studentSettingsService.getProfile", () => {
       email: "student-1@example.com",
       displayName: "Nour",
       avatarUrl: undefined,
+      pushEnabled: true,
     });
   });
 });
@@ -139,5 +141,32 @@ describe("studentSettingsService.updateAvatar", () => {
       studentSettingsService.updateAvatar(makeSession(), "https://example.com/new.jpg", "pub-new"),
     ).resolves.toBeTruthy();
     expect(updateAvatar).toHaveBeenCalledWith("student-1", "https://example.com/new.jpg", "pub-new");
+  });
+});
+
+describe("studentSettingsService.updatePushPreference", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejects a non-student session", async () => {
+    await expect(studentSettingsService.updatePushPreference(makeSession("admin"), false)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+  });
+
+  it("throws NotFoundError if the user doc is missing", async () => {
+    findById.mockResolvedValue(null);
+    await expect(studentSettingsService.updatePushPreference(makeSession(), false)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
+  it("persists the toggle and reflects it in the returned profile", async () => {
+    findById.mockResolvedValue(STUDENT_USER);
+    updatePushEnabled.mockResolvedValue(undefined);
+
+    const result = await studentSettingsService.updatePushPreference(makeSession(), false);
+
+    expect(updatePushEnabled).toHaveBeenCalledWith("student-1", false);
+    expect(result.pushEnabled).toBe(false);
   });
 });

@@ -7,9 +7,11 @@ import { courseService } from "@/lib/server/services/courseService";
 import { quizService } from "@/lib/server/services/quizService";
 import { educationStageRepository } from "@/lib/server/repositories/educationStageRepository";
 import { quizAttemptService } from "@/lib/server/services/quizAttemptService";
+import { examReportService } from "@/lib/server/services/examReportService";
 import { Breadcrumb } from "@/components/ui";
 import { QuestionManager } from "@/components/teacher/question-manager";
 import { QuizGrading } from "@/components/teacher/quiz-grading";
+import { ExamResultsPanel } from "@/components/teacher/exam-results-panel";
 
 /**
  * TASK-1203: a single quiz's question builder — reached from the
@@ -30,13 +32,16 @@ export default async function TeacherQuizDetailPage({
     if (err instanceof NotFoundError) notFound();
     throw err;
   }
-  const [course, stage, questions, attempts] = await Promise.all([
+  const [course, stage, questions, attempts, report] = await Promise.all([
     quiz.courseId ? courseService.getCourse(session, quiz.courseId) : null,
     quiz.stageId ? educationStageRepository.findById(quiz.stageId) : null,
     quizService.listQuestions(session, quizId),
     // TASK-2103 — the grading queue only makes sense for manually-graded
     // quizzes; skip the extra fetch for auto-graded ones.
     quiz.autoGrade === false ? quizAttemptService.listAttemptsForQuiz(session, quizId) : Promise.resolve([]),
+    // TASK-2801/2804 — the results/export panel applies to every exam
+    // regardless of grading mode, unlike the manual-grading queue above.
+    examReportService.getReportData(session, quizId),
   ]);
 
   const breadcrumbItems = course
@@ -59,6 +64,7 @@ export default async function TeacherQuizDetailPage({
       {quiz.autoGrade === false && (
         <QuizGrading quizId={quizId} questions={questions} initialAttempts={attempts} />
       )}
+      <ExamResultsPanel examId={quizId} initialReport={report} />
     </div>
   );
 }

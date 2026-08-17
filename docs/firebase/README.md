@@ -7,6 +7,10 @@
 - **Firebase Security Rules** — Firestore access control.
 - **Firebase Admin SDK** — server-only, used in repositories and
   middleware for privileged reads/writes and session verification.
+- **Firebase Cloud Messaging** — client-side push notifications
+  (TASK-2601, Phase 26). Service worker at `public/firebase-messaging-sw.js`,
+  client wiring in `lib/client/firebaseMessaging.ts`. Not yet wired into
+  any UI — see that file's own doc comment and the Phase 26 task notes.
 
 ## Client vs Admin SDK usage
 

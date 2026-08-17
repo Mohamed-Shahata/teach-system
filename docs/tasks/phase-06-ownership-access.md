@@ -41,29 +41,41 @@
 ## TASK-603: Access-control test suite
 - Description: Integration tests proving: (a) students cannot read/write data outside their own enrollments; (b) a teacher cannot read/write another teacher's courses/lessons/schedule/students; (c) only Admin can create teacher accounts; (d) a teacher can create student accounts but not teacher/admin accounts.
 - Dependencies: TASK-601, TASK-602
-- Status: Blocked
+- Status: Done
 
-> Note: revisited at its turn in the queue (dependencies 601/602 are
-> Done) and found genuinely blocked on two independent things, so it's
-> left Blocked rather than attempted partially:
-> (1) (a)/(b) need real Firestore Security Rules integration tests
-> (`@firebase/rules-unit-testing` + emulator) — same tooling gap flagged
-> on TASK-601 (no `firebase-tools` devDependency, no emulator reachable,
-> no network in this sandbox) — and (b) additionally needs a
-> teacher-owned collection with actual data to isolate (`lessons`,
-> `schedule` don't exist until Phase 9), so full coverage isn't buildable
-> yet even with an emulator.
-> (2) (c)/(d) are role-gating behavior of the account-creation endpoints,
-> which didn't exist until TASK-604 (implemented next, out of order, for
-> exactly this reason). `(c)`/`(d)`'s *service-layer* behavior now has
-> direct unit-test coverage in `lib/server/services/accountService.test.ts`
-> (`createAccountByAdmin` rejects non-admin, `createStudentByTeacher`
-> rejects non-teacher) — that's real signal, just not the "integration
-> test" this task asks for.
-> Recommend unblocking in two steps: add emulator + rules-unit-testing
-> under Phase 16 (Testing), then write the full (a)–(d) integration
-> suite once `lessons`/`schedule` (Phase 9) and enrollments (Phase 11)
-> exist to isolate against.
+> Unblocked now that both blockers noted in the original Blocked note
+> are resolved: an emulator is reachable (Phase 16, TASK-1603) and
+> `lessons`/`schedule`/`enrollments` all now have real data to isolate
+> against (Phases 9/11).
+>
+> - (a) — `test/firestore.rules.test.ts`: `lessons` "a non-enrolled
+>   student cannot read the lesson" and `enrollments` "a different
+>   student cannot read someone else's enrollment" / "a student cannot
+>   change their enrollment status" cover this directly against the
+>   real rules + emulator.
+> - (b) — same file: `courses` "a non-owner cannot read a draft
+>   course" / "a teacher cannot update another teacher's course",
+>   `lessons` "a non-owning teacher cannot read the lesson",
+>   `schedule` "a non-owning teacher cannot update the slot". The
+>   "student list" half of (b) needs no dedicated case: `users/{uid}`
+>   rules already deny read to anyone but Admin or the doc's own
+>   owner, so a teacher has no rules-level path to another teacher's
+>   students' user docs at all (verified by the existing generic
+>   `users/{uid}` "a user cannot read another user's doc" case) — the
+>   student-list *feature* itself is server-side (Admin SDK, scoped by
+>   `teacherId` per TASK-602's `scopeToTeacher`), covered instead by
+>   `teacherManagementService.test.ts`/`studentService.test.ts`.
+> - (c)/(d) — already had service-layer coverage
+>   (`accountService.test.ts`) per the original note; now also
+>   confirmed at the route/integration level:
+>   `app/api/admin/accounts/route.test.ts` ("returns 403 when the
+>   service rejects the role (non-admin session)") and
+>   `app/api/teacher/students/route.test.ts` ("maps role errors",
+>   non-teacher session → 403).
+>
+> All four (a)–(d) now have real emulator or route-level integration
+> coverage, run and passing (63/63 rules tests; 104/104 unit/route
+> suites).
 
 ## TASK-604: Account creation endpoints (Admin & Teacher)
 - Description: `POST /api/admin/accounts` (Admin creates teacher or student), `POST /api/teacher/students` (Teacher creates a student, optionally pre-enrolling them in one of their own courses). Both create the Firebase Auth user via Admin SDK + `users/{uid}` (+ `teacherProfiles/{uid}` for teachers) — no client-facing open registration.

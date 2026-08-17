@@ -10,5 +10,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // firestore.rules.test.ts needs a live Firestore emulator (TASK-1603)
+    // and is not reachable in CI/sandbox yet — run it explicitly via
+    // `npm run test:rules`, kept out of the default `npm test` suite.
+    exclude: ["**/node_modules/**", "test/firestore.rules.test.ts"],
   },
 });

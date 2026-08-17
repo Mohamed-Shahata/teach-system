@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { Alert, Button, Card, Input } from "@/components/ui";
+import { Alert, Button, Card, Input, Switch } from "@/components/ui";
 import { uploadImage } from "@/lib/client/upload";
+import { requestPushToken, syncPushToken } from "@/lib/client/firebaseMessaging";
 import type { StudentProfile } from "@/lib/server/services/studentSettingsService";
 
 interface StudentSettingsFormProps {
@@ -33,6 +34,9 @@ export function StudentSettingsForm({ initialProfile }: StudentSettingsFormProps
   const [uploadingAvatar, setUploadingAvatar] = React.useState(false);
   const [avatarError, setAvatarError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const [pushSaving, setPushSaving] = React.useState(false);
+  const [pushError, setPushError] = React.useState<string | null>(null);
 
   async function onSubmitName(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,6 +101,40 @@ export function StudentSettingsForm({ initialProfile }: StudentSettingsFormProps
   }
 
   const initial = profile.displayName.trim().charAt(0).toUpperCase() || "?";
+
+  /**
+   * TASK-2604 — enabling registers this device (TASK-2601's
+   * `requestPushToken` + TASK-2602's `syncPushToken`, both previously
+   * unwired) before persisting the preference; disabling only flips the
+   * server-side flag (`pushDispatchService` skips the recipient
+   * entirely, TASK-2603) since there's no need to unregister the device.
+   */
+  async function onTogglePush(next: boolean) {
+    setPushError(null);
+    setPushSaving(true);
+    try {
+      if (next) {
+        const token = await requestPushToken();
+        if (!token || !(await syncPushToken(token))) {
+          setPushError(t("errors.pushPermission"));
+          return;
+        }
+      }
+
+      const res = await fetch("/api/student/settings/push", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      if (!res.ok) throw new Error("push");
+      const body = (await res.json()) as { profile: StudentProfile };
+      setProfile(body.profile);
+    } catch {
+      setPushError(t("errors.updatePush"));
+    } finally {
+      setPushSaving(false);
+    }
+  }
 
   return (
     <section className="flex max-w-xl flex-col gap-4">
@@ -191,6 +229,20 @@ export function StudentSettingsForm({ initialProfile }: StudentSettingsFormProps
             </Button>
           </div>
         )}
+      </Card>
+
+      <Card className="flex flex-col gap-4 p-6">
+        <h2 className="text-base font-semibold text-foreground">{t("push.title")}</h2>
+        <p className="text-sm leading-6 text-foreground/60">{t("push.description")}</p>
+
+        {pushError && <Alert variant="error">{pushError}</Alert>}
+
+        <Switch
+          checked={profile.pushEnabled}
+          onCheckedChange={onTogglePush}
+          disabled={pushSaving}
+          label={t("push.enableLabel")}
+        />
       </Card>
     </section>
   );

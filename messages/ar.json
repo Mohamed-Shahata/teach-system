@@ -521,6 +521,31 @@
           "save": "تعذّر حفظ هذه الدرجة.",
           "scoreRange": "أدخل رقمًا صحيحًا بين 0 و100."
         }
+      },
+      "resultsPanel": {
+        "title": "النتائج",
+        "subtitle": "كل محاولة في هذا الامتحان، الأعلى درجة أولاً.",
+        "emptyTitle": "لا توجد محاولات بعد",
+        "emptyDescription": "ستظهر النتائج هنا بمجرد أن يبدأ الطلاب هذا الامتحان.",
+        "export": "تصدير",
+        "exportPdf": "تصدير كملف PDF",
+        "exportXlsx": "تصدير كملف Excel",
+        "columns": {
+          "student": "الطالب",
+          "score": "الدرجة",
+          "status": "الحالة",
+          "submittedAt": "تاريخ التسليم"
+        },
+        "summary": {
+          "attempts": "عدد المحاولات: {count}",
+          "average": "المتوسط: {value}",
+          "highest": "الأعلى: {value}",
+          "lowest": "الأقل: {value}",
+          "passRate": "نسبة النجاح: {value}%"
+        },
+        "errors": {
+          "export": "تعذر تصدير النتائج. حاول مرة أخرى."
+        }
       }
     },
     "settings": {
@@ -547,7 +572,39 @@
       "errors": {
         "updateName": "تعذر تحديث اسمك المعروض. حاول مرة أخرى.",
         "updateAvatar": "تعذر تحديث صورتك الشخصية. حاول مرة أخرى.",
-        "resetLink": "تعذر إنشاء رابط إعادة التعيين. حاول مرة أخرى."
+        "resetLink": "تعذر إنشاء رابط إعادة التعيين. حاول مرة أخرى.",
+        "updatePush": "تعذر تحديث إعداد الإشعارات الفورية. حاول مرة أخرى.",
+        "pushPermission": "تحتاج الإشعارات الفورية إلى إذن من المتصفح — يرجى السماح بالإشعارات والمحاولة مرة أخرى."
+      },
+      "push": {
+        "title": "الإشعارات الفورية",
+        "description": "احصل على إشعار من النظام أو المتصفح عند بدء الحصة، بالإضافة إلى الجرس أعلاه — منفصل عنه، حتى تتمكن من الاحتفاظ بالشارة دون التنبيه.",
+        "enableLabel": "تفعيل الإشعارات الفورية"
+      }
+    },
+    "files": {
+      "title": "الملفات",
+      "subtitle": "كل الملفات اللي رفعتها، من كل الكورسات والدروس.",
+      "columns": {
+        "name": "الملف",
+        "course": "الكورس",
+        "lesson": "الدرس",
+        "unattached": "مش مرتبط بكورس",
+        "size": "الحجم",
+        "uploaded": "تاريخ الرفع"
+      },
+      "searchPlaceholder": "دور باسم الملف أو الكورس أو الدرس",
+      "noResultsTitle": "مفيش ملفات مطابقة",
+      "noResultsDescription": "جرب كلمة بحث تانية.",
+      "emptyTitle": "لسه مفيش ملفات",
+      "emptyDescription": "الملفات اللي هترفعها في أي درس هتظهر هنا.",
+      "delete": "حذف",
+      "cancel": "إلغاء",
+      "deleteConfirmTitle": "تحذف الملف ده؟",
+      "deleteConfirmDescription": "ده هيشيل الملف من Cloudinary، ولو مرتبط بدرس هيتشال منه كمان. الإجراء ده مش قابل للتراجع.",
+      "confirmDelete": "حذف الملف",
+      "errors": {
+        "delete": "تعذر حذف الملف."
       }
     }
   },
@@ -598,7 +655,14 @@
       "errors": {
         "updateName": "تعذر تحديث اسمك المعروض. حاول مرة أخرى.",
         "updateAvatar": "تعذر تحديث صورتك الشخصية. حاول مرة أخرى.",
-        "resetLink": "تعذر إنشاء رابط إعادة التعيين. حاول مرة أخرى."
+        "resetLink": "تعذر إنشاء رابط إعادة التعيين. حاول مرة أخرى.",
+        "updatePush": "تعذر تحديث إعداد الإشعارات الفورية. حاول مرة أخرى.",
+        "pushPermission": "تحتاج الإشعارات الفورية إلى إذن من المتصفح — يرجى السماح بالإشعارات والمحاولة مرة أخرى."
+      },
+      "push": {
+        "title": "الإشعارات الفورية",
+        "description": "احصل على إشعار من النظام أو المتصفح عند بدء الحصة، بالإضافة إلى الجرس أعلاه — منفصل عنه، حتى تتمكن من الاحتفاظ بالشارة دون التنبيه.",
+        "enableLabel": "تفعيل الإشعارات الفورية"
       }
     },
     "meetingNotifications": {
@@ -787,7 +851,8 @@
       "editTitle": "تعديل حساب المعلم",
       "editDescription": "قم بتحديث بيانات هذا المعلم.",
       "viewStudents": "عرض الطلاب",
-      "studentsPageTitle": "طلاب {name}"
+      "studentsPageTitle": "طلاب {name}",
+      "viewReviews": "عرض التقييمات"
     },
     "students": {
       "title": "الطلاب",
@@ -953,6 +1018,23 @@
       "statusDraft": "مسودة",
       "statusPublished": "منشور",
       "empty": "لا توجد كورسات مطابقة لهذه الفلاتر."
+    },
+    "reviews": {
+      "pageTitle": "تقييمات {name}",
+      "empty": "لا توجد تقييمات بعد.",
+      "hidden": "مخفي",
+      "visible": "ظاهر",
+      "hide": "إخفاء",
+      "unhide": "إظهار",
+      "columns": {
+        "rating": "التقييم",
+        "comment": "التعليق",
+        "status": "الحالة",
+        "actions": "إجراءات"
+      },
+      "errors": {
+        "toggle": "تعذّر تحديث التقييم. حاول مرة أخرى."
+      }
     }
   },
   "landing": {
@@ -1106,7 +1188,10 @@
       "coursesHeading": "الكورسات",
       "emptyCourses": "لسه المعلم مانشرش أي كورسات.",
       "notFoundTitle": "المعلم غير موجود",
-      "notFoundDescription": "بروفايل المعلم ده مش موجود أو مش متاح للعامة."
+      "notFoundDescription": "بروفايل المعلم ده مش موجود أو مش متاح للعامة.",
+      "reviewsHeading": "التقييمات",
+      "averageRating": "{rating} من 5 ({count, plural, =0 {بدون تقييمات} one {تقييم واحد} two {تقييمان} other {# تقييمات}})",
+      "emptyReviews": "لا توجد تقييمات بعد."
     },
     "coursePage": {
       "byTeacher": "بواسطة {name}",
@@ -1123,6 +1208,21 @@
     "coursesCount": "{count, plural, =0 {لا كورسات} one {كورس واحد} other {# كورسات}}",
     "emptyCoursesTitle": "لا توجد كورسات منشورة بعد",
     "enrolledBadge": "مسجَّل",
-    "availableBadge": "متاح"
+    "availableBadge": "متاح",
+    "review": {
+      "title": "أضف تقييمًا",
+      "editTitle": "تقييمك",
+      "ratingLabel": "التقييم",
+      "ratingValue": "{value} من 5",
+      "commentLabel": "تعليق (اختياري)",
+      "submitButton": "إرسال التقييم",
+      "saveButton": "حفظ التعديلات",
+      "submitSuccess": "شكرًا — تم نشر تقييمك.",
+      "editSuccess": "تم تحديث تقييمك.",
+      "errors": {
+        "ratingRequired": "من فضلك اختر تقييمًا.",
+        "submit": "تعذّر حفظ تقييمك. حاول مرة أخرى."
+      }
+    }
   }
 }

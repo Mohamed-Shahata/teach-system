@@ -40,6 +40,16 @@ export interface UserDoc {
   avatarUrl?: string;
   /** Cloudinary `public_id` backing `avatarUrl` — needed to destroy the old asset when it's replaced. */
   avatarPublicId?: string;
+  /** Preferred locale (`database/collections.md`) — used e.g. by `pushDispatchService` (TASK-2603) to localize push notification text. Absent means "no preference recorded", not necessarily `en`. */
+  locale?: "en" | "ar";
+  /**
+   * TASK-2604 — per-user opt-out for OS-level push, separate from the
+   * in-app bell (which always stays on). Absent/`undefined` is treated
+   * as `true` (push enabled by default), same "no migration needed"
+   * convention as `canCreateStudents` — existing users who never saw
+   * the toggle keep getting pushes for devices they've registered.
+   */
+  pushEnabled?: boolean;
   createdAt: number;
 }
 
@@ -168,5 +178,10 @@ export const userRepository = {
    */
   async updateAvatar(uid: string, avatarUrl: string, avatarPublicId: string): Promise<void> {
     await adminDb.collection(COLLECTION).doc(uid).update({ avatarUrl, avatarPublicId });
+  },
+
+  /** TASK-2604 — the self-service push on/off toggle. */
+  async updatePushEnabled(uid: string, pushEnabled: boolean): Promise<void> {
+    await adminDb.collection(COLLECTION).doc(uid).update({ pushEnabled });
   },
 };

@@ -121,3 +121,80 @@
 > `eslint .` both clean (same 10 pre-existing `PageProps`/`LayoutProps`
 > tsc errors from missing Next.js generated types, unrelated to this
 > work, and the same 4 pre-existing lint warnings).
+
+## TASK-1304: Standalone teacher files page
+- Description: The `/teacher/files` nav route (TASK-701's placeholder, deliberately left "coming soon" by TASK-1303) had no real page behind it even though a per-lesson uploader/list existed — a teacher clicking "Files" in the sidebar landed on dead content. Build the cross-course view TASK-1303 explicitly deferred: every file the signed-in teacher owns, across every course/lesson, with a search filter and delete.
+- Dependencies: TASK-1302, TASK-204
+- Affected modules: `app/[locale]/(protected)/teacher/files/page.tsx`, `components/teacher/teacher-files-manager.tsx` (new), `lib/server/repositories/fileRepository.ts`, `lib/server/repositories/lessonRepository.ts`, `lib/server/services/fileService.ts`, `lib/validation/file.schema.ts`
+- Status: Done
+
+> Found while auditing the app for un-implemented-but-linked pages —
+> the sidebar's "Files" entry (`teacherDashboard.nav.files`) always
+> pointed at this route, but it only ever rendered
+> `{t("common.comingSoon")}"`, permanently, per TASK-1303's own note
+> ("the standalone `/teacher/files` route... is intentionally left as
+> 'coming soon'"). That was a reasonable scope cut at the time (no
+> cross-course view had been asked for), but it left a real dead link
+> in the nav — worth closing now that it's the only "coming soon" page
+> left with a live sidebar entry pointing at it.
+>
+> Data model didn't change — a file is still only ever created
+> attached to a lesson or a bare course (`docs/database/collections.md`
+> is unchanged); this task only adds a *read* path over the existing
+> `files/{fileId}` docs, teacher-scoped instead of course/lesson-scoped:
+> - `fileRepository.listByTeacher(teacherId)` — new, same
+>   `where("teacherId", "==", ...)` + sort-by-`createdAt`-desc shape as
+>   the existing `listByCourse`/`listByLesson`.
+> - `lessonRepository.findByIds(ids)` — new, added because this page
+>   needs to join `files.lessonId` to a lesson title; mirrors
+>   `courseRepository.findByIds`'s existing chunked `where("__name__",
+>   "in", chunk)` pattern (`courseRepository` already had this from
+>   TASK-1002's student-detail join; `lessonRepository` never needed
+>   one until now).
+> - `fileService.listFiles` gains a third branch: when neither
+>   `courseId` nor `lessonId` is given, it now returns
+>   `fileRepository.listByTeacher(session.uid)` instead of throwing —
+>   previously `listFilesQuerySchema`'s `refine` rejected that case
+>   outright (`errors.validation`, a 400). `teacherId` is always
+>   `session.uid`, never a client-supplied param, same rule the other
+>   two branches already followed. Existing `courseId`/`lessonId`
+>   behavior (`LessonFileManager`'s per-lesson calls) is unchanged —
+>   this is a strictly additive third case, not a rewrite.
+> - `listFilesQuerySchema`'s `refine` was removed accordingly — both
+>   fields are simply optional now, "list everything" being a valid
+>   query rather than a validation error. Updated the two tests that
+>   asserted the old "must supply one" behavior
+>   (`app/api/files/route.test.ts`, `lib/server/services/fileService
+>   .test.ts`) to assert the new "lists everything, scoped to my own
+>   teacherId" behavior instead, plus a new `fileRepository.test.ts`
+>   case for `listByTeacher` itself.
+>
+> New `TeacherFilesManager` (`components/teacher/teacher-files-manager
+> .tsx`, client component): a searchable table (file name/link, course,
+> lesson, size, upload date) with a delete action reusing the exact
+> confirm-dialog flow `LessonFileManager` (TASK-1303) already has —
+> `DELETE /api/files/[fileId]`, which cascades the Cloudinary asset and
+> the owning lesson's `fileIds` server-side (`fileService.deleteFile`,
+> unchanged). No upload entry point here on purpose: uploading still
+> only makes sense attached to a specific lesson (or, in principle, a
+> bare course), so `LessonFileManager` stays the only place a file gets
+> created — this page is a read/search/delete surface over the same
+> underlying docs, not a second upload flow.
+> Extracted `formatBytes` (previously private to `lesson-file-manager
+> .tsx`) into `lib/utils/format-bytes.ts` so both components share one
+> copy instead of duplicating it.
+> New `teacherDashboard.files.*` keys added to both `messages/en.json`
+> and `messages/ar.json` (864 keys in sync, `npm run check-translations`
+> passes); `npm run check-rtl` passes — no physical `left`/`right`
+> classes introduced.
+>
+> Full verification, run for real in this environment (network was
+> available this session, unlike most of the project's history):
+> `npm install` (770 packages), `npx next build` (production,
+> Turbopack) — compiled successfully, all routes including
+> `/[locale]/teacher/files` generated; `npx tsc --noEmit` clean;
+> `npx eslint .` — 0 errors, same 5 pre-existing warnings, none new;
+> `npx vitest run` — **104/104 files, 640/640 tests passing** (639
+> pre-existing + 1 new `listByTeacher` case, plus the two rewritten
+> ones above); `npm run check-translations` and `npm run check-rtl`
+> both pass.

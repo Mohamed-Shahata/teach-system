@@ -22,12 +22,15 @@ export const createFileSchema = z.object({
 });
 export type CreateFileInput = z.infer<typeof createFileSchema>;
 
-export const listFilesQuerySchema = z
-  .object({
-    courseId: z.string().trim().min(1).optional(),
-    lessonId: z.string().trim().min(1).optional(),
-  })
-  .refine((data) => Boolean(data.courseId || data.lessonId), {
-    message: "errors.validation",
-  });
+/**
+ * Both are optional: courseId/lessonId narrow the list (per-lesson
+ * uploader, per-course future use); omitting both means "every file
+ * this teacher has ever uploaded" (TASK-1304's standalone files page),
+ * scoped server-side to the session's own teacherId, never a query
+ * param — see `fileService.listFiles`.
+ */
+export const listFilesQuerySchema = z.object({
+  courseId: z.string().trim().min(1).optional(),
+  lessonId: z.string().trim().min(1).optional(),
+});
 export type ListFilesQuery = z.infer<typeof listFilesQuerySchema>;

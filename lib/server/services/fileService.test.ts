@@ -5,6 +5,7 @@ const createFileDoc = vi.fn();
 const deleteFileDoc = vi.fn();
 const listByCourse = vi.fn();
 const listByLesson = vi.fn();
+const listByTeacher = vi.fn();
 
 const findLessonById = vi.fn();
 const updateLesson = vi.fn();
@@ -19,6 +20,7 @@ vi.mock("@/lib/server/repositories/fileRepository", () => ({
     delete: deleteFileDoc,
     listByCourse,
     listByLesson,
+    listByTeacher,
   },
 }));
 
@@ -37,7 +39,7 @@ vi.mock("@/lib/server/cloudinary", () => ({
 }));
 
 const { fileService } = await import("./fileService");
-const { ForbiddenError, NotFoundError, ValidationError } = await import("@/lib/errors");
+const { ForbiddenError, NotFoundError } = await import("@/lib/errors");
 
 function makeSession(role: "admin" | "teacher" | "student", uid = "teacher-1") {
   return { uid, email: `${uid}@example.com`, role };
@@ -144,8 +146,11 @@ describe("fileService.createFile", () => {
 });
 
 describe("fileService.listFiles", () => {
-  it("requires courseId or lessonId", async () => {
-    await expect(fileService.listFiles(makeSession("teacher"), {})).rejects.toBeInstanceOf(ValidationError);
+  it("lists every file for the caller's own teacherId when neither courseId nor lessonId is given (TASK-1304)", async () => {
+    listByTeacher.mockResolvedValue([file]);
+    const result = await fileService.listFiles(makeSession("teacher"), {});
+    expect(listByTeacher).toHaveBeenCalledWith("teacher-1");
+    expect(result).toEqual([file]);
   });
 
   it("lists by lesson after verifying ownership", async () => {

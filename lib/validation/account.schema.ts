@@ -136,3 +136,14 @@ export const updateTeacherPermissionsSchema = z.object({
   canCreateStudents: z.boolean(),
 });
 export type UpdateTeacherPermissionsInput = z.infer<typeof updateTeacherPermissionsSchema>;
+
+/**
+ * `PATCH /api/student/settings/push` and `/api/teacher/settings/push`
+ * body — TASK-2604's per-user push on/off toggle
+ * (`users/{uid}.pushEnabled`), separate from the in-app bell which
+ * always stays on.
+ */
+export const updatePushEnabledSchema = z.object({
+  enabled: z.boolean(),
+});
+export type UpdatePushEnabledInput = z.infer<typeof updatePushEnabledSchema>;

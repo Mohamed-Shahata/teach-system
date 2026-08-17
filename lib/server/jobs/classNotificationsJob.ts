@@ -3,6 +3,7 @@ import { scheduleRepository } from "@/lib/server/repositories/scheduleRepository
 import { enrollmentRepository } from "@/lib/server/repositories/enrollmentRepository";
 import { userRepository } from "@/lib/server/repositories/userRepository";
 import { notificationRepository, type CreateNotificationDoc } from "@/lib/server/repositories/notificationRepository";
+import { pushDispatchService } from "@/lib/server/services/pushDispatchService";
 import type { ScheduleSlotDoc } from "@/lib/server/repositories/scheduleRepository";
 
 /** TASK-2003 default — minutes before `startTime` the teacher reminder fires. */
@@ -88,7 +89,9 @@ async function notifyStudentsClassIsStarting(slots: ScheduleSlotDoc[], dateKey: 
     }));
 
     if (notifications.length > 0) {
-      await notificationRepository.createMany(notifications);
+      const created = await notificationRepository.createMany(notifications);
+      // TASK-2603 — best-effort push alongside the in-app bell.
+      await pushDispatchService.dispatchForNotifications(created);
       notified += notifications.length;
     }
 
@@ -117,7 +120,9 @@ async function remindTeachersClassIsUpcoming(slots: ScheduleSlotDoc[], dateKey: 
   }));
 
   if (notifications.length > 0) {
-    await notificationRepository.createMany(notifications);
+    const created = await notificationRepository.createMany(notifications);
+    // TASK-2603 — best-effort push alongside the in-app bell.
+    await pushDispatchService.dispatchForNotifications(created);
   }
 
   for (const slot of slots) {

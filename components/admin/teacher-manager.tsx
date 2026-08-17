@@ -323,6 +323,12 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
             >
               {t("viewStudents")}
             </Link>
+            <Link
+              href={`/${locale}/admin/teachers/${row.uid}/reviews`}
+              className="inline-flex h-8 items-center justify-center rounded-full border border-border bg-transparent px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              {t("viewReviews")}
+            </Link>
             <Button type="button" size="sm" variant="outline" onClick={() => setOfferingsTarget(row)}>
               {t("offerings")}
             </Button>

@@ -521,6 +521,31 @@
           "save": "Could not save this grade.",
           "scoreRange": "Enter a whole number between 0 and 100."
         }
+      },
+      "resultsPanel": {
+        "title": "Results",
+        "subtitle": "Every attempt at this exam, highest score first.",
+        "emptyTitle": "No attempts yet",
+        "emptyDescription": "Results will show up here once students take this exam.",
+        "export": "Export",
+        "exportPdf": "Export as PDF",
+        "exportXlsx": "Export as Excel",
+        "columns": {
+          "student": "Student",
+          "score": "Score",
+          "status": "Status",
+          "submittedAt": "Submitted"
+        },
+        "summary": {
+          "attempts": "Attempts: {count}",
+          "average": "Average: {value}",
+          "highest": "Highest: {value}",
+          "lowest": "Lowest: {value}",
+          "passRate": "Pass rate: {value}%"
+        },
+        "errors": {
+          "export": "Could not export the results. Please try again."
+        }
       }
     },
     "settings": {
@@ -547,7 +572,39 @@
       "errors": {
         "updateName": "Couldn't update your display name. Please try again.",
         "updateAvatar": "Couldn't update your profile picture. Please try again.",
-        "resetLink": "Couldn't generate a reset link. Please try again."
+        "resetLink": "Couldn't generate a reset link. Please try again.",
+        "updatePush": "Couldn't update your push notification setting. Please try again.",
+        "pushPermission": "Push notifications need browser permission — please allow notifications and try again."
+      },
+      "push": {
+        "title": "Push notifications",
+        "description": "Get an OS/browser notification when a class is starting, on top of the bell above — separate from it, so you can keep the badge without the interruption.",
+        "enableLabel": "Enable push notifications"
+      }
+    },
+    "files": {
+      "title": "Files",
+      "subtitle": "Every file you've uploaded, across all your courses and lessons.",
+      "columns": {
+        "name": "File",
+        "course": "Course",
+        "lesson": "Lesson",
+        "unattached": "Not attached to a course",
+        "size": "Size",
+        "uploaded": "Uploaded"
+      },
+      "searchPlaceholder": "Search by file, course, or lesson name",
+      "noResultsTitle": "No matching files",
+      "noResultsDescription": "Try a different search term.",
+      "emptyTitle": "No files yet",
+      "emptyDescription": "Files you upload to a lesson will show up here.",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "deleteConfirmTitle": "Delete this file?",
+      "deleteConfirmDescription": "This removes the file from Cloudinary and, if it's attached to a lesson, from that lesson too. This can't be undone.",
+      "confirmDelete": "Delete file",
+      "errors": {
+        "delete": "Could not delete this file."
       }
     }
   },
@@ -598,7 +655,14 @@
       "errors": {
         "updateName": "Couldn't update your display name. Please try again.",
         "updateAvatar": "Couldn't update your profile picture. Please try again.",
-        "resetLink": "Couldn't generate a reset link. Please try again."
+        "resetLink": "Couldn't generate a reset link. Please try again.",
+        "updatePush": "Couldn't update your push notification setting. Please try again.",
+        "pushPermission": "Push notifications need browser permission — please allow notifications and try again."
+      },
+      "push": {
+        "title": "Push notifications",
+        "description": "Get an OS/browser notification when a class is starting, on top of the bell above — separate from it, so you can keep the badge without the interruption.",
+        "enableLabel": "Enable push notifications"
       }
     },
     "meetingNotifications": {
@@ -787,7 +851,8 @@
       "editTitle": "Edit teacher account",
       "editDescription": "Update this teacher's details.",
       "viewStudents": "View students",
-      "studentsPageTitle": "{name}'s students"
+      "studentsPageTitle": "{name}'s students",
+      "viewReviews": "View reviews"
     },
     "students": {
       "title": "Students",
@@ -953,6 +1018,23 @@
       "statusDraft": "Draft",
       "statusPublished": "Published",
       "empty": "No courses match these filters."
+    },
+    "reviews": {
+      "pageTitle": "{name}'s reviews",
+      "empty": "No reviews yet.",
+      "hidden": "Hidden",
+      "visible": "Visible",
+      "hide": "Hide",
+      "unhide": "Unhide",
+      "columns": {
+        "rating": "Rating",
+        "comment": "Comment",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "errors": {
+        "toggle": "Could not update the review. Please try again."
+      }
     }
   },
   "landing": {
@@ -1106,7 +1188,10 @@
       "coursesHeading": "Courses",
       "emptyCourses": "This teacher hasn't published any courses yet.",
       "notFoundTitle": "Teacher not found",
-      "notFoundDescription": "This teacher profile doesn't exist or isn't public."
+      "notFoundDescription": "This teacher profile doesn't exist or isn't public.",
+      "reviewsHeading": "Reviews",
+      "averageRating": "{rating} out of 5 ({count, plural, =0 {no reviews} one {# review} other {# reviews}})",
+      "emptyReviews": "No reviews yet."
     },
     "coursePage": {
       "byTeacher": "By {name}",
@@ -1123,6 +1208,21 @@
     "coursesCount": "{count, plural, =0 {No courses} one {# course} other {# courses}}",
     "emptyCoursesTitle": "No published courses yet",
     "enrolledBadge": "Enrolled",
-    "availableBadge": "Available"
+    "availableBadge": "Available",
+    "review": {
+      "title": "Leave a review",
+      "editTitle": "Your review",
+      "ratingLabel": "Rating",
+      "ratingValue": "{value} out of 5",
+      "commentLabel": "Comment (optional)",
+      "submitButton": "Submit review",
+      "saveButton": "Save changes",
+      "submitSuccess": "Thanks — your review has been posted.",
+      "editSuccess": "Your review has been updated.",
+      "errors": {
+        "ratingRequired": "Please choose a rating.",
+        "submit": "Could not save your review. Please try again."
+      }
+    }
   }
 }

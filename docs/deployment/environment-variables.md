@@ -7,6 +7,9 @@
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase client SDK config |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase client SDK config |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase client SDK config |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Cloud Messaging (TASK-2601) — required alongside the three above for `getMessaging()` |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Cloud Messaging (TASK-2601) |
+| `NEXT_PUBLIC_FIREBASE_VAPID_KEY` | Web Push certificate key pair, from Firebase Console → Cloud Messaging (TASK-2601) — used by `getToken()` |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | used to build delivery/upload URLs client-side |
 | `NEXT_PUBLIC_CLOUDINARY_API_KEY` | required alongside a server-generated signature for signed uploads |
 

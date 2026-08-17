@@ -90,3 +90,19 @@ describe("userRepository.updateDisplayName", () => {
     expect(update).toHaveBeenCalledWith({ displayName: "New Name" });
   });
 });
+
+describe("userRepository.updatePushEnabled", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("updates the pushEnabled field on the user doc", async () => {
+    update.mockResolvedValue(undefined);
+
+    await userRepository.updatePushEnabled("u1", false);
+
+    expect(collection).toHaveBeenCalledWith("users");
+    expect(doc).toHaveBeenCalledWith("u1");
+    expect(update).toHaveBeenCalledWith({ pushEnabled: false });
+  });
+});

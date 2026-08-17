@@ -178,6 +178,44 @@ Authorization: a student may only read/write their own doc
 `teacherId`) and Admin may read but not write — this collection is a
 student-reported signal, not something a teacher edits directly.
 
+## `reviews/{teacherId_studentId}`
+
+Purpose: TASK-2701 (Phase 27) — a student's rating + short review for a
+teacher, shown on that teacher's public profile (TASK-2703). One review
+per `(teacherId, studentId)` pair — editable, not stackable — which the
+composite document id enforces the same way `enrollments`/
+`lessonProgress` enforce their own uniqueness pairs.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| teacherId | string | yes | |
+| studentId | string | yes | |
+| rating | number | yes | integer, 1–5 |
+| comment | string | no | short free text |
+| hidden | boolean | yes | default `false`; Admin moderation flag (TASK-2704), never client-settable at create |
+| createdAt | timestamp | yes | |
+| updatedAt | timestamp | yes | |
+
+Document id: `${teacherId}_${studentId}` (composite key, same pattern as
+`enrollments/{studentId}_{courseId}`) — both "does this student already
+have a review for this teacher" and "upsert on edit" are direct doc
+reads/writes, so no query index is needed for those. The public
+"teacher's reviews, newest first" list (TASK-2703) queries by
+`teacherId` with `hidden == false`; see Indexes below.
+
+Indexes: `(teacherId, hidden, createdAt desc)` — the public reviews list.
+
+Authorization: eligibility (the student must have, or have had, an
+enrollment with this teacher — TASK-1101) is enforced server-side by the
+Admin SDK at submit time (TASK-2702), not by these rules, since it
+requires a cross-collection check the security-rules layer can't express
+cheaply here. A student may create/edit only their own review and can
+never set `hidden`; only the Admin may flip `hidden` (TASK-2704), and
+only Admin/the reviewed teacher can read a hidden review — the public
+read excludes it. No client delete (a student who wants to retract a
+review edits it instead; full deletion, if ever needed, stays an
+Admin-SDK operation outside this rule set).
+
 ## `enrollments/{enrollmentId}`
 
 | Field | Type | Required | Notes |
@@ -223,6 +261,82 @@ Authorization: a student can create a `pending` payment for themself and
 read their own payment history. Only the owning teacher or Admin can set
 `status` to `confirmed`/`rejected` (manual methods); `succeeded` is set
 only by the server-side gateway webhook handler, never by client input.
+
+## `teacherOfferings/{offeringId}`
+
+> Documented during the TASK-1802 audit — implemented (repository,
+> service, validation, `admin/offerings` + `admin/teachers/[teacherId]
+> /offerings` API routes) but had no entry here and no task file. See
+> the TASK-1802 note in `tasks/phase-18-mvp-finalization.md` for the
+> full gap and what's still outstanding (a `firestore.rules` entry, a
+> `tasks/` phase file, and UI — everything here is backend-only so
+> far, no page mounts it yet).
+
+Purpose: Admin-set monthly price for one of a teacher's subjects at one
+grade level (e.g. "Physics, Grade 3 Secondary" → a price). One offering
+per `(teacherId, subjectId, stageId)` triple, enforced at the service
+layer. Feeds `subscriptions` below — separate from `teacherProfiles
+.subjectIds` (TASK-2402), which is about which subjects a teacher may
+create *courses* under, not pricing.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| teacherId | string | yes | |
+| subjectId | string | yes | ref into `subjects` |
+| stageId | string | yes | ref into `educationStages` |
+| monthlyPrice | number | yes | whole EGP, no decimals |
+| createdAt / updatedAt | timestamp | yes | |
+
+## `subscriptions/{subscriptionId}`
+
+> Documented during the TASK-1802 audit — see the `teacherOfferings`
+> note above; same gap, same task.
+
+Purpose: a student's standing monthly subscription to one teacher for
+one priced `teacherOfferings` offering. Deliberately separate from
+`enrollments`: an enrollment ties a student to one specific `course`'s
+lessons (gated by a `payments` doc); a subscription is the
+higher-level "this student studies with this teacher, this subject,
+this grade" relationship the Admin sets up directly, and is what the
+Phase 6 meeting-link broadcast and student-facing schedule/course
+views should scope to.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| studentId | string | yes | |
+| teacherId | string | yes | |
+| offeringId | string | yes | ref into `teacherOfferings` |
+| subjectId | string | yes | denormalized from the offering |
+| stageId | string | yes | denormalized from the offering |
+| status | `"active" \| "cancelled"` | yes | |
+| createdAt | timestamp | yes | |
+
+## `subscriptionInvoices/{invoiceId}`
+
+> Documented during the TASK-1802 audit — see the `teacherOfferings`
+> note above; same gap, same task.
+
+Purpose: one month's bill for one `subscriptions` doc. Mirrors
+`payments`' manual-review state machine (`pending → confirmed
+/ rejected`) so the Admin/teacher payments UI can reuse the same
+patterns, but stays a separate collection since an invoice isn't tied
+to a `course`. One invoice per `(subscriptionId, period)`, enforced at
+the service layer.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| subscriptionId | string | yes | |
+| studentId | string | yes | denormalized |
+| teacherId | string | yes | denormalized |
+| offeringId | string | yes | denormalized |
+| period | string | yes | `YYYY-MM` |
+| amount | number | yes | |
+| currency | string | yes | |
+| status | `"pending" \| "confirmed" \| "rejected"` | yes | |
+| method | `"cash" \| "vodafone_cash" \| "bank_transfer"` | no | set on manual review |
+| referenceNote | string | no | |
+| confirmedBy | `{ uid, role }` | no | |
+| createdAt / updatedAt | timestamp | yes | |
 
 ## `quizzes/{quizId}`
 
@@ -312,6 +426,53 @@ meeting link is sent to every student who (a) has an *active* enrollment
 with the slot's owning teacher (any course), and (b) has `users.stageId`
 exactly equal to the slot's `stageId` — not merely "one of this
 teacher's students".
+
+## `users/{uid}/fcmTokens/{tokenId}`
+
+Purpose: registered push-notification device tokens for FCM (Phase 26,
+TASK-2602) — one doc per device/browser, so a user with several signed-in
+devices gets pushes on all of them. `tokenId` is a deterministic
+`sha256(token)` hash (not a raw token, for Firestore doc-id length/char
+constraints) — re-registering the same token on the same device upserts
+in place instead of accumulating duplicates.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| token | string | yes | the FCM registration token itself |
+| userAgent | string | no | best-effort device/browser label, client-reported |
+| createdAt | number (epoch ms) | yes | set once, preserved across re-registration |
+| updatedAt | number (epoch ms) | yes | bumped on every re-registration — doubles as "last seen" |
+
+Authorization: server-created/read/deleted only, via
+`fcmTokenService`/`/api/notifications/fcm-tokens` (Admin SDK) — a user
+manages only their own tokens (any role: student, teacher, or admin).
+Security Rules mirror this as a safety net (owner-only, same pattern as
+every other collection).
+
+Cleanup: expired/invalid tokens (FCM `messaging/registration-token-not-registered`
+and similar) are pruned by the server-side dispatch step (TASK-2603, Done —
+`pushDispatchService`) when a `send` call reports one as dead — not by a
+scheduled job.
+
+## `systemStats/global`
+
+> Documented during the TASK-1802 audit — implemented since TASK-1902
+> (Phase 19, `Done`) but never added here; not part of the
+> subscriptions/offerings gap above, just a separate one-doc oversight.
+
+Purpose: single denormalized doc backing the Admin dashboard's
+center-wide overview cards, updated incrementally by the feature
+services as events happen (same pattern as `teacherProfiles.stats`)
+rather than live collection scans.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| totalTeachers | number | yes | |
+| totalStudents | number | yes | |
+| totalCourses | number | yes | |
+| totalPublishedCourses | number | yes | |
+| totalEnrollments | number | yes | |
+| totalPublishedLessons | number | yes | "published" = exists under a course; lessons have no separate draft state |
 
 ## Relationship diagram
 

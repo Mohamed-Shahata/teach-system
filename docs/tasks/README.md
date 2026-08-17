@@ -26,7 +26,7 @@ Status: Not Started | In Progress | Blocked | Done
 | 3 | Internationalization | Done |
 | 4 | Authentication | Done |
 | 5 | Authorization | Done |
-| 6 | Ownership & Access Rules (Center: Admin + Teachers) | In Progress |
+| 6 | Ownership & Access Rules (Center: Admin + Teachers) | Done |
 | 7 | Teacher Dashboard | Done |
 | 8 | Course Management | Done |
 | 9 | Lesson Management | Done |
@@ -42,13 +42,14 @@ Status: Not Started | In Progress | Blocked | Done
 | 23 | "My Teachers" (Student-Facing) | Done |
 | 24 | Admin Oversight Enhancements | Done |
 | 25 | Lesson Watch-Progress Tracking | Done |
-| 26 | Real Push Notifications (FCM / Web Push) | Not Started |
-| 27 | Student Reviews & Ratings for Teachers | Not Started |
-| 28 | Exam Results Export (PDF / Excel) | Not Started |
-| 15 | Security | Not Started |
-| 16 | Testing | Not Started |
+| 26 | Real Push Notifications (FCM / Web Push) | Done |
+| 27 | Student Reviews & Ratings for Teachers | Done |
+| 28 | Exam Results Export (PDF / Excel) | Done |
+| 29 | Teacher Subscriptions & Offerings | In Progress |
+| 15 | Security | In Progress |
+| 16 | Testing | In Progress |
 | 17 | Deployment | Not Started |
-| 18 | MVP Finalization | Not Started |
+| 18 | MVP Finalization | In Progress |
 
 > Phases 20–24 were added after the initial 18-phase roadmap + Phase 19,
 > at the user's request (post-MVP feature batch). They build on already-
@@ -94,6 +95,20 @@ Status: Not Started | In Progress | Blocked | Done
 > Phase 24 moved to "In Progress": TASK-2401 (center-wide read-only
 > course list) is now `Done`. TASK-2402 (multiple subjects per teacher)
 > and TASK-2403 (per-teacher student drill-down) remain `Not Started`.
+>
+> Phase 15 moved to "In Progress": TASK-1501 (Firestore rules coverage
+> for every remaining collection) and TASK-1502 (env-exposure guard
+> script) are now `Done`. TASK-1503 (security review pass) is `Blocked`
+> — it depends on "all feature phases" being `Done`, and Phases 6/11
+> each still have one genuinely blocked task (no emulator; no payment
+> gateway decision) — see `phase-15-security.md`'s note.
+>
+> Phase 28 moved to "Done": all four tasks (TASK-2801–2804) landed —
+> `examReportService` (shared row/summary assembly + `pdfkit` PDF
+> rendering + `exceljs` xlsx rendering), the
+> `GET /api/exams/[examId]/export?format=pdf|xlsx` route, and the
+> teacher-facing `ExamResultsPanel` (results table + Export dropdown)
+> wired into the existing quiz/exam detail page.
 >
 > TASK-2402 (multiple subjects per teacher) is now `Done`:
 > `teacherProfiles.subjectId` migrated to `subjectIds: string[]` across
@@ -145,5 +160,146 @@ Status: Not Started | In Progress | Blocked | Done
 > overall progress plus a per-lesson watch-percentage/"completed"
 > breakdown. All four of this phase's tasks (TASK-2501–2504) are now
 > `Done`.
+>
+> Phase 26 moved to "In Progress": TASK-2601 (FCM setup + service
+> worker) is now `Done` — see `phase-26-push-notifications.md` for the
+> full note, including why it's deliberately not wired into any UI yet.
+> TASK-2602 (store device tokens) and TASK-2603 (server-side dispatch)
+> remain `Not Started`; TASK-2602 is next (TASK-2601 is its only
+> dependency and is now Done).
+>
+> TASK-2602 (store device tokens per user) is now `Done`:
+> `fcmTokenRepository`/`fcmTokenService` +
+> `POST`/`GET /api/notifications/fcm-tokens` +
+> `DELETE /api/notifications/fcm-tokens/[tokenId]`, the
+> `users/{uid}/fcmTokens/{tokenId}` subcollection documented in
+> `database/collections.md`, and an owner-only `firestore.rules` entry.
+> `firebaseMessaging.ts` gained `syncPushToken()` as the client-side
+> caller — still unwired to any UI, same reasoning as TASK-2601.
+> TASK-2603 (server-side push dispatch) remains `Not Started` and is
+> next (its only dependency, TASK-2602, is now Done).
+>
+> TASK-2603 (server-side push dispatch on notification write) is now
+> `Done`: new `pushRepository` (Admin SDK `sendEachForMulticast` wrapper)
+> and `pushDispatchService` (groups by recipient, builds localized push
+> copy, prunes dead tokens), called from both places that write
+> `notifications` — `notificationService.sendMeetingLink` and
+> `classNotificationsJob`'s two auto-fire paths. See
+> `phase-26-push-notifications.md` for the full note, including why
+> tokens aren't scoped by TASK-2604 yet. TASK-2604 (notification
+> preferences) remains `Not Started` and is next (its only dependency,
+> this task, is now `Done`).
+>
+> Phase 26 moved to "Done": TASK-2604 (per-user push on/off toggle)
+> landed — `users/{uid}.pushEnabled` (+ `updatePushEnabled`), a
+> `updatePushPreference` action on both `studentSettingsService`/
+> `teacherSettingsService`, `PATCH /api/{student,teacher}/settings/push`,
+> and a "Push notifications" `Switch` card on both settings forms that
+> finally calls TASK-2601/2602's until-now-unwired
+> `requestPushToken`/`syncPushToken`. `pushDispatchService` now skips any
+> recipient with `pushEnabled === false` before reading their tokens. See
+> `phase-26-push-notifications.md` for the full note, including why the
+> affected-component filenames in the task description didn't match
+> anything in the codebase. All four of this phase's tasks
+> (TASK-2601–2604) are now `Done`.
+
+> Phase 27 moved to "In Progress": TASK-2701 (`reviews` collection —
+> docs + rules + index) is now `Done`. TASK-2702–2704 (submit/edit
+> review UI, public display + average rating, moderation hook) remain
+> `Not Started`; TASK-2702 is next (its only dependency, TASK-2701, is
+> now `Done`).
+
+> TASK-2702 (submit/edit review, student side) is now `Done`:
+> `reviewService.upsertReview` (eligibility-gated on a non-`cancelled`
+> enrollment with the teacher), `GET`/`PUT /api/teachers/[teacherId]
+> /reviews/me`, and `TeacherReviewForm` mounted on the student-facing
+> `student/teachers/[teacherId]` page (TASK-2303) — see
+> `phase-27-teacher-reviews.md` for why that page and not the anonymous
+> public one. TASK-2703 (public display + average rating) remains
+> `Not Started` and is next (its only dependency, TASK-2701, is
+> already `Done`).
+
+> TASK-2703 (public display + average rating) is now `Done`:
+> `reviewService.getPublicSummary` (computed-on-read average, capped
+> newest-50 review list, student first-name-only) wired into
+> `publicService.getTeacherPageBySlug` and rendered on
+> `(public)/teachers/[slug]`. See `phase-27-teacher-reviews.md` for the
+> file-path scope note and why pagination/denormalization were both
+> deferred. TASK-2704 (moderation hook) remains `Not Started` and is
+> next (its only dependency, this task, is now `Done`).
+
+> Phase 27 moved to "Done": TASK-2704 (Admin moderation hook) landed —
+> `reviewService.listForModeration`/`setHidden` (Admin-only),
+> `GET /api/admin/teachers/[teacherId]/reviews` +
+> `PATCH /api/admin/reviews/[reviewId]`, and `ReviewsPanel` on a new
+> `admin/teachers/[teacherId]/reviews` page, linked from a "View
+> reviews" row action on `TeacherManager` (mirrors TASK-2403's "View
+> students" shape). Reviews are hidden, never deleted. All four of this
+> phase's tasks (TASK-2701–2704) are now `Done`. Phase 28 (Exam Results
+> Export) is next in the working order and has no dependency on this
+> phase.
+
+> Phase 18 moved to "In Progress": TASK-1801 (Definition of Done audit)
+> is now `In Progress` (not `Done` — the network/browser-dependent
+> checks remain blocked in this sandbox, same limitation as
+> TASK-1601/1604). Found and fixed one real gap:
+> `components/theme/theme-toggle.tsx` had a hardcoded English
+> `aria-label` instead of the already-existing-but-unused
+> `theme.toggleLabel` translation key. See
+> `phase-18-mvp-finalization.md` for the full audit note. TASK-1802 and
+> TASK-1803 remain `Not Started` — both depend on TASK-1801 finishing.
+
+> TASK-1801 is now `Done`: the user ran `npm install`, `npx tsc
+> --noEmit`, `npx eslint`, and `npx vitest run` on their own machine.
+> `vitest` came back 639/639 tests passing across 104 files (confirms
+> TASK-1601 for real); `eslint` came back 0 errors (fixed one genuine
+> unused-import warning along the way, in
+> `test/firestore.rules.test.ts`); `tsc --noEmit` initially showed 15
+> errors, all traced to stale `.next/types` (no `next build` had run
+> yet, so five newer dynamic routes fell back to `unknown` params) —
+> re-running `npx next build` came back "Compiled successfully" /
+> "Finished TypeScript in 8.1s" with zero errors and all 96 routes
+> generated, confirming it wasn't a real defect. See
+> `phase-18-mvp-finalization.md` for the full trail. TASK-1802
+> (Documentation freshness pass) is next — its only dependency,
+> TASK-1801, is now `Done`.
+
+> TASK-1802 (Documentation freshness pass) is now `Done`: on top of the
+> Phase 29 tracking gap and `docs/api/README.md` rewrite already noted
+> in `phase-18-mvp-finalization.md`, all 12 `docs/features/*.md` files
+> were cross-checked against the actual implementation — fixed a
+> missing index entry (`admin-dashboard.md` wasn't listed in
+> `features/README.md`) and three sections left stale by
+> since-completed phases (`quizzes.md`'s Phase 21 status,
+> `schedule.md`'s Phase 20 automation wording, `students.md`'s "My
+> teachers" status). Found, but deliberately left open (out of this
+> task's own scope, same as the subscriptions doc deferred to
+> TASK-2910): Phases 26–28 (push notifications, teacher reviews, exam
+> export) have no `docs/features/*.md` coverage at all — see
+> `phase-18-mvp-finalization.md`'s TASK-1802 note for the full gap
+> description. TASK-1803 (Future roadmap review) is next — its only
+> dependency, TASK-1801, is already `Done`.
+>
+> Follow-up: the three missing feature docs flagged above are now
+> written — `docs/features/push-notifications.md`,
+> `docs/features/teacher-reviews.md`, and
+> `docs/features/exam-results-export.md`. `docs/features/*.md` has full
+> coverage for every `Done` phase except Phase 29 (subscriptions),
+> still deferred to TASK-2910. See `phase-18-mvp-finalization.md`'s
+> TASK-1802 note for why each got its own file rather than being folded
+> into an existing one.
+
+> Phase 13 gains a fourth task, TASK-1304 (Standalone teacher files
+> page), added after finding the sidebar's "Files" nav entry permanently
+> pointed at a "coming soon" placeholder — TASK-1303 had deliberately
+> deferred a cross-course files view, but the dead link itself was never
+> tracked or revisited. TASK-1304 is `Done`: `/teacher/files` now lists
+> every file the signed-in teacher owns across all courses/lessons
+> (search + delete, no separate upload — uploading stays per-lesson via
+> the existing `LessonFileManager`). Full verification suite run for
+> real this session (network was available): `next build`, `tsc
+> --noEmit`, `eslint` all clean; `vitest run` 104/104 files, 640/640
+> tests passing; `check-translations`/`check-rtl` both pass. See
+> `phase-13-file-management.md`'s TASK-1304 note for the full detail.
 
 Before starting any task, follow `development/ai-agent-workflow.md`.

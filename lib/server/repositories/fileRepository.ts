@@ -53,6 +53,19 @@ export const fileRepository = {
     return snap.docs.map((doc) => toFileDoc(doc.id, doc.data())).sort((a, b) => b.createdAt - a.createdAt);
   },
 
+  /**
+   * Every file this teacher has ever uploaded, across every course/
+   * lesson — backs the standalone `/teacher/files` page (TASK-1304).
+   * `teacherId` is always server-derived from the session, never a
+   * client-supplied query param, same rule `listByCourse`/`listByLesson`
+   * rely on their callers (`fileService`) to enforce via ownership
+   * checks before calling in.
+   */
+  async listByTeacher(teacherId: string): Promise<FileDoc[]> {
+    const snap = await adminDb.collection(COLLECTION).where("teacherId", "==", teacherId).get();
+    return snap.docs.map((doc) => toFileDoc(doc.id, doc.data())).sort((a, b) => b.createdAt - a.createdAt);
+  },
+
   async create(file: CreateFileDoc): Promise<FileDoc> {
     const ref = adminDb.collection(COLLECTION).doc();
     await ref.create(file);

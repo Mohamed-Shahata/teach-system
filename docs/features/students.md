@@ -29,5 +29,10 @@ session.uid`. No separate `students` collection — a student is a
 
 ## "My teachers" (Phase 23)
 The reverse direction — a student's own list of the teachers they're
-enrolled with — is planned in `docs/tasks/phase-23-student-teachers-
-directory.md`.
+enrolled with — landed per `docs/tasks/phase-23-student-teachers-
+directory.md` (all three tasks `Done`): a derived `studentService`
+listing (teachers a student has at least one non-cancelled enrollment
+with), a `student/teachers` list page (+ sidebar nav entry), and a
+per-teacher `student/teachers/[teacherId]` page scoped to that
+student's own enrollment with the teacher (their courses, and — since
+Phase 27 — the review form for that teacher).

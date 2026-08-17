@@ -1,7 +1,7 @@
 import "server-only";
 import { assertRole, assertTeacherOwnsResource } from "@/lib/auth/guards";
 import type { Session } from "@/lib/auth/session";
-import { NotFoundError, ValidationError } from "@/lib/errors";
+import { NotFoundError } from "@/lib/errors";
 import { destroyCloudinaryUpload, resourceTypeFromMimeType } from "@/lib/server/cloudinary";
 import { fileRepository, type FileDoc } from "@/lib/server/repositories/fileRepository";
 import { lessonRepository, type LessonDoc } from "@/lib/server/repositories/lessonRepository";
@@ -26,14 +26,16 @@ export const fileService = {
       return fileRepository.listByLesson(lesson.id);
     }
 
-    // `listFilesQuerySchema`'s refine guarantees one of the two is
-    // present; this defensive check just keeps the function honest
-    // without an `as string` cast.
-    if (!query.courseId) {
-      throw new ValidationError();
+    if (query.courseId) {
+      await courseService.getCourse(session, query.courseId);
+      return fileRepository.listByCourse(query.courseId);
     }
-    await courseService.getCourse(session, query.courseId);
-    return fileRepository.listByCourse(query.courseId);
+
+    // Neither given: every file this teacher owns, across every
+    // course/lesson (TASK-1304's standalone files page). Scoped to
+    // `session.uid` — never a client-supplied teacherId — same rule
+    // every other branch here already follows.
+    return fileRepository.listByTeacher(session.uid);
   },
 
   async createFile(session: Session, input: CreateFileInput): Promise<FileDoc> {
