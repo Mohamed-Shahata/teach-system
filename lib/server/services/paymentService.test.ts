@@ -23,6 +23,11 @@ vi.mock("@/lib/server/services/enrollmentService", () => ({
   enrollmentService: { createEnrollment },
 }));
 
+const auditNotify = vi.fn();
+vi.mock("@/lib/server/services/auditNotificationService", () => ({
+  auditNotificationService: { notify: auditNotify },
+}));
+
 const { paymentService } = await import("./paymentService");
 const { ForbiddenError, NotFoundError, ValidationError } = await import("@/lib/errors");
 

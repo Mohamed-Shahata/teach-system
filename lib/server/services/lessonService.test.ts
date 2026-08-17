@@ -15,8 +15,9 @@ vi.mock("@/lib/server/repositories/lessonRepository", () => ({
   lessonRepository: { listByCourse, findById, create, update, delete: deleteLesson, reorder },
 }));
 
+const courseFindById = vi.fn();
 vi.mock("@/lib/server/repositories/courseRepository", () => ({
-  courseRepository: { update: courseUpdate },
+  courseRepository: { update: courseUpdate, findById: courseFindById },
 }));
 
 vi.mock("@/lib/server/repositories/teacherProfileRepository", () => ({
@@ -28,8 +29,19 @@ vi.mock("@/lib/server/repositories/systemStatsRepository", () => ({
   systemStatsRepository: { incrementStats: incrementSystemStats },
 }));
 
+const findByStudentAndCourse = vi.fn();
+vi.mock("@/lib/server/repositories/enrollmentRepository", () => ({
+  enrollmentRepository: { findByStudentAndCourse },
+}));
+
+const hasActiveSubscriptionForCourse = vi.fn();
 vi.mock("@/lib/server/services/courseService", () => ({
-  courseService: { getCourse },
+  courseService: { getCourse, hasActiveSubscriptionForCourse },
+}));
+
+const auditNotify = vi.fn();
+vi.mock("@/lib/server/services/auditNotificationService", () => ({
+  auditNotificationService: { notify: auditNotify },
 }));
 
 const { lessonService } = await import("./lessonService");
@@ -74,6 +86,144 @@ describe("lessonService", () => {
     expect(listByCourse).not.toHaveBeenCalled();
   });
 
+  it("lists lessons for a student without a teacher ownership check", async () => {
+    listByCourse.mockResolvedValue([{ id: "lesson-1" }]);
+
+    const lessons = await lessonService.listLessonsForStudent(makeSession("student", "student-1"), "course-1");
+
+    expect(getCourse).not.toHaveBeenCalled();
+    expect(listByCourse).toHaveBeenCalledWith("course-1");
+    expect(lessons).toEqual([{ id: "lesson-1" }]);
+  });
+
+  it("rejects listLessonsForStudent for a teacher session", async () => {
+    await expect(
+      lessonService.listLessonsForStudent(makeSession("teacher"), "course-1"),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("returns a free-preview lesson to a student with no enrollment", async () => {
+    const lesson = { id: "lesson-1", courseId: "course-1", isFreePreview: true };
+    findById.mockResolvedValue(lesson);
+
+    const result = await lessonService.getLessonForStudent(makeSession("student", "student-1"), "lesson-1");
+
+    expect(findByStudentAndCourse).not.toHaveBeenCalled();
+    expect(result).toBe(lesson);
+  });
+
+  it("gates a non-preview lesson on enrollment", async () => {
+    const lesson = { id: "lesson-1", courseId: "course-1", isFreePreview: false };
+    findById.mockResolvedValue(lesson);
+    courseFindById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", subjectId: "physics", stageId: "grade-9" });
+    findByStudentAndCourse.mockResolvedValue({ studentId: "student-1", status: "active" });
+    hasActiveSubscriptionForCourse.mockResolvedValue(false);
+
+    const result = await lessonService.getLessonForStudent(makeSession("student", "student-1"), "lesson-1");
+
+    expect(findByStudentAndCourse).toHaveBeenCalledWith("student-1", "course-1");
+    expect(result).toBe(lesson);
+  });
+
+  it("gates a non-preview lesson on an active subscription when not enrolled (TASK-3204)", async () => {
+    const lesson = { id: "lesson-1", courseId: "course-1", isFreePreview: false };
+    findById.mockResolvedValue(lesson);
+    courseFindById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", subjectId: "physics", stageId: "grade-9" });
+    findByStudentAndCourse.mockResolvedValue(null);
+    hasActiveSubscriptionForCourse.mockResolvedValue(true);
+
+    const result = await lessonService.getLessonForStudent(makeSession("student", "student-1"), "lesson-1");
+
+    expect(result).toBe(lesson);
+  });
+
+  it("rejects a non-preview lesson for a non-enrolled, non-subscribed student", async () => {
+    findById.mockResolvedValue({ id: "lesson-1", courseId: "course-1", isFreePreview: false });
+    courseFindById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", subjectId: "physics", stageId: "grade-9" });
+    findByStudentAndCourse.mockResolvedValue(null);
+    hasActiveSubscriptionForCourse.mockResolvedValue(false);
+
+    await expect(
+      lessonService.getLessonForStudent(makeSession("student", "student-1"), "lesson-1"),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("throws NotFoundError for a missing lesson in getLessonForStudent", async () => {
+    findById.mockResolvedValue(null);
+
+    await expect(
+      lessonService.getLessonForStudent(makeSession("student", "student-1"), "lesson-1"),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("throws NotFoundError in getLessonForStudent when the lesson's course no longer exists", async () => {
+    findById.mockResolvedValue({ id: "lesson-1", courseId: "course-1", isFreePreview: false });
+    courseFindById.mockResolvedValue(null);
+
+    await expect(
+      lessonService.getLessonForStudent(makeSession("student", "student-1"), "lesson-1"),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  describe("listLessonsForCourseDetail (TASK-3204)", () => {
+    const course = { id: "course-1", teacherId: "teacher-1", subjectId: "physics", stageId: "grade-9" };
+    const lessons = [
+      { id: "lesson-2", title: { en: "Two", ar: "٢" }, order: 1, isFreePreview: false },
+      { id: "lesson-1", title: { en: "One", ar: "١" }, order: 0, isFreePreview: true },
+    ];
+
+    it("marks non-preview lessons locked for a non-enrolled, non-subscribed student", async () => {
+      courseFindById.mockResolvedValue(course);
+      listByCourse.mockResolvedValue(lessons);
+      findByStudentAndCourse.mockResolvedValue(null);
+      hasActiveSubscriptionForCourse.mockResolvedValue(false);
+
+      const result = await lessonService.listLessonsForCourseDetail(makeSession("student", "student-1"), "course-1");
+
+      expect(result).toEqual([
+        { id: "lesson-1", title: { en: "One", ar: "١" }, order: 0, isFreePreview: true, locked: false },
+        { id: "lesson-2", title: { en: "Two", ar: "٢" }, order: 1, isFreePreview: false, locked: true },
+      ]);
+      expect(result[0]).not.toHaveProperty("video");
+    });
+
+    it("unlocks every lesson for an enrolled student", async () => {
+      courseFindById.mockResolvedValue(course);
+      listByCourse.mockResolvedValue(lessons);
+      findByStudentAndCourse.mockResolvedValue({ studentId: "student-1", status: "active" });
+      hasActiveSubscriptionForCourse.mockResolvedValue(false);
+
+      const result = await lessonService.listLessonsForCourseDetail(makeSession("student", "student-1"), "course-1");
+
+      expect(result.every((lesson) => !lesson.locked)).toBe(true);
+    });
+
+    it("unlocks every lesson for a subscribed student", async () => {
+      courseFindById.mockResolvedValue(course);
+      listByCourse.mockResolvedValue(lessons);
+      findByStudentAndCourse.mockResolvedValue(null);
+      hasActiveSubscriptionForCourse.mockResolvedValue(true);
+
+      const result = await lessonService.listLessonsForCourseDetail(makeSession("student", "student-1"), "course-1");
+
+      expect(result.every((lesson) => !lesson.locked)).toBe(true);
+    });
+
+    it("throws NotFoundError when the course doesn't exist", async () => {
+      courseFindById.mockResolvedValue(null);
+
+      await expect(
+        lessonService.listLessonsForCourseDetail(makeSession("student", "student-1"), "course-1"),
+      ).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it("rejects a teacher session", async () => {
+      await expect(
+        lessonService.listLessonsForCourseDetail(makeSession("teacher"), "course-1"),
+      ).rejects.toBeInstanceOf(ForbiddenError);
+    });
+  });
+
   it("creates a lesson at the next order position and syncs course.lessonOrder + totalLessons", async () => {
     const session = makeSession("teacher");
 
@@ -90,6 +240,23 @@ describe("lessonService", () => {
     });
     expect(incrementStats).toHaveBeenCalledWith("teacher-1", { totalLessons: 1 });
     expect(lesson.id).toBe("lesson-3");
+  });
+
+  it("defaults isFreePreview to false when not provided", async () => {
+    await lessonService.createLesson(makeSession("teacher"), "course-1", {
+      title: { en: "Intro", ar: "مقدمة" },
+    });
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ isFreePreview: false }));
+  });
+
+  it("persists isFreePreview: true when the teacher flags a lesson (TASK-3105)", async () => {
+    await lessonService.createLesson(makeSession("teacher"), "course-1", {
+      title: { en: "Intro", ar: "مقدمة" },
+      isFreePreview: true,
+    });
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ isFreePreview: true }));
   });
 
   it("throws NotFoundError when updating a missing lesson", async () => {
@@ -115,7 +282,13 @@ describe("lessonService", () => {
 
   it("deletes a lesson, removes it from lessonOrder, and decrements totalLessons", async () => {
     const session = makeSession("teacher");
-    findById.mockResolvedValue({ id: "lesson-1", courseId: "course-1", teacherId: "teacher-1", order: 0 });
+    findById.mockResolvedValue({
+      id: "lesson-1",
+      courseId: "course-1",
+      teacherId: "teacher-1",
+      order: 0,
+      title: { en: "Intro", ar: "مقدمة" },
+    });
 
     await lessonService.deleteLesson(session, "lesson-1");
 

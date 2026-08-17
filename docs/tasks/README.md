@@ -46,9 +46,9 @@ Status: Not Started | In Progress | Blocked | Done
 | 27 | Student Reviews & Ratings for Teachers | Done |
 | 28 | Exam Results Export (PDF / Excel) | Done |
 | 29 | Teacher Subscriptions & Offerings | Done |
-| 30 | Notifications UX & Delivery Coverage | Not Started |
-| 31 | Teacher Profile & Preview Tools | Not Started |
-| 32 | Student Profile, My Courses & Teachers Directory Revamp | Not Started |
+| 30 | Notifications UX & Delivery Coverage | In Progress |
+| 31 | Teacher Profile & Preview Tools | In Progress |
+| 32 | Student Profile, My Courses & Teachers Directory Revamp | Done |
 | 33 | Admin Overview, Analytics & Reporting | Not Started |
 | 34 | Admin Manual Payments & Subscription Oversight | Not Started |
 | 35 | Consolidated Table Action Menus | Not Started |
@@ -309,6 +309,19 @@ Status: Not Started | In Progress | Blocked | Done
 > tests passing; `check-translations`/`check-rtl` both pass. See
 > `phase-13-file-management.md`'s TASK-1304 note for the full detail.
 
+> TASK-3203 (rename "My Teachers" → "Teachers", nested tab, teacher
+> account view) is now `Done` — `teacherDirectoryService` gained
+> `listTeacherDirectory` (every public teacher, flagged `subscribed` from
+> Phase 29's `subscriptions`, replacing the old enrollment-scoped
+> `listMyTeachers`) and `getTeacherAccountView` (renamed from
+> `getTeacherCoursesForStudent`, no longer enrollment-gated, now also
+> returns TASK-3101's profile-detail fields). New `teachers-directory.tsx`
+> client component renders the All/My-Teachers tabs over one server-fetched
+> list. See `phase-32-student-experience.md`'s TASK-3203 note for the full
+> detail. Phase 32 stays `In Progress`: TASK-3204 (course detail view,
+> access-gated content) is next — its dependencies (TASK-2303, TASK-3105)
+> are already `Done`.
+
 Before starting any task, follow `development/ai-agent-workflow.md`.
 
 > Phase 29 gains a history note: TASK-2907 (`firestore.rules` coverage
@@ -371,3 +384,202 @@ Before starting any task, follow `development/ai-agent-workflow.md`.
 > ambiguity was flagged rather than silently decided: TASK-3201 (student
 > age) defaults to storing `birthDate` and computing age server-side
 > instead of a raw `age` number, open for reconsideration.
+
+> TASK-3002 (Clickable notifications with deep links) is now `Done` —
+> `notifications` docs gain an optional `link` field, populated at
+> creation time for both `meeting_link` (routes to the student's page for
+> that teacher) and `class_reminder` (routes to the teacher's dashboard);
+> the bell/banner rows are now clickable (mark-read + navigate) alongside
+> their existing Join/Dismiss actions. See `phase-30-notifications-ux.md`'s
+> TASK-3002 note for the full detail, including why the doc update landed
+> in `docs/features/schedule.md` rather than a nonexistent
+> `notifications.md`. TASK-3003 (generic audit notifications) is next in
+> Phase 30 — its dependencies (TASK-2001–2003, TASK-3002) are now Done.
+
+> TASK-3003 (Generic audit notifications) is now `Done` — `notifications`
+> gains a fourth `type: "audit"` variant plus a centralized
+> `auditNotificationService.notify()` write path, wired into
+> `courseService`/`lessonService` (create/update/delete),
+> `enrollmentService.createEnrollment`, and `paymentService`
+> (create/confirm/reject/succeed), with a new role-agnostic
+> `AuditNotificationsPanel` (`GET`/`PATCH /api/notifications/mine[/...]`)
+> mounted on all three dashboards. Deliberately not exhaustive — exams,
+> subscriptions, user accounts, and course publish/unpublish are left
+> open; see `phase-30-notifications-ux.md`'s TASK-3003 note and the new
+> `docs/features/notifications.md` for the full coverage table and
+> reasoning. Verification suite could not run for real this session (no
+> network in this sandbox) — reviewed by hand instead. TASK-3005 is next
+> in Phase 30 (TASK-3004 remains blocked on Phase 33's TASK-3306).
+
+> TASK-3005 (class-reminder acknowledge/expiry) is now `Done` — a teacher
+> can "Dismiss" (acknowledge) a `class_reminder`, and any reminder past its
+> class's start time (`createdAt + REMINDER_MINUTES_BEFORE` minutes,
+> filtered at read time — no sweep job needed) stops showing as active.
+> Fixed a pre-existing bug as a side effect: "Dismiss" previously only
+> flipped `read` client-side, so a dismissed reminder silently reappeared
+> on the next poll. See `phase-30-notifications-ux.md`'s TASK-3005 note.
+> Phase 30 is now fully `Done` except TASK-3004, still blocked on Phase
+> 33's TASK-3306 (`Not Started`).
+
+> Phase 31 moved to "In Progress": TASK-3101 (extend `teacherProfiles`
+> schema — bio, headline, yearsOfExperience, specialization, socialLinks,
+> avatarUrl) is now `Done`. See `phase-31-teacher-profile-and-preview.md`'s
+> TASK-3101 note for the full detail, including the `bio` string-to-map
+> migration and a flagged (not fixed, out of scope) `publicRepository.ts`
+> read-side gap. TASK-3102 (teacher-facing edit-my-profile page) is next —
+> its only dependency, this task, is now `Done`.
+
+> TASK-3102 (teacher-facing "edit my profile" page) is now `Done`:
+> `teacherProfileService` (self-service `getMyProfile`/`updateMyProfile`,
+> session's own `uid` is always the doc id) on top of TASK-3101's
+> `updateDetails`, `GET`/`PATCH /api/teacher/profile`, and a new
+> `/teacher/profile` page + `TeacherProfileForm` — bilingual `en`/`ar`
+> inputs for `bio`/`headline`, avatar upload reusing the existing
+> `target: "avatar"` signed-upload flow (same Cloudinary folder as the
+> account picture on `/teacher/settings`, separate Firestore field), and
+> a server-computed `completeness` percentage as a soft, non-blocking
+> nudge. New `docs/features/teacher-profile.md`, added to
+> `docs/features/README.md`'s index. See
+> `phase-31-teacher-profile-and-preview.md`'s TASK-3102 note for the full
+> detail, including why no component-level test was added (no jsdom/
+> testing-library setup anywhere in this repo) and the re-flagged
+> `publicRepository.ts` bio gap (deferred again, to TASK-3203).
+> Verification suite could not run for real this session (no network in
+> this sandbox, `node_modules` not installed) — reviewed by hand instead.
+> TASK-3103 (nav bar profile icon) is next — its only dependency, this
+> task, is now `Done`.
+
+> TASK-3103 (nav bar profile icon routes to teacher's own profile) is now
+> `Done`: `DashboardTopbar`'s profile-icon link now points a teacher
+> session at `/teacher/profile` (TASK-3102) instead of `/teacher/settings`;
+> admin/student sessions are unaffected (no equivalent profile page yet).
+> See `phase-31-teacher-profile-and-preview.md`'s TASK-3103 note for the
+> full detail. Phase 31 stays `In Progress`: TASK-3104 (course preview) is
+> blocked on Phase 32's TASK-3202 (`Not Started`), so TASK-3105 (per-lesson
+> free-preview flag) is next instead — it has no unmet dependency.
+
+> TASK-3105 (per-lesson "free preview" flag) is now `Done`:
+> `lessons.isFreePreview` (boolean, default `false`) added to the schema/
+> repository, settable via the existing teacher lesson create/update flow
+> (a new `Switch` toggle in `lesson-manager.tsx`'s dialog + a badge on
+> flagged rows). The enrollment bypass landed in
+> `lessonProgressService.reportProgress` (the actual student-facing
+> access-check today — `lessonService` itself is teacher/Admin-only) and
+> in `firestore.rules`'s `lessons/{lessonId}` read rule. See
+> `phase-31-teacher-profile-and-preview.md`'s TASK-3105 note for the full
+> detail, including why the bypass landed one layer down from where the
+> task description pointed. Also fixed, unrelated to this task: four
+> pre-existing test failures in `courseService`/`enrollmentService`/
+> `paymentService`/`lessonService` (`FIREBASE_PROJECT_ID` env var missing)
+> — each test file was missing a mock for `auditNotificationService`
+> (added by TASK-3003, after those tests were last touched), so the real
+> `notificationRepository` → `firebaseAdmin` chain loaded and threw;
+> added the missing mock to all four. Neither change could be run for
+> real this session (no network in this sandbox). Phase 31 stays
+> `In Progress`: TASK-3104 remains blocked on Phase 32's TASK-3202;
+> TASK-3106 (exam preview before publish) has no unmet dependency and is
+> next.
+
+> Follow-up to the TASK-3105 session note: the `auditNotificationService`
+> mock fix surfaced two more pre-existing gaps, this time in the test
+> data itself rather than a missing mock — `courseService.test.ts`'s
+> "decrements course counters on delete" and `lessonService.test.ts`'s
+> "deletes a lesson..." tests mocked `courseRepository.delete`/
+> `lessonRepository.findById`'s resolved value without a `title` field,
+> so `deleteCourse`/`deleteLesson`'s (pre-existing, TASK-3003) `.title.en`
+> read for the audit notification's copy threw once the mock actually
+> ran instead of being skipped. Fixed by adding a `title` to each mocked
+> object. Run for real this time (user's machine, network available):
+> 684/686 passing before this fix, 686/686 after — confirms both the
+> `auditNotificationService` mock fix and this one.
+
+> TASK-3106 (exam preview before publish) is now `Done`: owning
+> teacher/Admin can preview a quiz — draft or published — exactly as a
+> student attempting it would see it, via a new "Preview" button on
+> `QuizManager`'s rows and the quiz detail page. Scoring reuses the
+> exact same grading rule as a real attempt (extracted to
+> `lib/server/quizGrading.ts`) but nothing is persisted — no
+> `quizAttempts` document is ever created from a preview submission.
+> See `phase-31-teacher-profile-and-preview.md`'s TASK-3106 note for
+> the full detail. Phase 31 stays `In Progress`: TASK-3104 (course
+> preview) remains the only task blocked, on Phase 32's TASK-3202
+> (`Not Started`).
+
+> TASK-3202 ("My Courses" — student's enrolled courses with
+> continue/resume) is now `Done`: a new `student/courses` page lists
+> only the caller's `active` enrollments (not `completed`/`cancelled`
+> — those still show on `student/dashboard`'s full history), each with
+> a progress bar and a Continue/Start action. The resume point is a
+> new pure, unit-tested `enrollmentService.resolveResumeLessonId`
+> (first not-yet-completed lesson in course order, last lesson if all
+> done, `null` if the course has no lessons) — computed server-side by
+> new `enrollmentService.listMyActiveCoursesWithProgress` alongside the
+> course join, so the card links straight to
+> `student/courses/[courseId]/lessons/[resumeLessonId]`. New lesson
+> player page reuses the existing `LessonPlayer` (TASK-2502, unchanged)
+> and gates its read via new `lessonService.getLessonForStudent` (same
+> free-preview-or-enrollment rule as `lessonProgressService
+> .reportProgress`); course/lesson-order for prev/next and a lesson
+> sidebar come from new open (non-enrollment-gated) reads
+> `courseService.getCourseForStudent`/`lessonService
+> .listLessonsForStudent`. A new `MarkLessonCompleteButton` client
+> component calls the existing `PATCH /api/enrollments/[enrollmentId]`
+> (TASK-1102, unchanged) via a new `enrollmentService
+> .getMyEnrollmentForCourse` read. Sidebar nav gained a "My courses"
+> item for the new page; the old `dashboard` nav entry (notifications/
+> invoices/full history) was relabeled "Dashboard" rather than removed,
+> so it stays reachable. See `phase-32-student-experience.md`'s
+> TASK-3202 note for the full detail, including the full verification
+> run (719/719 tests, clean lint/translations/RTL/build). Phase 32
+> stays `In Progress`: TASK-3201 (student profile) is next, and — a
+> side effect worth flagging — Phase 31's TASK-3104 (course preview),
+> which was blocked specifically on this task, is now unblocked too.
+
+> TASK-3201 (Student profile — age, current stage, name, photo) is now
+> `Done`: a new `student/profile` page (distinct from `student/settings`'s
+> account page) lets a student edit `displayName`, an avatar, and a new
+> `users.birthDate` field, with `stageId` (grade level) shown read-only.
+> `birthDate` (ISO `YYYY-MM-DD`) was chosen over a raw `age` number
+> specifically so the displayed age doesn't go stale — `age` is derived
+> server-side from `birthDate` at read time (new
+> `lib/validation/user.schema.ts`'s `computeAgeFromBirthDate`, reused by
+> new `studentProfileService`) and never itself persisted. Avatar upload
+> is not duplicated on a new endpoint — the form reuses TASK-1005's
+> existing signed-upload flow and `PATCH /api/student/settings/avatar`;
+> only `displayName`/`birthDate` go through the new `GET`/
+> `PATCH /api/student/profile`. `stageId` is never accepted from the
+> client on this route (Admin-only change, via Student management, to
+> keep enrollment/subscription data consistent). Also extended
+> `DashboardTopbar`'s TASK-3103 profile-icon routing so a student session
+> now goes to `/student/profile` too. See
+> `phase-32-student-experience.md`'s TASK-3201 note for the full detail,
+> including the full verification run (111 files / 745 tests, up from
+> 719, clean lint/translations/RTL/contrast/build). Phase 32 stays
+> `In Progress`: TASK-3202 was already `Done`; TASK-3203 (rename "My
+> Teachers" → "Teachers") is next — its dependencies (TASK-2301,
+> TASK-2302, TASK-3101, Phase 29) are all satisfied.
+
+> Phase 32 moved on: TASK-3203 (rename "My Teachers" → "Teachers") was
+> already `Done` when this session started (the phase file had it
+> marked `Done` with full detail; this table just hadn't been synced).
+> This session completed **TASK-3204** (course detail view from a
+> teacher's account page, access-gated content): a new
+> `assertStudentHasCourseAccess` guard plus
+> `courseService.hasActiveSubscriptionForCourse` unify "may this
+> student play this course's lessons" into one rule — non-cancelled
+> enrollment OR an active Phase 29 subscription covering the course's
+> teacher+subject+stage — and `lessonService.getLessonForStudent` now
+> checks both, not enrollment alone. New
+> `lessonService.listLessonsForCourseDetail` returns a sanitized,
+> `locked`-flagged lesson list (no `video`/`fileIds`) for the new
+> `student/courses/[courseId]` page, linked from TASK-3203's teacher
+> account course cards. See `phase-32-student-experience.md`'s
+> TASK-3204 note for the full detail, including test coverage added
+> to `courseService.test.ts`/`lessonService.test.ts`. Verification
+> could not run for real this session (no network in this sandbox —
+> `npm install` 403s, `node_modules` was never installed) — reviewed
+> by hand instead, same constraint TASK-3203 hit; translation-key
+> parity between `messages/en.json`/`ar.json` was checked manually and
+> is clean. Phase 32 stays `In Progress`: TASK-3205 (student weekly
+> schedule page) is next — its dependencies (Phase 6, Phase 29) are
+> both satisfied.

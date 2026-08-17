@@ -379,3 +379,69 @@ describe("quizAttemptService.gradeAttempt", () => {
     ).rejects.toThrow(NotFoundError);
   });
 });
+
+describe("quizAttemptService.previewAttempt (TASK-3106)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    quizFindById.mockResolvedValue({ ...quiz, status: "draft" });
+    questionFindByIds.mockResolvedValue(questions);
+  });
+
+  it("scores a preview submission without persisting an attempt", async () => {
+    const result = await quizAttemptService.previewAttempt(makeSession("teacher", "teacher-1"), "quiz-1", {
+      answers: [
+        { questionId: "q-1", selectedOptionIds: ["b"] },
+        { questionId: "q-2", selectedOptionIds: ["t"] },
+      ],
+    });
+
+    expect(result.score).toBe(100);
+    expect(attemptCreate).not.toHaveBeenCalled();
+  });
+
+  it("works for a draft quiz (unlike a real student attempt)", async () => {
+    await expect(
+      quizAttemptService.previewAttempt(makeSession("teacher", "teacher-1"), "quiz-1", {
+        answers: [{ questionId: "q-1", selectedOptionIds: ["a"] }],
+      }),
+    ).resolves.toBeTruthy();
+    expect(attemptCreate).not.toHaveBeenCalled();
+  });
+
+  it("allows Admin to preview", async () => {
+    await expect(
+      quizAttemptService.previewAttempt(makeSession("admin", "admin-1"), "quiz-1", {
+        answers: [{ questionId: "q-1", selectedOptionIds: ["b"] }],
+      }),
+    ).resolves.toBeTruthy();
+    expect(attemptCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects a student calling preview", async () => {
+    await expect(
+      quizAttemptService.previewAttempt(makeSession("student"), "quiz-1", {
+        answers: [{ questionId: "q-1", selectedOptionIds: ["b"] }],
+      }),
+    ).rejects.toThrow(ForbiddenError);
+    expect(attemptCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-owning teacher", async () => {
+    await expect(
+      quizAttemptService.previewAttempt(makeSession("teacher", "teacher-2"), "quiz-1", {
+        answers: [{ questionId: "q-1", selectedOptionIds: ["b"] }],
+      }),
+    ).rejects.toThrow(ForbiddenError);
+    expect(attemptCreate).not.toHaveBeenCalled();
+  });
+
+  it("404s for a missing quiz", async () => {
+    quizFindById.mockResolvedValue(null);
+    await expect(
+      quizAttemptService.previewAttempt(makeSession("teacher", "teacher-1"), "missing", {
+        answers: [{ questionId: "q-1", selectedOptionIds: ["b"] }],
+      }),
+    ).rejects.toThrow(NotFoundError);
+    expect(attemptCreate).not.toHaveBeenCalled();
+  });
+});

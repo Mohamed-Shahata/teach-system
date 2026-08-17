@@ -7,6 +7,7 @@ import { enrollmentRepository, type EnrollmentDoc } from "@/lib/server/repositor
 import { lessonProgressRepository } from "@/lib/server/repositories/lessonProgressRepository";
 import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
 import { systemStatsRepository } from "@/lib/server/repositories/systemStatsRepository";
+import { auditNotificationService } from "@/lib/server/services/auditNotificationService";
 import type { EnrollmentStatus } from "@/lib/validation/enrollment.schema";
 
 /**
@@ -34,6 +35,22 @@ function isAlreadyExists(err: unknown): boolean {
 export function watchPercent(videoDurationSeconds: number, watchedSeconds: number): number {
   if (videoDurationSeconds <= 0) return 0;
   return Math.min(100, Math.round((watchedSeconds / videoDurationSeconds) * 100));
+}
+
+/**
+ * TASK-3202 — the "Continue" resume point: the first lesson in course
+ * order that isn't in `completedLessonIds`, or the last lesson if every
+ * lesson is already complete (so "Continue" still lands somewhere
+ * useful — re-watching the final lesson — instead of nowhere), or
+ * `null` for a course with no lessons yet. Pure/exported so the
+ * course-list page and its tests can both use the exact same rule
+ * rather than re-deriving it, per `development/coding-rules.md`'s "No
+ * Duplicate Functionality" (same rationale as `watchPercent`).
+ */
+export function resolveResumeLessonId(lessonOrder: string[], completedLessonIds: string[]): string | null {
+  if (lessonOrder.length === 0) return null;
+  const completed = new Set(completedLessonIds);
+  return lessonOrder.find((lessonId) => !completed.has(lessonId)) ?? lessonOrder[lessonOrder.length - 1];
 }
 
 /**
@@ -92,6 +109,14 @@ export const enrollmentService = {
       });
       await teacherProfileRepository.incrementStats(params.teacherId, { totalEnrollments: 1 });
       await systemStatsRepository.incrementStats({ totalEnrollments: 1 });
+      await auditNotificationService.notify({
+        action: "created",
+        entityType: "enrollment",
+        entityId: enrollment.id,
+        title: { en: "New enrollment", ar: "تسجيل جديد" },
+        recipientIds: [params.studentId, params.teacherId],
+        link: `/student/courses/${params.courseId}`,
+      });
       return enrollment;
     } catch (err) {
       // Lost a race with a concurrent create for the same pair (e.g. a
@@ -111,10 +136,41 @@ export const enrollmentService = {
     return enrollmentRepository.listByStudent(session.uid, status);
   },
 
+  /**
+   * TASK-3202 — the "My Courses" list: only `active` enrollments (a
+   * `completed`/`cancelled` enrollment has nothing left to "continue"),
+   * each joined to its course and a `resumeLessonId` so the page/card
+   * can link straight into the lesson player at the right spot without
+   * a second round trip.
+   */
+  async listMyActiveCoursesWithProgress(session: Session) {
+    assertRole(session, "student");
+    const enrollments = await enrollmentRepository.listByStudent(session.uid, "active");
+    const courses = await courseRepository.findByIds(enrollments.map((enrollment) => enrollment.courseId));
+
+    return enrollments.map((enrollment) => {
+      const course = courses.get(enrollment.courseId) ?? null;
+      const resumeLessonId = course ? resolveResumeLessonId(course.lessonOrder, enrollment.progress.completedLessonIds) : null;
+      return { enrollment, course, resumeLessonId };
+    });
+  },
+
   /** A teacher's (or Admin's) enrollments — this is TASK-1001's teacher-scoped student query. */
   async listForTeacher(session: Session, courseId?: string) {
     assertRole(session, "teacher", "admin");
     return enrollmentRepository.listByTeacher(session, courseId);
+  },
+
+  /**
+   * TASK-3202 — the caller's own enrollment for one course, or `null`
+   * (e.g. viewing a free-preview lesson pre-enrollment). Used by the
+   * lesson player page to resolve the `enrollmentId` the "mark
+   * complete" action needs (`markLessonComplete` takes an enrollment
+   * id, not a course id).
+   */
+  async getMyEnrollmentForCourse(session: Session, courseId: string) {
+    assertRole(session, "student");
+    return enrollmentRepository.findByStudentAndCourse(session.uid, courseId);
   },
 
   async getEnrollment(session: Session, id: string) {

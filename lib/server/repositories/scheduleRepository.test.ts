@@ -41,6 +41,39 @@ describe("scheduleRepository.listAll", () => {
   });
 });
 
+describe("scheduleRepository.listByTeacherIds", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("queries with an 'in' filter on teacherId and sorts by day/time", async () => {
+    getQuery.mockResolvedValue({
+      docs: [
+        { id: "slot-2", data: () => ({ ...rawSlot, dayOfWeek: 1, startTime: "10:00" }) },
+        { id: "slot-1", data: () => ({ ...rawSlot, dayOfWeek: 1, startTime: "09:00" }) },
+      ],
+    });
+
+    const result = await scheduleRepository.listByTeacherIds(["teacher-1", "teacher-2"]);
+
+    expect(where).toHaveBeenCalledWith("teacherId", "in", ["teacher-1", "teacher-2"]);
+    expect(result.map((s) => s.id)).toEqual(["slot-1", "slot-2"]);
+  });
+
+  it("returns an empty array without querying for an empty input", async () => {
+    const result = await scheduleRepository.listByTeacherIds([]);
+    expect(getQuery).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
+  });
+
+  it("deduplicates ids and chunks queries past 30", async () => {
+    getQuery.mockResolvedValue({ docs: [] });
+    const ids = Array.from({ length: 35 }, (_, i) => `teacher-${i}`);
+
+    await scheduleRepository.listByTeacherIds([...ids, "teacher-0"]);
+
+    expect(getQuery).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("scheduleRepository.markNotifiedToday / markReminderSentToday", () => {
   beforeEach(() => vi.clearAllMocks());
 

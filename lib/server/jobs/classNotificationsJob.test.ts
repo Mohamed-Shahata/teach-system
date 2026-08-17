@@ -19,6 +19,7 @@ vi.mock("@/lib/server/repositories/userRepository", () => ({
 }));
 vi.mock("@/lib/server/repositories/notificationRepository", () => ({
   notificationRepository: { createMany },
+  REMINDER_MINUTES_BEFORE: 10,
 }));
 vi.mock("@/lib/server/services/pushDispatchService", () => ({
   pushDispatchService: { dispatchForNotifications },
@@ -70,7 +71,12 @@ describe("runClassNotificationsJob", () => {
     const result = await runClassNotificationsJob(NOW);
 
     expect(createMany).toHaveBeenCalledWith([
-      expect.objectContaining({ recipientId: "student-match", type: "meeting_link", scheduleId: "slot-1" }),
+      expect.objectContaining({
+        recipientId: "student-match",
+        type: "meeting_link",
+        scheduleId: "slot-1",
+        link: "/student/teachers/teacher-1",
+      }),
     ]);
     expect(markNotifiedToday).toHaveBeenCalledWith("slot-1", "2026-08-18");
     expect(result.notified).toBe(1);
@@ -106,7 +112,12 @@ describe("runClassNotificationsJob", () => {
     const result = await runClassNotificationsJob(reminderNow);
 
     expect(createMany).toHaveBeenCalledWith([
-      expect.objectContaining({ recipientId: "teacher-1", type: "class_reminder", scheduleId: "slot-1" }),
+      expect.objectContaining({
+        recipientId: "teacher-1",
+        type: "class_reminder",
+        scheduleId: "slot-1",
+        link: "/teacher/dashboard",
+      }),
     ]);
     expect(markReminderSentToday).toHaveBeenCalledWith("slot-1", "2026-08-18");
     expect(result.reminded).toBe(1);

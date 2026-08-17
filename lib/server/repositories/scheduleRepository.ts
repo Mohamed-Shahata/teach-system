@@ -105,6 +105,27 @@ export const scheduleRepository = {
   },
 
   /**
+   * TASK-3205 — every slot belonging to a set of teacherIds, for the
+   * student weekly-schedule page (the caller derives the teacherId set
+   * from the student's active subscriptions and passes it here). Chunked
+   * `in` query, same pattern as `teacherProfileRepository.findByIds`.
+   */
+  async listByTeacherIds(teacherIds: string[]): Promise<ScheduleSlotDoc[]> {
+    const unique = Array.from(new Set(teacherIds));
+    const result: ScheduleSlotDoc[] = [];
+    const CHUNK = 30;
+
+    for (let i = 0; i < unique.length; i += CHUNK) {
+      const chunk = unique.slice(i, i + CHUNK);
+      if (chunk.length === 0) continue;
+      const snap = await adminDb.collection(COLLECTION).where("teacherId", "in", chunk).get();
+      result.push(...snap.docs.map((doc) => toScheduleSlotDoc(doc.id, doc.data())));
+    }
+
+    return result.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime));
+  },
+
+  /**
    * TASK-2001/2002/2003 — system-level read, deliberately unscoped by
    * teacher. Only the cron job (`lib/server/jobs/classNotificationsJob.ts`)
    * calls this: it has no `Session` (it isn't triggered by a signed-in

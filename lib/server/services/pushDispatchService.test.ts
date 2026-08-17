@@ -139,4 +139,29 @@ describe("pushDispatchService.dispatchForNotifications", () => {
 
     expect(sendMulticast).toHaveBeenCalled();
   });
+
+  it("TASK-3003: reads title straight off an audit notification instead of the PUSH_COPY table", async () => {
+    findByIds.mockResolvedValue(new Map([["student-1", {}]]));
+    listForUser.mockResolvedValue([{ id: "tok-doc-1", token: "tok-1" }]);
+    sendMulticast.mockResolvedValue([{ token: "tok-1", success: true }]);
+
+    await pushDispatchService.dispatchForNotifications([
+      {
+        id: "n1",
+        recipientId: "student-1",
+        type: "audit" as const,
+        action: "created" as const,
+        entityType: "course",
+        entityId: "course-1",
+        title: { en: "Course created", ar: "تم إنشاء الدورة" },
+        read: false,
+        createdAt: 1000,
+      },
+    ]);
+
+    expect(sendMulticast).toHaveBeenCalledWith(
+      ["tok-1"],
+      expect.objectContaining({ title: "Course created" }),
+    );
+  });
 });

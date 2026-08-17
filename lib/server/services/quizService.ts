@@ -298,4 +298,28 @@ export const quizService = {
       .filter((question): question is QuestionDoc => Boolean(question))
       .map(toPublicQuestion);
   },
+
+  /**
+   * TASK-3106 — the owning teacher/Admin's preview of a quiz exactly as
+   * a student attempting it would see it: same `PublicQuestionDoc`
+   * shape (`correctOptionIds` stripped, `toPublicQuestion`) in
+   * `questionIds` order as `listQuestionsForStudent`, but reachable
+   * regardless of `status` (a `draft` exam has no student-facing route
+   * at all yet — this is the only way to see it rendered before
+   * publishing) and ownership-checked instead of published+enrolled.
+   * Deliberately does *not* reuse `listQuestionsForStudent` (which
+   * hard-requires `status === "published"`) — same "one read per
+   * audience, not one read with audience-specific holes poked in it"
+   * reasoning as keeping `getQuiz`'s two branches separate.
+   */
+  async getQuizPreview(session: Session, quizId: string): Promise<{ quiz: QuizDoc; questions: PublicQuestionDoc[] }> {
+    const quiz = await loadOwnedQuiz(session, quizId);
+    const questions = await questionRepository.findByIds(quiz.questionIds);
+    const byId = new Map(questions.map((question) => [question.id, question]));
+    const orderedQuestions = quiz.questionIds
+      .map((id) => byId.get(id))
+      .filter((question): question is QuestionDoc => Boolean(question))
+      .map(toPublicQuestion);
+    return { quiz, questions: orderedQuestions };
+  },
 };

@@ -5,6 +5,7 @@ import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
 import { courseRepository } from "@/lib/server/repositories/courseRepository";
 import { paymentRepository, type PaymentDoc } from "@/lib/server/repositories/paymentRepository";
 import { enrollmentService } from "@/lib/server/services/enrollmentService";
+import { auditNotificationService } from "@/lib/server/services/auditNotificationService";
 import type { CreatePaymentInput, PaymentStatus } from "@/lib/validation/payment.schema";
 
 /**
@@ -66,7 +67,7 @@ export const paymentService = {
     }
 
     const now = Date.now();
-    return paymentRepository.create({
+    const payment = await paymentRepository.create({
       studentId: session.uid,
       courseId: course.id,
       teacherId: course.teacherId,
@@ -78,6 +79,14 @@ export const paymentService = {
       createdAt: now,
       updatedAt: now,
     });
+    await auditNotificationService.notify({
+      action: "created",
+      entityType: "payment",
+      entityId: payment.id,
+      title: { en: "New payment submitted", ar: "تم تقديم دفعة جديدة" },
+      recipientIds: [session.uid, course.teacherId],
+    });
+    return payment;
   },
 
   /** Owning teacher or Admin confirms a `pending` manual payment. */
@@ -102,6 +111,14 @@ export const paymentService = {
       teacherId: updated.teacherId,
     });
 
+    await auditNotificationService.notify({
+      action: "updated",
+      entityType: "payment",
+      entityId: updated.id,
+      title: { en: "Payment confirmed", ar: "تم تأكيد الدفعة" },
+      recipientIds: [updated.studentId],
+    });
+
     return updated;
   },
 
@@ -115,11 +132,21 @@ export const paymentService = {
       throw new ValidationError();
     }
 
-    return paymentRepository.update(session, id, {
+    const updated = await paymentRepository.update(session, id, {
       status: "rejected",
       confirmedBy: { uid: session.uid, role: session.role as "admin" | "teacher" },
       updatedAt: Date.now(),
     });
+
+    await auditNotificationService.notify({
+      action: "updated",
+      entityType: "payment",
+      entityId: updated.id,
+      title: { en: "Payment rejected", ar: "تم رفض الدفعة" },
+      recipientIds: [updated.studentId],
+    });
+
+    return updated;
   },
 
   /**
@@ -138,6 +165,14 @@ export const paymentService = {
       studentId: updated.studentId,
       courseId: updated.courseId,
       teacherId: updated.teacherId,
+    });
+
+    await auditNotificationService.notify({
+      action: "updated",
+      entityType: "payment",
+      entityId: updated.id,
+      title: { en: "Payment succeeded", ar: "تمت عملية الدفع بنجاح" },
+      recipientIds: [updated.studentId],
     });
 
     return updated;

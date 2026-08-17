@@ -10,6 +10,7 @@ import { quizAttemptService } from "@/lib/server/services/quizAttemptService";
 import { examReportService } from "@/lib/server/services/examReportService";
 import { Breadcrumb } from "@/components/ui";
 import { QuestionManager } from "@/components/teacher/question-manager";
+import { QuizPreview } from "@/components/teacher/quiz-preview";
 import { QuizGrading } from "@/components/teacher/quiz-grading";
 import { ExamResultsPanel } from "@/components/teacher/exam-results-panel";
 
@@ -59,7 +60,10 @@ export default async function TeacherQuizDetailPage({
   return (
     <div className="flex flex-col gap-4">
       <Breadcrumb items={breadcrumbItems} />
-      <h1 className="text-2xl font-semibold text-foreground">{quiz.title.en || quiz.title.ar}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-foreground">{quiz.title.en || quiz.title.ar}</h1>
+        <QuizPreview quizId={quizId} />
+      </div>
       <QuestionManager quizId={quizId} initialQuestions={questions} />
       {quiz.autoGrade === false && (
         <QuizGrading quizId={quizId} questions={questions} initialAttempts={attempts} />

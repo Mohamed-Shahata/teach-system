@@ -2,17 +2,37 @@ import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/server/firebaseAdmin";
 
+export interface LocalizedText {
+  en?: string;
+  ar?: string;
+}
+
+export interface TeacherProfileSocialLinks {
+  facebook?: string;
+  youtube?: string;
+  whatsapp?: string;
+  instagram?: string;
+  tiktok?: string;
+  website?: string;
+}
+
 export interface TeacherProfileDoc {
   teacherId: string;
   slug: string;
   displayName: string;
-  bio?: string;
+  /** TASK-3101 migrated this from a plain string to a bilingual map. `normalizeBio` below reads a legacy plain-string `bio` (pre-TASK-3101 docs) as `{ en: <string> }` so old profiles remain valid without a migration script. */
+  bio?: LocalizedText;
   avatarUrl?: string;
   isPublic: boolean;
   /** refs into `subjects` — the subject(s) this teacher is assigned to teach, set by an Admin at creation or later edited (TASK-2402; previously a single `subjectId`). */
   subjectIds?: string[];
   stats?: TeacherProfileStats;
   createdAt: number;
+  /** TASK-3101 — the richer fields shown on the directory (TASK-2302) and public profile (Phase 27). All optional; existing profiles without them remain valid. */
+  headline?: LocalizedText;
+  yearsOfExperience?: number;
+  specialization?: string;
+  socialLinks?: TeacherProfileSocialLinks;
 }
 
 export interface TeacherProfileStats {
@@ -45,6 +65,52 @@ function normalizeSubjectIds(data: Record<string, unknown>): string[] | undefine
 
 function readNumber(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+/** Reads `bio` defensively — pre-TASK-3101 docs stored a plain string. */
+function normalizeBio(data: Record<string, unknown>): LocalizedText | undefined {
+  const bio = data.bio;
+  if (typeof bio === "string" && bio.length > 0) return { en: bio };
+  if (typeof bio === "object" && bio !== null) {
+    const { en, ar } = bio as Partial<LocalizedText>;
+    const value: LocalizedText = {};
+    if (typeof en === "string" && en.length > 0) value.en = en;
+    if (typeof ar === "string" && ar.length > 0) value.ar = ar;
+    return Object.keys(value).length > 0 ? value : undefined;
+  }
+  return undefined;
+}
+
+function normalizeLocalizedText(value: unknown): LocalizedText | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const { en, ar } = value as Partial<LocalizedText>;
+  const result: LocalizedText = {};
+  if (typeof en === "string" && en.length > 0) result.en = en;
+  if (typeof ar === "string" && ar.length > 0) result.ar = ar;
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function normalizeSocialLinks(value: unknown): TeacherProfileSocialLinks | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const source = value as Record<string, unknown>;
+  const result: TeacherProfileSocialLinks = {};
+  for (const key of ["facebook", "youtube", "whatsapp", "instagram", "tiktok", "website"] as const) {
+    if (typeof source[key] === "string" && source[key]) result[key] = source[key] as string;
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/** Shared TASK-3101-field extraction, used by every read site below so the four call sites stay in sync. */
+function extractProfileDetails(data: Record<string, unknown>) {
+  return {
+    ...(normalizeBio(data) ? { bio: normalizeBio(data) } : {}),
+    ...(normalizeLocalizedText(data.headline) ? { headline: normalizeLocalizedText(data.headline) } : {}),
+    ...(typeof data.yearsOfExperience === "number" ? { yearsOfExperience: data.yearsOfExperience } : {}),
+    ...(typeof data.specialization === "string" && data.specialization
+      ? { specialization: data.specialization }
+      : {}),
+    ...(normalizeSocialLinks(data.socialLinks) ? { socialLinks: normalizeSocialLinks(data.socialLinks) } : {}),
+  };
 }
 
 function normalizeStats(stats: unknown): TeacherProfileStats {
@@ -82,8 +148,8 @@ export const teacherProfileRepository = {
       teacherId: first.id,
       slug: String(data.slug),
       displayName: String(data.displayName),
-      ...(data.bio ? { bio: String(data.bio) } : {}),
       ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
+      ...extractProfileDetails(data),
       isPublic: Boolean(data.isPublic),
       ...(normalizeSubjectIds(data) ? { subjectIds: normalizeSubjectIds(data) } : {}),
       stats: normalizeStats(data.stats),
@@ -99,8 +165,8 @@ export const teacherProfileRepository = {
       teacherId: snap.id,
       slug: String(data.slug),
       displayName: String(data.displayName),
-      ...(data.bio ? { bio: String(data.bio) } : {}),
       ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
+      ...extractProfileDetails(data),
       isPublic: Boolean(data.isPublic),
       ...(normalizeSubjectIds(data) ? { subjectIds: normalizeSubjectIds(data) } : {}),
       stats: normalizeStats(data.stats),
@@ -130,8 +196,8 @@ export const teacherProfileRepository = {
           teacherId: doc.id,
           slug: String(data.slug),
           displayName: String(data.displayName),
-          ...(data.bio ? { bio: String(data.bio) } : {}),
           ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
+          ...extractProfileDetails(data),
           isPublic: Boolean(data.isPublic),
           ...(normalizeSubjectIds(data) ? { subjectIds: normalizeSubjectIds(data) } : {}),
           stats: normalizeStats(data.stats),
@@ -155,6 +221,52 @@ export const teacherProfileRepository = {
     }
     if (Object.keys(data).length === 0) return;
     await adminDb.collection(COLLECTION).doc(teacherId).update(data);
+  },
+
+  /**
+   * Teacher-editable profile-detail fields from TASK-3101 (`bio`,
+   * `headline`, `yearsOfExperience`, `specialization`, `socialLinks`,
+   * `avatarUrl`). Separate from `updateProfileFields` (Admin-only
+   * name/subject edits) since this is written by the owning teacher
+   * themselves (TASK-3102), not an Admin. Only defined keys are written,
+   * same "partial patch" behavior as `updateProfileFields`.
+   */
+  async updateDetails(
+    teacherId: string,
+    fields: Partial<
+      Pick<TeacherProfileDoc, "bio" | "headline" | "yearsOfExperience" | "specialization" | "socialLinks" | "avatarUrl">
+    >,
+  ): Promise<void> {
+    const data: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) data[key] = value;
+    }
+    if (Object.keys(data).length === 0) return;
+    await adminDb.collection(COLLECTION).doc(teacherId).update(data);
+  },
+
+  /**
+   * TASK-3203 — every `isPublic == true` teacher profile, full shape
+   * (unlike `publicRepository.listPublicTeacherProfiles`'s trimmed
+   * anonymous-visitor projection), for the student-facing "Teachers"
+   * directory. Order is not guaranteed — callers sort as needed.
+   */
+  async listPublic(): Promise<TeacherProfileDoc[]> {
+    const snap = await adminDb.collection(COLLECTION).where("isPublic", "==", true).get();
+    return snap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        teacherId: doc.id,
+        slug: String(data.slug),
+        displayName: String(data.displayName),
+        ...(data.avatarUrl ? { avatarUrl: String(data.avatarUrl) } : {}),
+        ...extractProfileDetails(data),
+        isPublic: Boolean(data.isPublic),
+        ...(normalizeSubjectIds(data) ? { subjectIds: normalizeSubjectIds(data) } : {}),
+        stats: normalizeStats(data.stats),
+        createdAt: Number(data.createdAt),
+      };
+    });
   },
 
   async incrementStats(teacherId: string, patch: Partial<TeacherProfileStats>): Promise<void> {

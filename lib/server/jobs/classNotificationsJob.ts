@@ -2,12 +2,9 @@ import "server-only";
 import { scheduleRepository } from "@/lib/server/repositories/scheduleRepository";
 import { enrollmentRepository } from "@/lib/server/repositories/enrollmentRepository";
 import { userRepository } from "@/lib/server/repositories/userRepository";
-import { notificationRepository, type CreateNotificationDoc } from "@/lib/server/repositories/notificationRepository";
+import { notificationRepository, REMINDER_MINUTES_BEFORE, type CreateNotificationDoc } from "@/lib/server/repositories/notificationRepository";
 import { pushDispatchService } from "@/lib/server/services/pushDispatchService";
 import type { ScheduleSlotDoc } from "@/lib/server/repositories/scheduleRepository";
-
-/** TASK-2003 default — minutes before `startTime` the teacher reminder fires. */
-const REMINDER_MINUTES_BEFORE = 10;
 
 interface JobResult {
   /** Students notified that class is starting (TASK-2002). */
@@ -84,6 +81,8 @@ async function notifyStudentsClassIsStarting(slots: ScheduleSlotDoc[], dateKey: 
       subjectId: slot.subjectId,
       stageId: slot.stageId,
       meetingUrl: slot.meetingUrl as string,
+      // TASK-3002 — same target as the manual send in `notificationService.sendMeetingLink`.
+      link: `/student/teachers/${slot.teacherId}`,
       read: false,
       createdAt,
     }));
@@ -115,6 +114,9 @@ async function remindTeachersClassIsUpcoming(slots: ScheduleSlotDoc[], dateKey: 
     subjectId: slot.subjectId,
     stageId: slot.stageId,
     ...(slot.meetingUrl ? { meetingUrl: slot.meetingUrl } : {}),
+    // TASK-3002 — the teacher's own dashboard, where the schedule (and the
+    // meetingUrl field this reminder is nudging them to set) lives.
+    link: "/teacher/dashboard",
     read: false,
     createdAt,
   }));

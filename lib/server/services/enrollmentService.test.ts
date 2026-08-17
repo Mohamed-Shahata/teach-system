@@ -19,8 +19,9 @@ vi.mock("@/lib/server/repositories/enrollmentRepository", () => ({
 }));
 
 const findCourseById = vi.fn();
+const findCoursesByIds = vi.fn();
 vi.mock("@/lib/server/repositories/courseRepository", () => ({
-  courseRepository: { findById: findCourseById },
+  courseRepository: { findById: findCourseById, findByIds: findCoursesByIds },
 }));
 
 const listByStudentForLessons = vi.fn();
@@ -38,7 +39,12 @@ vi.mock("@/lib/server/repositories/systemStatsRepository", () => ({
   systemStatsRepository: { incrementStats: incrementSystemStats },
 }));
 
-const { enrollmentService } = await import("./enrollmentService");
+const auditNotify = vi.fn();
+vi.mock("@/lib/server/services/auditNotificationService", () => ({
+  auditNotificationService: { notify: auditNotify },
+}));
+
+const { enrollmentService, resolveResumeLessonId } = await import("./enrollmentService");
 const { ForbiddenError, NotFoundError } = await import("@/lib/errors");
 
 function makeSession(role: "admin" | "teacher" | "student", uid = "uid-1") {
@@ -239,5 +245,96 @@ describe("enrollmentService.listForTeacher", () => {
     const session = makeSession("teacher", "teacher-1");
     await expect(enrollmentService.listForTeacher(session)).resolves.toEqual([activeEnrollment]);
     expect(listByTeacher).toHaveBeenCalledWith(session, undefined);
+  });
+});
+
+describe("resolveResumeLessonId", () => {
+  it("returns the first not-yet-completed lesson in course order", () => {
+    expect(resolveResumeLessonId(["l1", "l2", "l3"], ["l1"])).toBe("l2");
+  });
+
+  it("returns the last lesson when every lesson is already completed", () => {
+    expect(resolveResumeLessonId(["l1", "l2"], ["l1", "l2"])).toBe("l2");
+  });
+
+  it("returns null for a course with no lessons", () => {
+    expect(resolveResumeLessonId([], [])).toBeNull();
+  });
+
+  it("returns the first lesson when nothing is completed yet", () => {
+    expect(resolveResumeLessonId(["l1", "l2"], [])).toBe("l1");
+  });
+});
+
+describe("enrollmentService.listMyActiveCoursesWithProgress", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("rejects a non-student session", async () => {
+    await expect(enrollmentService.listMyActiveCoursesWithProgress(makeSession("teacher"))).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+  });
+
+  it("scopes to the caller's active enrollments and attaches course + resumeLessonId", async () => {
+    const session = makeSession("student", "student-1");
+    const enrollment = {
+      ...activeEnrollment,
+      progress: { completedLessonIds: ["lesson-1"], percent: 50 },
+    };
+    listByStudent.mockResolvedValue([enrollment]);
+    findCoursesByIds.mockResolvedValue(
+      new Map([["course-1", { id: "course-1", lessonOrder: ["lesson-1", "lesson-2"] }]]),
+    );
+
+    const result = await enrollmentService.listMyActiveCoursesWithProgress(session);
+
+    expect(listByStudent).toHaveBeenCalledWith("student-1", "active");
+    expect(findCoursesByIds).toHaveBeenCalledWith(["course-1"]);
+    expect(result).toEqual([
+      {
+        enrollment,
+        course: { id: "course-1", lessonOrder: ["lesson-1", "lesson-2"] },
+        resumeLessonId: "lesson-2",
+      },
+    ]);
+  });
+
+  it("returns a null course/resumeLessonId when the course lookup misses", async () => {
+    listByStudent.mockResolvedValue([activeEnrollment]);
+    findCoursesByIds.mockResolvedValue(new Map());
+
+    const result = await enrollmentService.listMyActiveCoursesWithProgress(makeSession("student", "student-1"));
+
+    expect(result).toEqual([{ enrollment: activeEnrollment, course: null, resumeLessonId: null }]);
+  });
+});
+
+describe("enrollmentService.getMyEnrollmentForCourse", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("rejects a non-student session", async () => {
+    await expect(
+      enrollmentService.getMyEnrollmentForCourse(makeSession("teacher"), "course-1"),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("looks up the caller's own enrollment for the course", async () => {
+    const session = makeSession("student", "student-1");
+    findByStudentAndCourse.mockResolvedValue(activeEnrollment);
+
+    await expect(enrollmentService.getMyEnrollmentForCourse(session, "course-1")).resolves.toBe(activeEnrollment);
+    expect(findByStudentAndCourse).toHaveBeenCalledWith("student-1", "course-1");
+  });
+
+  it("returns null when there's no enrollment for the pair", async () => {
+    findByStudentAndCourse.mockResolvedValue(null);
+
+    await expect(
+      enrollmentService.getMyEnrollmentForCourse(makeSession("student", "student-1"), "course-1"),
+    ).resolves.toBeNull();
   });
 });

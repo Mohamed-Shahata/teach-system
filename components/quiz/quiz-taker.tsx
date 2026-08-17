@@ -10,6 +10,16 @@ interface QuizTakerProps {
   quizId: string;
   questions: PublicQuestionDoc[];
   initialAttempts: QuizAttemptDoc[];
+  /**
+   * TASK-3106 — "preview" is the owning teacher/Admin trying out their
+   * own (possibly still-`draft`) quiz. Renders identically to "live"
+   * (the default, real student flow) except it posts to
+   * `/api/quizzes/[quizId]/preview` instead of `/attempts` — scored
+   * the same way, but never persisted as a `quizAttempts` document —
+   * and skips the "previous attempts" history strip, since a preview
+   * run has none.
+   */
+  mode?: "live" | "preview";
 }
 
 type AnswerMap = Record<string, string[]>;
@@ -40,9 +50,10 @@ function scoreVariant(score: number): "success" | "warning" | "error" {
  * student can select any number of options, exactly matching what
  * `quizAttemptService.isAnswerCorrect`'s set-equality grading expects.
  */
-export function QuizTaker({ quizId, questions, initialAttempts }: QuizTakerProps) {
+export function QuizTaker({ quizId, questions, initialAttempts, mode = "live" }: QuizTakerProps) {
   const t = useTranslations("studentQuiz");
   const locale = useLocale();
+  const isPreview = mode === "preview";
 
   const [answers, setAnswers] = React.useState<AnswerMap>(() => emptyAnswers(questions));
   const [attempts, setAttempts] = React.useState(initialAttempts);
@@ -89,7 +100,8 @@ export function QuizTaker({ quizId, questions, initialAttempts }: QuizTakerProps
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/quizzes/${quizId}/attempts`, {
+      const endpoint = isPreview ? `/api/quizzes/${quizId}/preview` : `/api/quizzes/${quizId}/attempts`;
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -103,10 +115,21 @@ export function QuizTaker({ quizId, questions, initialAttempts }: QuizTakerProps
         setError(t("errors.submit"));
         return;
       }
-      const body = (await res.json()) as { attempt: QuizAttemptDoc };
-      setResult(body.attempt);
-      setAttempts((current) => [body.attempt, ...current]);
-      setRetaking(false);
+      if (isPreview) {
+        // TASK-3106 — the preview endpoint returns an ephemeral
+        // `{ result }` (never persisted, no `id`), not a `QuizAttemptDoc`
+        // — synthesize just enough of that shape (score) for the
+        // existing result card to render, without adding it to
+        // `attempts` (there is no history for a preview run).
+        const body = (await res.json()) as { result: { score: number } };
+        setResult({ id: "preview", score: body.result.score } as QuizAttemptDoc);
+        setRetaking(false);
+      } else {
+        const body = (await res.json()) as { attempt: QuizAttemptDoc };
+        setResult(body.attempt);
+        setAttempts((current) => [body.attempt, ...current]);
+        setRetaking(false);
+      }
     } catch {
       setError(t("errors.submit"));
     } finally {
@@ -130,7 +153,7 @@ export function QuizTaker({ quizId, questions, initialAttempts }: QuizTakerProps
               <p className="text-sm text-foreground/60">{t("resultSubtitle")}</p>
             </div>
 
-            {attempts.length > 1 && (
+            {!isPreview && attempts.length > 1 && (
               <div className="flex flex-col gap-1">
                 <p className="text-xs font-medium text-foreground/70">{t("previousAttempts")}</p>
                 <ul className="flex flex-wrap gap-2">

@@ -1,12 +1,14 @@
 import "server-only";
-import { assertRole } from "@/lib/auth/guards";
+import { assertRole, assertStudentHasCourseAccess } from "@/lib/auth/guards";
 import type { Session } from "@/lib/auth/session";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { lessonRepository } from "@/lib/server/repositories/lessonRepository";
 import { courseRepository } from "@/lib/server/repositories/courseRepository";
+import { enrollmentRepository } from "@/lib/server/repositories/enrollmentRepository";
 import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfileRepository";
 import { systemStatsRepository } from "@/lib/server/repositories/systemStatsRepository";
 import { courseService } from "@/lib/server/services/courseService";
+import { auditNotificationService } from "@/lib/server/services/auditNotificationService";
 import type { CreateLessonInput, UpdateLessonInput } from "@/lib/validation/lesson.schema";
 
 function withoutUndefined<T extends Record<string, unknown>>(value: T): Partial<T> {
@@ -34,6 +36,89 @@ export const lessonService = {
     return lesson;
   },
 
+  /**
+   * TASK-3202 — the lesson list for a student-facing view (course
+   * detail sidebar, prev/next). `courseService.getCourseForStudent`
+   * has already established the caller may see this course's metadata
+   * (open read, not enrollment-gated — see that method's doc comment),
+   * so this only needs the `assertRole` here, not another ownership
+   * check; per-lesson *content* access is still gated separately by
+   * `getLessonForStudent`.
+   */
+  async listLessonsForStudent(session: Session, courseId: string) {
+    assertRole(session, "student", "admin");
+    return lessonRepository.listByCourse(courseId);
+  },
+
+  /**
+   * TASK-3202 — the student-facing lesson player's read. A
+   * `isFreePreview` lesson is reachable by any authenticated student;
+   * everything else requires either a non-cancelled enrollment in the
+   * lesson's course, or (TASK-3204) an active subscription covering the
+   * course's teacher+subject+stage (Phase 29 — see
+   * `courseService.hasActiveSubscriptionForCourse`). Kept as its own
+   * read (rather than reusing `getLesson`, which is
+   * `assertRole(session, "teacher")`-only) so the two audiences never
+   * share a gate that's wrong for one of them.
+   */
+  async getLessonForStudent(session: Session, id: string) {
+    assertRole(session, "student", "admin");
+    const lesson = await lessonRepository.findById(id);
+    if (!lesson) {
+      throw new NotFoundError();
+    }
+    if (!lesson.isFreePreview) {
+      const course = await courseRepository.findById(lesson.courseId);
+      if (!course) {
+        throw new NotFoundError();
+      }
+      const [enrollment, subscribed] = await Promise.all([
+        enrollmentRepository.findByStudentAndCourse(session.uid, lesson.courseId),
+        courseService.hasActiveSubscriptionForCourse(session, course),
+      ]);
+      assertStudentHasCourseAccess(session, enrollment, subscribed);
+    }
+    return lesson;
+  },
+
+  /**
+   * TASK-3204 — sanitized lesson list for a *non-gated* course-detail
+   * browse (any authenticated student, enrolled/subscribed or not):
+   * title/order/preview-flag only, deliberately never `video`/`fileIds`
+   * — those stay behind `getLessonForStudent`'s own gate so a locked
+   * lesson's content URL is never present in this response at all,
+   * not just hidden client-side.
+   */
+  async listLessonsForCourseDetail(session: Session, courseId: string) {
+    assertRole(session, "student", "admin");
+    const [course, lessons] = await Promise.all([
+      courseRepository.findById(courseId),
+      lessonRepository.listByCourse(courseId),
+    ]);
+    if (!course) {
+      throw new NotFoundError();
+    }
+    const [enrollment, subscribed] = await Promise.all([
+      enrollmentRepository.findByStudentAndCourse(session.uid, courseId),
+      courseService.hasActiveSubscriptionForCourse(session, course),
+    ]);
+    const hasAccess =
+      session.role === "admin" ||
+      (enrollment !== null && enrollment.status !== "cancelled") ||
+      subscribed;
+
+    return lessons
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((lesson) => ({
+        id: lesson.id,
+        title: lesson.title,
+        order: lesson.order,
+        isFreePreview: lesson.isFreePreview,
+        locked: !lesson.isFreePreview && !hasAccess,
+      }));
+  },
+
   async createLesson(session: Session, courseId: string, input: CreateLessonInput) {
     const course = await courseService.getCourse(session, courseId);
     const now = Date.now();
@@ -43,6 +128,7 @@ export const lessonService = {
       title: input.title,
       order: course.lessonOrder.length,
       fileIds: input.fileIds ?? [],
+      isFreePreview: input.isFreePreview ?? false,
       ...withoutUndefined({ description: input.description, video: input.video }),
       createdAt: now,
       updatedAt: now,
@@ -53,6 +139,14 @@ export const lessonService = {
     });
     await teacherProfileRepository.incrementStats(course.teacherId, { totalLessons: 1 });
     await systemStatsRepository.incrementStats({ totalPublishedLessons: 1 });
+    await auditNotificationService.notify({
+      action: "created",
+      entityType: "lesson",
+      entityId: lesson.id,
+      title: { en: `Lesson "${lesson.title.en}" added`, ar: `تمت إضافة الدرس "${lesson.title.ar ?? lesson.title.en}"` },
+      recipientIds: [session.uid],
+      link: `/teacher/courses/${courseId}`,
+    });
     return lesson;
   },
 
@@ -63,10 +157,19 @@ export const lessonService = {
       throw new NotFoundError();
     }
     await courseService.getCourse(session, existing.courseId);
-    return lessonRepository.update(session, id, {
+    const updated = await lessonRepository.update(session, id, {
       ...withoutUndefined(input),
       updatedAt: Date.now(),
     });
+    await auditNotificationService.notify({
+      action: "updated",
+      entityType: "lesson",
+      entityId: updated.id,
+      title: { en: `Lesson "${updated.title.en}" updated`, ar: `تم تعديل الدرس "${updated.title.ar ?? updated.title.en}"` },
+      recipientIds: [session.uid],
+      link: `/teacher/courses/${existing.courseId}`,
+    });
+    return updated;
   },
 
   async deleteLesson(session: Session, id: string) {
@@ -83,6 +186,13 @@ export const lessonService = {
     });
     await teacherProfileRepository.incrementStats(course.teacherId, { totalLessons: -1 });
     await systemStatsRepository.incrementStats({ totalPublishedLessons: -1 });
+    await auditNotificationService.notify({
+      action: "deleted",
+      entityType: "lesson",
+      entityId: existing.id,
+      title: { en: `Lesson "${existing.title.en}" deleted`, ar: `تم حذف الدرس "${existing.title.ar ?? existing.title.en}"` },
+      recipientIds: [session.uid],
+    });
   },
 
   /**

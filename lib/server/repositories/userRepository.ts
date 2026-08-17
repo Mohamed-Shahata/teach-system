@@ -21,6 +21,16 @@ export interface UserDoc {
   /** Student's age in years, if the admin/teacher recorded it at creation. */
   age?: number;
   /**
+   * ISO `YYYY-MM-DD` date-only string — TASK-3201's student self-service
+   * "my profile" field. Deliberately separate from `age` above (which is
+   * only ever Admin/teacher-set at account creation): storing a raw age
+   * would go stale, so `age` is (re)computed from this at read time by
+   * `studentProfileService`/`lib/validation/user.schema.ts`'s
+   * `computeAgeFromBirthDate` wherever `birthDate` is present. Optional —
+   * not backfilled for existing accounts.
+   */
+  birthDate?: string;
+  /**
    * Mirrors the Firebase Auth account's `disabled` flag (TASK-1903/1904's
    * deactivate action). Kept here too — not just on the Auth user — so
    * admin list/detail views can render status without an extra
@@ -141,6 +151,11 @@ export const userRepository = {
   /**
    * Admin edit of an existing account's profile fields (name/email/phone/
    * age/grade level) — the Teacher/Student management "Edit" action.
+   * Also reused, unchanged, by TASK-3201's `studentProfileService` for the
+   * student's own self-service patch (`displayName`/`birthDate`) — same
+   * "only defined keys are written" shape fits both callers, so a
+   * dedicated method would just duplicate this one (see
+   * `development/coding-rules.md` "No Duplicate Functionality").
    * Only defined keys are written, so partial edits never clobber fields
    * the admin didn't touch. Callers are responsible for also updating the
    * Firebase Auth account's `displayName`/`email` (`adminAuth.updateUser`)
@@ -148,7 +163,7 @@ export const userRepository = {
    */
   async updateProfile(
     uid: string,
-    fields: Partial<Pick<UserDoc, "displayName" | "email" | "phone" | "age" | "stageId">>,
+    fields: Partial<Pick<UserDoc, "displayName" | "email" | "phone" | "age" | "stageId" | "birthDate">>,
   ): Promise<void> {
     const data: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { Alert, Badge, Button, Dialog, EmptyState, Input, Select, Switch } from "@/components/ui";
+import { QuizPreview } from "@/components/teacher/quiz-preview";
 import type { QuizDoc } from "@/lib/server/repositories/quizRepository";
 import type { EducationStageDoc } from "@/lib/server/repositories/educationStageRepository";
 
@@ -202,6 +203,7 @@ export function QuizManager({ courseId, initialQuizzes, stages = [] }: QuizManag
                     {t("manageQuestions")}
                   </Button>
                 </Link>
+                <QuizPreview quizId={quiz.id} />
                 <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(quiz)}>
                   {t("edit")}
                 </Button>

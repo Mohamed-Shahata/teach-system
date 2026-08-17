@@ -12,6 +12,7 @@ import { ScheduleManager } from "@/components/teacher/schedule-manager";
 import { PaymentsQueue } from "@/components/teacher/payments-queue";
 import { SubscriptionInvoicesPanel } from "@/components/teacher/subscription-invoices-panel";
 import { ClassReminderBanner } from "@/components/teacher/class-reminder-banner";
+import { AuditNotificationsPanel } from "@/components/layout/audit-notifications-panel";
 
 /**
  * Teacher overview stats for TASK-702. Counters are denormalized on
@@ -42,6 +43,7 @@ export default async function TeacherDashboardPage() {
   );
   const subscriptionInvoices = await subscriptionInvoiceService.listForTeacher(session);
   const classReminders = await notificationService.listMyClassReminders(session);
+  const auditNotifications = await notificationService.listMyAuditNotifications(session);
   const cards = [
     {
       key: "students",
@@ -135,6 +137,8 @@ export default async function TeacherDashboardPage() {
       <PaymentsQueue initialPayments={pendingPayments} />
 
       <SubscriptionInvoicesPanel initialInvoices={subscriptionInvoices} />
+
+      <AuditNotificationsPanel initialNotifications={auditNotifications} />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
 import { MeetingNotifications } from "@/components/student/meeting-notifications";
 import { SubscriptionInvoicesPanel } from "@/components/student/subscription-invoices-panel";
+import { AuditNotificationsPanel } from "@/components/layout/audit-notifications-panel";
 
 /**
  * TASK-1103 — the student's own courses, each with a progress bar built
@@ -40,6 +41,7 @@ export default async function StudentDashboardPage() {
   const courses = await courseRepository.findByIds(enrollments.map((enrollment) => enrollment.courseId));
   const notifications = await notificationService.listMyNotifications(session);
   const subscriptionInvoices = await subscriptionInvoiceService.listForStudent(session);
+  const auditNotifications = await notificationService.listMyAuditNotifications(session);
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,6 +53,8 @@ export default async function StudentDashboardPage() {
       <MeetingNotifications initialNotifications={notifications} />
 
       <SubscriptionInvoicesPanel invoices={subscriptionInvoices} />
+
+      <AuditNotificationsPanel initialNotifications={auditNotifications} />
 
       {enrollments.length === 0 ? (
         <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />

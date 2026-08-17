@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { Alert, Badge, Button, Dialog, EmptyState, Input, Textarea } from "@/components/ui";
+import { Alert, Badge, Button, Dialog, EmptyState, Input, Switch, Textarea } from "@/components/ui";
 import { VideoPlayer } from "@/components/lesson/video-player";
 import { LessonFileManager } from "@/components/lesson/lesson-file-manager";
 import { uploadLessonVideo } from "@/lib/client/upload";
@@ -28,6 +28,7 @@ interface FormState {
   videoProvider: VideoProvider | "";
   videoUrl: string;
   videoPublicId: string;
+  isFreePreview: boolean;
 }
 
 const EMPTY_FORM: FormState = {
@@ -39,6 +40,7 @@ const EMPTY_FORM: FormState = {
   videoProvider: "",
   videoUrl: "",
   videoPublicId: "",
+  isFreePreview: false,
 };
 
 function toFormState(lesson: LessonDoc): FormState {
@@ -53,12 +55,14 @@ function toFormState(lesson: LessonDoc): FormState {
     videoProvider: provider,
     videoUrl: lesson.video?.url ?? "",
     videoPublicId: lesson.video?.publicId ?? "",
+    isFreePreview: lesson.isFreePreview,
   };
 }
 
 function toRequestBody(form: FormState) {
   return {
     title: { en: form.titleEn, ar: form.titleAr },
+    isFreePreview: form.isFreePreview,
     ...(form.descriptionEn || form.descriptionAr
       ? {
           description: {
@@ -332,7 +336,10 @@ export function LessonManager({ courseId, initialLessons }: LessonManagerProps) 
                 <span className="w-6 shrink-0 text-xs font-medium text-foreground/50 tabular-nums">{index + 1}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-foreground">{lesson.title.en || lesson.title.ar}</p>
-                  {lesson.video && <Badge variant="neutral">{t(`videoProvider.${lesson.video.provider}`)}</Badge>}
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {lesson.video && <Badge variant="neutral">{t(`videoProvider.${lesson.video.provider}`)}</Badge>}
+                    {lesson.isFreePreview && <Badge variant="success">{t("freePreview.badge")}</Badge>}
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {lesson.video && (
@@ -401,6 +408,17 @@ export function LessonManager({ courseId, initialLessons }: LessonManagerProps) 
               label={t("fields.descriptionAr")}
               value={form.descriptionAr}
               onChange={(event) => updateField("descriptionAr", event.target.value)}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
+            <div className="text-start">
+              <p className="text-sm font-medium text-foreground">{t("freePreview.label")}</p>
+              <p className="mt-0.5 text-xs text-foreground/60">{t("freePreview.hint")}</p>
+            </div>
+            <Switch
+              checked={form.isFreePreview}
+              onCheckedChange={(checked) => updateField("isFreePreview", checked)}
+              id="lesson-free-preview"
             />
           </div>
           <div className="flex flex-col gap-2">

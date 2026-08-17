@@ -29,7 +29,7 @@ const DEAD_TOKEN_ERROR_CODES = new Set([
 ]);
 
 /** Server-generated push copy — not a client-visible next-intl string (nothing under `messages/` renders it), so it's kept local to this module rather than added to `messages/en.json`/`ar.json`. Localized off `users/{uid}.locale`, defaulting to `en` when unset. */
-const PUSH_COPY: Record<"en" | "ar", Record<NotificationDoc["type"], { title: string; body: string }>> = {
+const PUSH_COPY: Record<"en" | "ar", Record<"meeting_link" | "class_reminder", { title: string; body: string }>> = {
   en: {
     meeting_link: { title: "Class is starting", body: "Your class is starting now — tap to join." },
     class_reminder: { title: "Upcoming class", body: "Your class starts in a few minutes." },
@@ -39,6 +39,14 @@ const PUSH_COPY: Record<"en" | "ar", Record<NotificationDoc["type"], { title: st
     class_reminder: { title: "تذكير بالحصة القادمة", body: "حصتك تبدأ خلال دقائق قليلة." },
   },
 };
+
+/** TASK-3003 — `audit` notifications carry their own `{ en, ar }` title, so push copy is read straight off the doc rather than looked up in `PUSH_COPY`. */
+function copyFor(notification: NotificationDoc, locale: "en" | "ar"): { title: string; body: string } {
+  if (notification.type === "audit") {
+    return { title: notification.title?.[locale] ?? notification.title?.en ?? "", body: "" };
+  }
+  return PUSH_COPY[locale][notification.type];
+}
 
 export const pushDispatchService = {
   /** Best-effort — swallows all errors so a caller never needs its own try/catch. */
@@ -71,7 +79,7 @@ export const pushDispatchService = {
       const tokens = await fcmTokenRepository.listForUser(notification.recipientId);
       if (tokens.length === 0) return;
 
-      const copy = PUSH_COPY[locale ?? "en"][notification.type];
+      const copy = copyFor(notification, locale ?? "en");
       const results = await pushRepository.sendMulticast(
         tokens.map((t) => t.token),
         {
@@ -79,7 +87,7 @@ export const pushDispatchService = {
           body: copy.body,
           data: {
             type: notification.type,
-            scheduleId: notification.scheduleId,
+            ...(notification.scheduleId ? { scheduleId: notification.scheduleId } : {}),
             ...(notification.meetingUrl ? { meetingUrl: notification.meetingUrl } : {}),
           },
         },

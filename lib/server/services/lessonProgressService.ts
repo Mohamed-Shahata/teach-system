@@ -32,8 +32,13 @@ export const lessonProgressService = {
     const lesson = await lessonRepository.findById(lessonId);
     if (!lesson) throw new NotFoundError();
 
-    const enrollment = await enrollmentRepository.findByStudentAndCourse(session.uid, lesson.courseId);
-    assertStudentEnrolled(session, enrollment);
+    // TASK-3105 — a free-preview lesson bypasses the enrollment gate so a
+    // prospective (non-enrolled) student can watch it; every other lesson
+    // stays gated exactly as before.
+    if (!lesson.isFreePreview) {
+      const enrollment = await enrollmentRepository.findByStudentAndCourse(session.uid, lesson.courseId);
+      assertStudentEnrolled(session, enrollment);
+    }
 
     const existing = await lessonProgressRepository.findByStudentAndLesson(session.uid, lessonId);
     const watchedSeconds = Math.max(existing?.watchedSeconds ?? 0, input.currentTimeSeconds);

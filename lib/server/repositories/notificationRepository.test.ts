@@ -67,13 +67,56 @@ describe("notificationRepository.listByTeacherRecipient", () => {
 
   it("queries recipientId + type=class_reminder", async () => {
     getQuery.mockResolvedValue({
-      docs: [{ id: "n1", data: () => ({ ...raw, recipientId: "teacher-1", type: "class_reminder" }) }],
+      docs: [{ id: "n1", data: () => ({ ...raw, recipientId: "teacher-1", type: "class_reminder", createdAt: Date.now() }) }],
     });
 
     const result = await notificationRepository.listByTeacherRecipient("teacher-1");
 
     expect(where).toHaveBeenCalledWith("recipientId", "==", "teacher-1");
     expect(where).toHaveBeenCalledWith("type", "==", "class_reminder");
+    expect(result).toHaveLength(1);
+  });
+
+  // TASK-3005
+  it("excludes an acknowledged reminder", async () => {
+    getQuery.mockResolvedValue({
+      docs: [
+        {
+          id: "n1",
+          data: () => ({ ...raw, recipientId: "teacher-1", type: "class_reminder", createdAt: Date.now(), acknowledged: true }),
+        },
+      ],
+    });
+
+    const result = await notificationRepository.listByTeacherRecipient("teacher-1");
+
+    expect(result).toHaveLength(0);
+  });
+
+  // TASK-3005 — a reminder's class start time is always createdAt + REMINDER_MINUTES_BEFORE minutes.
+  it("excludes an expired reminder (class start time has passed)", async () => {
+    const elevenMinutesAgo = Date.now() - 11 * 60 * 1000;
+    getQuery.mockResolvedValue({
+      docs: [
+        { id: "n1", data: () => ({ ...raw, recipientId: "teacher-1", type: "class_reminder", createdAt: elevenMinutesAgo }) },
+      ],
+    });
+
+    const result = await notificationRepository.listByTeacherRecipient("teacher-1");
+
+    expect(result).toHaveLength(0);
+  });
+
+  it("keeps a reminder still within its 10-minute window", async () => {
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    getQuery.mockResolvedValue({
+      docs: [
+        { id: "n1", data: () => ({ ...raw, recipientId: "teacher-1", type: "class_reminder", createdAt: fiveMinutesAgo }) },
+      ],
+    });
+
+    const result = await notificationRepository.listByTeacherRecipient("teacher-1");
+
     expect(result).toHaveLength(1);
   });
 });
@@ -128,5 +171,49 @@ describe("notificationRepository.markRead", () => {
     await expect(
       notificationRepository.markRead({ uid: "student-2", email: "s2@example.com", role: "student" }, "n1"),
     ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+
+describe("notificationRepository.acknowledge", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const reminder = { ...raw, recipientId: "teacher-1", type: "class_reminder" as const };
+
+  it("acknowledges the owning teacher's own class_reminder", async () => {
+    getDoc.mockResolvedValue({ exists: true, id: "n1", data: () => reminder });
+    updateDoc.mockResolvedValue(undefined);
+
+    const result = await notificationRepository.acknowledge(
+      { uid: "teacher-1", email: "t@example.com", role: "teacher" },
+      "n1",
+    );
+
+    expect(updateDoc).toHaveBeenCalledWith({ acknowledged: true, read: true });
+    expect(result.acknowledged).toBe(true);
+    expect(result.read).toBe(true);
+  });
+
+  it("rejects a non-class_reminder notification", async () => {
+    getDoc.mockResolvedValue({ exists: true, id: "n1", data: () => raw });
+
+    await expect(
+      notificationRepository.acknowledge({ uid: "student-1", email: "s@example.com", role: "student" }, "n1"),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("rejects a different teacher", async () => {
+    getDoc.mockResolvedValue({ exists: true, id: "n1", data: () => reminder });
+
+    await expect(
+      notificationRepository.acknowledge({ uid: "teacher-2", email: "t2@example.com", role: "teacher" }, "n1"),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("throws NotFoundError for a missing notification", async () => {
+    getDoc.mockResolvedValue({ exists: false });
+
+    await expect(
+      notificationRepository.acknowledge({ uid: "teacher-1", email: "t@example.com", role: "teacher" }, "missing"),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

@@ -2,7 +2,9 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/session";
 import { assertRole } from "@/lib/auth/guards";
 import { systemStatsService } from "@/lib/server/services/systemStatsService";
+import { notificationService } from "@/lib/server/services/notificationService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuditNotificationsPanel } from "@/components/layout/audit-notifications-panel";
 
 /**
  * TASK-1902 — System-wide stats overview. Counters are denormalized on
@@ -19,6 +21,7 @@ export default async function AdminDashboardPage() {
   assertRole(session, "admin");
 
   const stats = await systemStatsService.getStats(session);
+  const auditNotifications = await notificationService.listMyAuditNotifications(session);
   const cards = [
     {
       key: "teachers",
@@ -118,6 +121,8 @@ export default async function AdminDashboardPage() {
           </Card>
         ))}
       </div>
+
+      <AuditNotificationsPanel initialNotifications={auditNotifications} />
     </div>
   );
 }

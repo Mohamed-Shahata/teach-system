@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/session";
@@ -12,12 +13,16 @@ import { Badge, Breadcrumb } from "@/components/ui";
 import { TeacherReviewForm } from "@/components/student/teacher-review-form";
 
 /**
- * TASK-2303 — a single teacher's published courses, reached from
- * TASK-2302's "My teachers" list. Not a full browse/buy storefront
- * redesign, per this task's own description — just the public course
- * list (`publicRepository`, same source `/teachers/[slug]` uses) with
- * an `enrolled` flag layered on by `teacherDirectoryService.
- * getTeacherCoursesForStudent` (TASK-2301's service, extended).
+ * TASK-3203 — a teacher's account view, reached from either tab of the
+ * "Teachers" directory (`../page.tsx`). No longer gated on the student
+ * already having a relationship with the teacher (that was TASK-2303's
+ * scope) — `teacherDirectoryService.getTeacherAccountView` is open to any
+ * authenticated student, and now returns the TASK-3101 profile-detail
+ * fields (headline/bio/experience/specialization/social links) shown
+ * here alongside the same public course list TASK-2303 rendered. Course
+ * cards link to TASK-3204's course detail page
+ * (`student/courses/[courseId]`), which handles content access-gating
+ * itself.
  */
 
 function localizedText(text: Partial<LocalizedText> | undefined, locale: string): string | undefined {
@@ -25,7 +30,7 @@ function localizedText(text: Partial<LocalizedText> | undefined, locale: string)
   return (locale === "ar" ? text.ar : text.en) || text.en || text.ar;
 }
 
-export default async function StudentTeacherCoursesPage({
+export default async function StudentTeacherAccountPage({
   params,
 }: PageProps<"/[locale]/student/teachers/[teacherId]">) {
   const { teacherId } = await params;
@@ -36,16 +41,17 @@ export default async function StudentTeacherCoursesPage({
 
   let data;
   try {
-    data = await teacherDirectoryService.getTeacherCoursesForStudent(session, teacherId);
+    data = await teacherDirectoryService.getTeacherAccountView(session, teacherId);
   } catch (err) {
     if (err instanceof NotFoundError) notFound();
     throw err;
   }
 
-  // TASK-2702 — this page is only ever reached via the student's own
-  // "my teachers" list (TASK-2301/2303), so eligibility already holds;
-  // this just prefills the form with any existing review, no re-check.
   const myReview = await reviewService.getMyReview(session, teacherId);
+
+  const socialLinks = data.socialLinks
+    ? Object.entries(data.socialLinks).filter(([, url]) => Boolean(url))
+    : [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -56,7 +62,7 @@ export default async function StudentTeacherCoursesPage({
         ]}
       />
 
-      <div className="flex items-center gap-3 border-s-4 border-primary ps-4">
+      <div className="flex flex-wrap items-start gap-4 border-s-4 border-primary ps-4">
         {data.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={data.avatarUrl} alt={data.displayName} className="h-12 w-12 rounded-full object-cover" />
@@ -65,35 +71,72 @@ export default async function StudentTeacherCoursesPage({
             {data.displayName.charAt(0)}
           </div>
         )}
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold text-foreground">{data.displayName}</h1>
+        <div className="flex flex-1 flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-foreground">{data.displayName}</h1>
+            {data.subscribed && <Badge variant="success">{t("subscribedBadge")}</Badge>}
+          </div>
+          {data.headline && <p className="text-sm text-foreground/70">{localizedText(data.headline, locale)}</p>}
           {data.subjectName && <p className="text-sm text-foreground/60">{localizedText(data.subjectName, locale)}</p>}
         </div>
       </div>
+
+      {(data.bio || data.yearsOfExperience !== undefined || data.specialization || socialLinks.length > 0) && (
+        <Card>
+          <CardContent className="flex flex-col gap-3 pt-6">
+            {data.bio && <p className="text-sm leading-6 text-foreground/80">{localizedText(data.bio, locale)}</p>}
+            <div className="flex flex-wrap gap-4 text-sm text-foreground/60">
+              {data.yearsOfExperience !== undefined && (
+                <span>{t("experienceLabel", { years: data.yearsOfExperience })}</span>
+              )}
+              {data.specialization && <span>{data.specialization}</span>}
+            </div>
+            {socialLinks.length > 0 && (
+              <div className="flex flex-wrap gap-3">
+                {socialLinks.map(([key, url]) => (
+                  <a
+                    key={key}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    {key}
+                  </a>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {data.courses.length === 0 ? (
         <EmptyState title={t("emptyCoursesTitle")} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {data.courses.map((course) => (
-            <Card key={course.courseId} className="flex flex-col gap-3">
-              <CardHeader className="mb-0 flex-row items-start justify-between gap-2 space-y-0">
-                <CardTitle className="line-clamp-2">{localizedText(course.title, locale)}</CardTitle>
-                <Badge variant={course.enrolled ? "success" : "neutral"}>
-                  {course.enrolled ? t("enrolledBadge") : t("availableBadge")}
-                </Badge>
-              </CardHeader>
-              {course.description && (
-                <CardContent className="line-clamp-3 text-sm text-foreground/60">
-                  {localizedText(course.description, locale)}
-                </CardContent>
-              )}
-            </Card>
+            <Link key={course.courseId} href={`/${locale}/student/courses/${course.courseId}`} className="block">
+              <Card className="flex h-full flex-col gap-3 transition-colors hover:border-primary">
+                <CardHeader className="mb-0 flex-row items-start justify-between gap-2 space-y-0">
+                  <CardTitle className="line-clamp-2">{localizedText(course.title, locale)}</CardTitle>
+                  <Badge variant={course.enrolled ? "success" : "neutral"}>
+                    {course.enrolled ? t("enrolledBadge") : t("availableBadge")}
+                  </Badge>
+                </CardHeader>
+                {course.description && (
+                  <CardContent className="line-clamp-3 text-sm text-foreground/60">
+                    {localizedText(course.description, locale)}
+                  </CardContent>
+                )}
+              </Card>
+            </Link>
           ))}
         </div>
       )}
 
-      <TeacherReviewForm teacherId={teacherId} initialReview={myReview} />
+      {(data.subscribed || data.courses.some((c) => c.enrolled)) && (
+        <TeacherReviewForm teacherId={teacherId} initialReview={myReview} />
+      )}
     </div>
   );
 }

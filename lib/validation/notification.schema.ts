@@ -9,3 +9,9 @@ export const markNotificationReadSchema = z.object({
   read: z.literal(true),
 });
 export type MarkNotificationReadInput = z.infer<typeof markNotificationReadSchema>;
+
+/** `PATCH /api/teacher/notifications/[notificationId]/acknowledge` body (TASK-3005) — same one-literal-field shape as `markNotificationReadSchema`, kept as its own schema since it's a semantically distinct action (see `notificationRepository.acknowledge`). */
+export const acknowledgeNotificationSchema = z.object({
+  acknowledged: z.literal(true),
+});
+export type AcknowledgeNotificationInput = z.infer<typeof acknowledgeNotificationSchema>;

@@ -21,6 +21,13 @@ const createLessonObjectSchema = z.object({
   description: localizedOptionalTextSchema.optional(),
   video: lessonVideoSchema.optional(),
   fileIds: z.array(z.string().trim().min(1)).optional(),
+  /**
+   * TASK-3105 — lets a non-enrolled student watch this specific lesson
+   * to evaluate the teacher before paying. Teacher/Admin-settable only
+   * (same authorization as every other lesson field, guarded at the
+   * service layer, not here).
+   */
+  isFreePreview: z.boolean().optional(),
 });
 
 export const createLessonSchema = createLessonObjectSchema;

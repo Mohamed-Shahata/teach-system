@@ -27,12 +27,52 @@ session.uid`. No separate `students` collection — a student is a
   never a global student list across other teachers.
 - An Admin may see and manage every student in the center.
 
-## "My teachers" (Phase 23)
-The reverse direction — a student's own list of the teachers they're
-enrolled with — landed per `docs/tasks/phase-23-student-teachers-
-directory.md` (all three tasks `Done`): a derived `studentService`
-listing (teachers a student has at least one non-cancelled enrollment
-with), a `student/teachers` list page (+ sidebar nav entry), and a
-per-teacher `student/teachers/[teacherId]` page scoped to that
-student's own enrollment with the teacher (their courses, and — since
-Phase 27 — the review form for that teacher).
+## "Teachers" directory (Phase 23, restructured by TASK-3203)
+The reverse direction — a student's view of the system's teachers —
+originally landed per `docs/tasks/phase-23-student-teachers-
+directory.md` as an enrollment-derived "My teachers" list. TASK-3203
+(Phase 32) restructured it into a **"Teachers"** page (nav label
+renamed; same `student/teachers` route — no path changed, so no
+redirect was needed) with two tabs: **All teachers** (every
+`isPublic == true` teacher in the system — `teacherDirectoryService
+.listTeacherDirectory`) and **My Teachers** (the same list filtered
+client-side to teachers the student has an `active` `subscriptions`
+doc with, Phase 29 — not enrollment-based anymore).
+
+Clicking a teacher, from either tab, opens their account view
+(`student/teachers/[teacherId]`, `teacherDirectoryService
+.getTeacherAccountView`) — no longer gated on the student having a
+prior enrollment with that teacher. It shows the TASK-3101 profile
+fields (headline, bio, years of experience, specialization, social
+links) alongside the teacher's published courses (each flagged
+`enrolled` for the caller), and — only for a subscribed/enrolled
+student — the review form (Phase 27). Course *content* access
+gating for a non-enrolled/non-subscribed student viewing this page
+is TASK-3204's scope, not this one.
+
+## Student self-service "My Profile" (TASK-3201, Phase 32)
+A lightweight profile page (`student/profile`, distinct from
+`student/settings`'s account page — display name/avatar/password) lets
+a student view/edit `displayName`, an avatar, and a new
+`users.birthDate` field (ISO `YYYY-MM-DD`), and see their own
+`stageId` (grade level) read-only.
+
+- `birthDate` was chosen over a raw `age` number specifically so the
+  displayed age doesn't go stale: `age` is derived server-side from
+  `birthDate` at read time (`lib/validation/user.schema.ts`'s
+  `computeAgeFromBirthDate`, reused by `studentProfileService`) and is
+  never itself persisted. This differs from the older, Admin/teacher-set
+  `users.age` field (`account.schema.ts`), which is left as-is.
+- `stageId` is shown but not editable here — changing grade level stays
+  an Admin-only action (Student management "Edit"), to keep
+  enrollment/subscription data consistent with the stage a student was
+  actually enrolled under.
+- Avatar upload is **not** duplicated on this page's API surface — it
+  reuses TASK-1005's existing signed-upload flow and
+  `PATCH /api/student/settings/avatar` (same Cloudinary field as the
+  account-settings picture); only `displayName`/`birthDate` go through
+  the new `GET`/`PATCH /api/student/profile`
+  (`studentProfileService.getMyProfile`/`updateMyProfile`).
+- The dashboard topbar's profile-icon link (TASK-3103 introduced this
+  for teachers) now also routes a student session to `/student/profile`
+  instead of `/student/settings`.

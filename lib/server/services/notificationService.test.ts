@@ -6,6 +6,8 @@ const findByIds = vi.fn();
 const createMany = vi.fn();
 const listByStudent = vi.fn();
 const markRead = vi.fn();
+const acknowledge = vi.fn();
+const listByRecipientAudit = vi.fn();
 const dispatchForNotifications = vi.fn();
 
 vi.mock("@/lib/server/repositories/scheduleRepository", () => ({
@@ -18,7 +20,7 @@ vi.mock("@/lib/server/repositories/userRepository", () => ({
   userRepository: { findByIds },
 }));
 vi.mock("@/lib/server/repositories/notificationRepository", () => ({
-  notificationRepository: { createMany, listByStudent, markRead },
+  notificationRepository: { createMany, listByStudent, markRead, acknowledge, listByRecipientAudit },
 }));
 vi.mock("@/lib/server/services/pushDispatchService", () => ({
   pushDispatchService: { dispatchForNotifications },
@@ -69,7 +71,12 @@ describe("notificationService.sendMeetingLink", () => {
     const result = await notificationService.sendMeetingLink(makeSession("teacher"), "slot-1");
 
     expect(createMany).toHaveBeenCalledWith([
-      expect.objectContaining({ recipientId: "student-match", meetingUrl: slot.meetingUrl, stageId: "secondary-3" }),
+      expect.objectContaining({
+        recipientId: "student-match",
+        meetingUrl: slot.meetingUrl,
+        stageId: "secondary-3",
+        link: "/student/teachers/teacher-1",
+      }),
     ]);
     expect(result.sentCount).toBe(1);
     expect(dispatchForNotifications).toHaveBeenCalledWith([
@@ -122,5 +129,39 @@ describe("notificationService.listMyNotifications", () => {
     await expect(notificationService.listMyNotifications(makeSession("teacher"))).rejects.toBeInstanceOf(
       ForbiddenError,
     );
+  });
+});
+
+describe("notificationService.listMyAuditNotifications", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("lists the signed-in user's own audit notifications, any role", async () => {
+    listByRecipientAudit.mockResolvedValue([]);
+
+    await notificationService.listMyAuditNotifications(makeSession("admin", "admin-1"));
+    expect(listByRecipientAudit).toHaveBeenCalledWith("admin-1");
+
+    await notificationService.listMyAuditNotifications(makeSession("student", "student-1"));
+    expect(listByRecipientAudit).toHaveBeenCalledWith("student-1");
+  });
+});
+
+describe("notificationService.acknowledgeClassReminder", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("acknowledges on behalf of the signed-in teacher", async () => {
+    acknowledge.mockResolvedValue({ id: "n1", acknowledged: true });
+    const session = makeSession("teacher", "teacher-1");
+
+    await notificationService.acknowledgeClassReminder(session, "n1");
+
+    expect(acknowledge).toHaveBeenCalledWith(session, "n1");
+  });
+
+  it("rejects non-teacher sessions", async () => {
+    await expect(
+      notificationService.acknowledgeClassReminder(makeSession("student"), "n1"),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    expect(acknowledge).not.toHaveBeenCalled();
   });
 });

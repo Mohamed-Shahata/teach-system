@@ -8,14 +8,26 @@ import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Button } from "@/components/ui/button";
 
-/** Derives `/{locale}/{role}/settings` from the current path's `(protected)/{role}/...` segment. */
-function useSettingsHref(): string {
+/**
+ * TASK-3103 (teacher) / TASK-3201 (student) — for a teacher or student
+ * session the profile-icon link goes to that role's own "my profile"
+ * page (`/teacher/profile`, `/student/profile`) instead of the account
+ * settings page. Admin sessions have no equivalent "profile" page yet,
+ * so they keep the original settings destination — derived the same way
+ * the old `useSettingsHref` did (role segment from the current path).
+ * `isTeacherProfile` is kept as the boolean name (pre-dates TASK-3201)
+ * but now covers either role's profile page — used only to pick between
+ * the `nav.profile`/`nav.settings` aria-label below.
+ */
+function useProfileIconTarget(): { href: string; isTeacherProfile: boolean } {
   const locale = useLocale();
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
-  // segments[0] is the locale; segments[1] is the role ("admin" | "teacher" | "student").
   const role = segments[1] ?? "teacher";
-  return `/${locale}/${role}/settings`;
+  if (role === "teacher" || role === "student") {
+    return { href: `/${locale}/${role}/profile`, isTeacherProfile: true };
+  }
+  return { href: `/${locale}/${role}/settings`, isTeacherProfile: false };
 }
 
 export interface DashboardTopbarProps {
@@ -46,7 +58,7 @@ export function DashboardTopbar({
   unreadCount,
 }: DashboardTopbarProps) {
   const t = useTranslations("teacherDashboard");
-  const settingsHref = useSettingsHref();
+  const profileIconTarget = useProfileIconTarget();
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
@@ -124,8 +136,8 @@ export function DashboardTopbar({
             aria-hidden="true"
           />
           <Link
-            href={settingsHref}
-            aria-label={t("nav.settings")}
+            href={profileIconTarget.href}
+            aria-label={profileIconTarget.isTeacherProfile ? t("nav.profile") : t("nav.settings")}
             className="cursor-pointer rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             {avatarUrl ? (

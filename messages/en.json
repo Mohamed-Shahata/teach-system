@@ -8,7 +8,11 @@
   },
   "layout": {
     "title": "Drosi",
-    "description": "Drosi is a private educational platform for courses, lessons, students, enrollments, quizzes, and files."
+    "description": "Drosi is a private educational platform for courses, lessons, students, enrollments, quizzes, and files.",
+    "auditNotifications": {
+      "title": "Recent activity",
+      "new": "New"
+    }
   },
   "locale": {
     "en": "English",
@@ -97,6 +101,7 @@
       "exams": "Exams",
       "files": "Files",
       "settings": "Settings",
+      "profile": "My Profile",
       "createCourse": "Create Course"
     },
     "greeting": "Hi, {name}",
@@ -318,6 +323,11 @@
           "delete": "Could not delete this file.",
           "tooLarge": "This file is too large (max 20 MB)."
         }
+      },
+      "freePreview": {
+        "badge": "Free preview",
+        "label": "Free preview",
+        "hint": "Non-enrolled students can watch this lesson to evaluate the course before paying."
       }
     },
     "students": {
@@ -430,6 +440,12 @@
       "formSubtitle": "Quiz titles are shown to students in both languages.",
       "manageQuestions": "Manage questions",
       "published": "Published",
+      "preview": "Preview",
+      "previewTitle": "Preview quiz",
+      "previewSubtitle": "See this quiz exactly as a student would.",
+      "previewNotice": "This is a preview. Answers you submit here are scored but not saved as a real attempt.",
+      "previewLoading": "Loading preview…",
+      "previewEmpty": "This quiz has no questions yet.",
       "questionCount": "{count, plural, =0 {No questions} one {# question} other {# questions}}",
       "status": {
         "draft": "Draft",
@@ -454,7 +470,8 @@
         "load": "Could not load quizzes.",
         "save": "Could not save this quiz.",
         "delete": "Could not delete this quiz.",
-        "publish": "Could not update the quiz's status."
+        "publish": "Could not update the quiz's status.",
+        "previewLoad": "Could not load the quiz preview."
       },
       "questions": {
         "title": "Questions",
@@ -627,6 +644,47 @@
         "confirm": "Couldn't confirm this invoice. Please try again.",
         "reject": "Couldn't reject this invoice. Please try again."
       }
+    },
+    "profile": {
+      "title": "My Profile",
+      "subtitle": "What students see about you — headline, bio, experience, and social links, on the directory card and your public profile page.",
+      "completeness": {
+        "title": "Profile completeness",
+        "percent": "{percent}%",
+        "hint": "Filling these in helps students choose you before subscribing — nothing here is required."
+      },
+      "avatar": {
+        "title": "Profile picture",
+        "change": "Change picture",
+        "hint": "JPG or PNG, shown on your public profile and directory card."
+      },
+      "headline": {
+        "title": "Headline",
+        "en": "Headline (English)",
+        "ar": "Headline (Arabic)"
+      },
+      "bio": {
+        "title": "Bio",
+        "en": "Bio (English)",
+        "ar": "Bio (Arabic)"
+      },
+      "yearsOfExperience": "Years of experience",
+      "specialization": "Specialization",
+      "socialLinks": {
+        "title": "Social links",
+        "facebook": "Facebook",
+        "youtube": "YouTube",
+        "whatsapp": "WhatsApp (wa.me link)",
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "website": "Website"
+      },
+      "save": "Save changes",
+      "success": "Your profile was updated.",
+      "errors": {
+        "update": "Couldn't update your profile. Please try again.",
+        "updateAvatar": "Couldn't update your profile picture. Please try again."
+      }
     }
   },
   "studentDashboard": {
@@ -637,11 +695,13 @@
       "myCourses": "My courses",
       "exams": "Exams",
       "settings": "Settings",
-      "myTeachers": "My teachers"
+      "overview": "Dashboard",
+      "teachers": "Teachers",
+      "schedule": "Schedule"
     },
     "topbarTitle": "Student Dashboard",
-    "title": "My courses",
-    "subtitle": "Your enrolled courses and how far along you are in each one.",
+    "title": "Dashboard",
+    "subtitle": "Live class links, invoices, and notifications, plus your full enrollment history.",
     "emptyTitle": "No courses yet",
     "emptyDescription": "Courses you enroll in will show up here, along with your progress.",
     "unknownCourse": "Course unavailable",
@@ -684,6 +744,27 @@
         "title": "Push notifications",
         "description": "Get an OS/browser notification when a class is starting, on top of the bell above — separate from it, so you can keep the badge without the interruption.",
         "alwaysOnDescription": "In-app notifications are always on for students, so you never miss a class link or update. We also try to register this device for push notifications automatically."
+      }
+    },
+    "myProfile": {
+      "title": "My Profile",
+      "subtitle": "Your display name, photo, birth date, and grade level.",
+      "avatar": {
+        "title": "Profile picture",
+        "change": "Change picture",
+        "hint": "JPG or PNG, shown across your courses and profile."
+      },
+      "displayName": "Display name",
+      "birthDate": "Birth date",
+      "age": "Age",
+      "ageUnset": "Not set",
+      "stage": "Grade level",
+      "stageNone": "Not set",
+      "save": "Save changes",
+      "success": "Your profile was updated.",
+      "errors": {
+        "update": "Couldn't update your profile. Please try again.",
+        "updateAvatar": "Couldn't update your profile picture. Please try again."
       }
     },
     "meetingNotifications": {
@@ -1256,10 +1337,10 @@
     }
   },
   "studentTeachers": {
-    "title": "My teachers",
-    "subtitle": "Teachers you're enrolled with.",
+    "title": "Teachers",
+    "subtitle": "Browse every teacher, or switch to the teachers you're subscribed with.",
     "emptyTitle": "No teachers yet",
-    "emptyDescription": "Once you enroll in a course, the teacher will show up here.",
+    "emptyDescription": "Check back soon — teachers will show up here once they're available.",
     "viewCourses": "View courses",
     "coursesCount": "{count, plural, =0 {No courses} one {# course} other {# courses}}",
     "emptyCoursesTitle": "No published courses yet",
@@ -1279,6 +1360,61 @@
         "ratingRequired": "Please choose a rating.",
         "submit": "Could not save your review. Please try again."
       }
+    },
+    "tabs": {
+      "all": "All teachers",
+      "mine": "My teachers"
+    },
+    "emptyMineTitle": "No subscribed teachers yet",
+    "emptyMineDescription": "Once you subscribe to a teacher, they'll show up here.",
+    "subscribedBadge": "Subscribed",
+    "experienceLabel": "{years, plural, =0 {New teacher} one {# year of experience} other {# years of experience}}"
+  },
+  "studentSchedule": {
+    "title": "Weekly schedule",
+    "subtitle": "Every class from the teachers you're subscribed to, laid out by day.",
+    "emptyTitle": "No classes yet",
+    "emptyDescription": "Subscribe to a teacher to see their weekly class times here.",
+    "duration": "{count} min"
+  },
+  "studentCourses": {
+    "title": "My courses",
+    "subtitle": "Your active courses and how far along you are in each one. Pick up right where you left off.",
+    "emptyTitle": "No active courses",
+    "emptyDescription": "Courses you enroll in will show up here, along with a Continue button to jump back in.",
+    "unknownCourse": "Course unavailable",
+    "progressLabel": "Course progress",
+    "progressCaption": "{percent}% complete — {completed} {completed, plural, one {lesson} other {lessons}} done",
+    "continue": "Continue",
+    "start": "Start course",
+    "noLessons": "No lessons yet",
+    "lesson": {
+      "breadcrumbCourses": "My courses",
+      "freePreview": "Free preview",
+      "noVideo": "This lesson has no video yet.",
+      "previous": "Previous lesson",
+      "next": "Next lesson",
+      "lessonsInCourse": "Lessons in this course",
+      "done": "Done",
+      "markComplete": "Mark as complete",
+      "completed": "Completed",
+      "errors": {
+        "markComplete": "Couldn't mark this lesson complete. Please try again."
+      }
+    },
+    "detail": {
+      "breadcrumbTeachers": "Teachers",
+      "lessonsHeading": "Lessons",
+      "lessonCount": "{count} {count, plural, one {lesson} other {lessons}}",
+      "free": "Free",
+      "priceLabel": "Price",
+      "enrolledBadge": "Enrolled",
+      "subscribedBadge": "Subscribed",
+      "lockedBadge": "Locked",
+      "freePreviewBadge": "Free preview",
+      "goToLesson": "Go to lesson",
+      "noLessons": "No lessons published yet.",
+      "noDescription": "No description yet."
     }
   }
 }

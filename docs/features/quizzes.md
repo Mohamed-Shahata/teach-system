@@ -68,3 +68,37 @@ branch that no longer rejects an absent `courseId`). TASK-2105 added
 the teacher-facing management UI for creating/editing standalone
 exams. See `docs/tasks/phase-21-standalone-exams.md` for the
 per-task detail.
+
+## Teacher preview (TASK-3106)
+
+The owning teacher (or Admin) can preview any of their quizzes —
+`draft` or `published`, course-attached or standalone — exactly as a
+student attempting it would see it, before ever publishing it.
+
+- **`GET /api/quizzes/[quizId]/preview`** (`quizService.getQuizPreview`)
+  returns the quiz plus its questions in the same
+  `correctOptionIds`-stripped `PublicQuestionDoc` shape a real student
+  read returns (`toPublicQuestion`), but — unlike
+  `listQuestionsForStudent` — works regardless of `status`, since the
+  whole point is to preview a quiz *before* it's published. Ownership
+  is checked the same way every other teacher/Admin quiz read is
+  (`assertTeacherOwnsResource`).
+- **`POST /api/quizzes/[quizId]/preview`** (`quizAttemptService.previewAttempt`)
+  "submits" a preview run and scores it with the exact same rule a
+  real attempt uses (`lib/server/quizGrading.ts`'s `computeScore`,
+  shared by both paths so preview scoring can never drift from real
+  scoring) — but it never calls `quizAttemptRepository.create`. No
+  `quizAttempts` document is created, ever, from this route. The
+  response is an ephemeral `{ quizId, answers, score, previewedAt }`
+  object with no `id` — there is nothing a later request could look
+  up.
+- The client reuses the same quiz-taking component
+  (`components/quiz/quiz-taker.tsx`) for both real and preview
+  attempts via a `mode: "live" | "preview"` prop — identical rendering,
+  question order, and option layout either way, just a different
+  submit endpoint and no "previous attempts" history strip in preview
+  mode (a preview run has none to show).
+- The "Preview" action is available from `QuizManager`'s row actions
+  (both course-attached and standalone-exam lists) and from the quiz
+  detail page's header, so it's reachable everywhere a teacher already
+  manages a quiz.

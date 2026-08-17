@@ -29,6 +29,7 @@ Purpose: base identity + role record for every authenticated user
 | displayName | string | yes | |
 | phone | string | no | contact number (used for manual-payment matching) |
 | avatarUrl | string | no | Cloudinary URL |
+| birthDate | string | no | TASK-3201 — ISO `YYYY-MM-DD`, student self-service; display `age` is derived from this server-side at read time (`studentProfileService`), never stored |
 | locale | `"en" \| "ar"` | no | preferred locale |
 | createdAt | timestamp | yes | |
 | updatedAt | timestamp | yes | |
@@ -74,8 +75,12 @@ Purpose: public + private profile data for a teacher.
 | stageIds | string[] | yes | refs into `educationStages` this teacher teaches |
 | slug | string | yes | unique, used in `/teachers/[slug]` |
 | displayName | string | yes | |
-| bio | string | no | |
-| avatarUrl | string | no | |
+| bio | map `{en?, ar?}` | no | TASK-3101 — migrated from a plain string; pre-migration docs still store a plain string and are read back as `{ en: <string> }` (see `teacherProfileRepository.normalizeBio`) |
+| headline | map `{en?, ar?}` | no | TASK-3101 — short one-line tagline shown under the name on the directory card (TASK-2302); max 120 chars per locale |
+| yearsOfExperience | number | no | TASK-3101 — integer, 0–80 |
+| specialization | string | no | TASK-3101 — free text alongside the existing `subjectIds`, max 120 chars |
+| socialLinks | map | no | TASK-3101 — optional keys `facebook`, `youtube`, `whatsapp`, `instagram`, `tiktok`, `website`, each a validated URL (`whatsapp` is a `wa.me` link, not a raw phone number — that's `users.phone`) |
+| avatarUrl | string | no | Cloudinary URL |
 | brandColor | string | no | future branding |
 | isPublic | boolean | yes | default true |
 | stats.totalStudents | number | yes | denormalized counter |
@@ -84,6 +89,16 @@ Purpose: public + private profile data for a teacher.
 | stats.totalLessons | number | yes | denormalized counter |
 | stats.totalEnrollments | number | yes | denormalized counter |
 | createdAt / updatedAt | timestamp | yes | |
+
+> Note (TASK-3101 scope): `lib/server/repositories/publicRepository.ts`'s
+> separate `PublicTeacherProfile.bio` type (used by the `/teachers/[slug]`
+> and landing pages) still reads `bio` as a plain string via `String(data.bio)`
+> — for a profile whose `bio` has been migrated to the new map shape, that
+> read now stringifies the object instead of showing text. Left unfixed
+> here since those two files are outside this task's `Affected modules`;
+> the actual student/public-facing rendering of the new fields is TASK-3102
+> (edit form) / TASK-3203 (public profile page) — flagging here so it isn't
+> quietly rediscovered later.
 
 Relationships: 1:1 with `users/{teacherId}` where `role == "teacher"`.
 
@@ -145,9 +160,17 @@ students and other teachers get read-only access.
 | order | number | yes | position within course |
 | video | map `{ provider: "cloudinary"\|"youtube"\|"external", url, publicId? }` | no | extensible provider shape |
 | fileIds | string[] | no | references into `files` |
+| isFreePreview | boolean | yes | default `false` — TASK-3105; lets a non-enrolled student watch this lesson to evaluate the course before paying |
 | createdAt / updatedAt | timestamp | yes | |
 
 Indexes: `(courseId, order)`.
+
+`isFreePreview` bypasses the enrollment gate in exactly two places: the
+`firestore.rules` read rule on this collection (a signed-in student may
+read a flagged lesson without an active `enrollments` doc), and
+`lessonProgressService.reportProgress`'s `assertStudentEnrolled` check.
+Teacher/Admin-settable only, via the normal lesson create/update flow —
+no separate endpoint.
 
 ## `lessonProgress/{studentId_lessonId}`
 
@@ -404,21 +427,28 @@ pre-class reminder, addressed via the same collection.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| recipientId | string | yes | who this notification is *for* — a student for `type: "meeting_link"`, the teacher themselves for `type: "class_reminder"`. Renamed from `studentId` in Phase 20 to cover both. |
-| teacherId | string | yes | sender/owning teacher, denormalized |
-| type | `"meeting_link" \| "class_reminder"` | yes | `class_reminder` added Phase 20 (TASK-2003) |
-| scheduleId | string | yes | ref into `schedule` |
-| subjectId | string | yes | denormalized from the schedule slot |
-| stageId | string | yes | denormalized from the schedule slot |
+| recipientId | string | yes | who this notification is *for* — a student for `type: "meeting_link"`, the teacher themselves for `type: "class_reminder"`, any role for `type: "audit"`. Renamed from `studentId` in Phase 20 to cover both. |
+| teacherId | string | `meeting_link`/`class_reminder` only | sender/owning teacher, denormalized |
+| type | `"meeting_link" \| "class_reminder" \| "audit"` | yes | `class_reminder` added Phase 20 (TASK-2003); `audit` added Phase 30 (TASK-3003) |
+| scheduleId | string | `meeting_link`/`class_reminder` only | ref into `schedule` |
+| subjectId | string | `meeting_link`/`class_reminder` only | denormalized from the schedule slot |
+| stageId | string | `meeting_link`/`class_reminder` only | denormalized from the schedule slot |
 | meetingUrl | string | `meeting_link` only | copied from `schedule.meetingUrl` at send time; absent on a `class_reminder` sent before the teacher has set one |
+| link | string | no | TASK-3002 — relative in-app path (no locale prefix) to navigate to on click: `/student/teachers/{teacherId}` for `meeting_link` (no direct `courseId` on a schedule slot, so this is the closest "course page"), `/teacher/dashboard` for `class_reminder` (where the schedule lives), per-entity for `audit` (e.g. `/teacher/courses/{courseId}`) — absent entirely when no sensible target exists (e.g. payment notifications, since there is no dedicated payments page for either role today), in which case the UI degrades to mark-as-read-only. Absent on notifications written before TASK-3002 shipped. |
+| action | `"created" \| "updated" \| "deleted"` | `audit` only | TASK-3003 |
+| entityType | string | `audit` only | TASK-3003 — e.g. `"course"`, `"lesson"`, `"enrollment"`, `"payment"` |
+| entityId | string | `audit` only | TASK-3003 — id of the affected document |
+| title | `{ en: string; ar: string }` | `audit` only | TASK-3003 — server-generated localized copy, rendered directly by `AuditNotificationsPanel` (not a `next-intl` key, since the entity/action space is open-ended) |
+| acknowledged | boolean | `class_reminder` only | TASK-3005 — a teacher's "noted" dismiss action, independent of `read`. Absent (falsy) on every other type and on `class_reminder` docs written before this task shipped. |
 | read | boolean | yes | default `false`, flips to `true` client-side |
 | createdAt | timestamp | yes | |
 
-Indexes: `(recipientId, createdAt desc)`.
+Indexes: `(recipientId, createdAt desc)`, plus `(recipientId, type, createdAt desc)` composite reads used by each of `listByStudent`/`listByTeacherRecipient`/`listByRecipientAudit`.
 
 Authorization: server-created only (`notificationService.sendMeetingLink`
 for manual sends, `classNotificationsJob` for the Phase 20 automated
-ones — both via the Admin SDK) — never client-created. A user may read
+ones, `auditNotificationService.notify` for Phase 30's generic trail —
+all via the Admin SDK) — never client-created. A user may read
 and mark read only their own (`recipientId == auth.uid`) notifications;
 an Admin may read any.
 
@@ -428,6 +458,13 @@ meeting link is sent to every student who (a) has an *active* enrollment
 with the slot's owning teacher (any course), and (b) has `users.stageId`
 exactly equal to the slot's `stageId` — not merely "one of this
 teacher's students".
+
+`audit` recipients (TASK-3003): decided per call site by
+`auditNotificationService.notify`'s caller — the acting user's own
+confirmation and, where relevant, the owning teacher/student on the
+other side of the mutation (see `lib/server/services/auditNotificationService.ts`
+and each wired service's own call site for the exact recipient list per
+entity type).
 
 ## `users/{uid}/fcmTokens/{tokenId}`
 

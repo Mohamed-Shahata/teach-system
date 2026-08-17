@@ -122,4 +122,44 @@ describe("lessonProgressService.reportProgress", () => {
       }),
     ).rejects.toThrow(ForbiddenError);
   });
+
+  // TASK-3105 — a lesson flagged isFreePreview bypasses the enrollment
+  // gate; every other lesson stays gated exactly as before.
+  it("rejects a non-enrolled student on a lesson that isn't flagged free-preview", async () => {
+    findByStudentAndCourse.mockResolvedValue(null);
+
+    await expect(
+      lessonProgressService.reportProgress(makeSession("student"), "lesson-1", {
+        currentTimeSeconds: 10,
+        durationSeconds: 100,
+      }),
+    ).rejects.toThrow(ForbiddenError);
+    expect(findByStudentAndCourse).toHaveBeenCalled();
+  });
+
+  it("allows a non-enrolled student to report progress on a free-preview lesson", async () => {
+    findLessonById.mockResolvedValue({ ...lesson, isFreePreview: true });
+    findByStudentAndCourse.mockResolvedValue(null);
+
+    const progress = await lessonProgressService.reportProgress(makeSession("student"), "lesson-1", {
+      currentTimeSeconds: 15,
+      durationSeconds: 100,
+    });
+
+    expect(findByStudentAndCourse).not.toHaveBeenCalled();
+    expect(progress.watchedSeconds).toBe(15);
+    expect(recalculateWatchProgress).toHaveBeenCalledWith("student-1", "course-1");
+  });
+
+  it("still enrollment-gates a free-preview-flagged lesson for a non-student role other than admin", async () => {
+    findLessonById.mockResolvedValue({ ...lesson, isFreePreview: true });
+
+    await expect(
+      lessonProgressService.reportProgress(makeSession("teacher", "teacher-1"), "lesson-1", {
+        currentTimeSeconds: 10,
+        durationSeconds: 100,
+      }),
+    ).rejects.toThrow(ForbiddenError);
+  });
 });
+

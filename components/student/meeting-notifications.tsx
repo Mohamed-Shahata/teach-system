@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import type { NotificationDoc } from "@/lib/server/repositories/notificationRepository";
 
@@ -16,6 +17,8 @@ interface MeetingNotificationsProps {
  */
 export function MeetingNotifications({ initialNotifications }: MeetingNotificationsProps) {
   const t = useTranslations("studentDashboard.meetingNotifications");
+  const locale = useLocale();
+  const router = useRouter();
   const [notifications, setNotifications] = React.useState(initialNotifications);
 
   // TASK-2004 — poll for new auto-fired notifications (TASK-2002) since
@@ -48,6 +51,17 @@ export function MeetingNotifications({ initialNotifications }: MeetingNotificati
     }
   }
 
+  // TASK-3002 — clicking the row itself marks read and navigates to the
+  // notification's `link` (the teacher's page); "Join" stays a separate,
+  // more specific action (opens the actual meeting URL in a new tab) and
+  // stops propagation so it doesn't also trigger the row-level navigation.
+  function openNotification(notification: NotificationDoc) {
+    markRead(notification.id);
+    if (notification.link) {
+      router.push(`/${locale}${notification.link}`);
+    }
+  }
+
   if (notifications.length === 0) return null;
 
   return (
@@ -59,16 +73,30 @@ export function MeetingNotifications({ initialNotifications }: MeetingNotificati
         {notifications.map((notification) => (
           <div
             key={notification.id}
-            className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
+            role={notification.link ? "button" : undefined}
+            tabIndex={notification.link ? 0 : undefined}
+            onClick={notification.link ? () => openNotification(notification) : undefined}
+            onKeyDown={
+              notification.link
+                ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openNotification(notification);
+                    }
+                  }
+                : undefined
+            }
+            className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 [&[role=button]]:cursor-pointer"
           >
             <div className="flex items-center gap-2">
               {!notification.read && <Badge variant="info">{t("new")}</Badge>}
-              <span className="text-sm text-foreground">{t("message", { subject: notification.subjectId })}</span>
+              <span className="text-sm text-foreground">{t("message", { subject: notification.subjectId ?? "" })}</span>
             </div>
             <Button
               type="button"
               size="sm"
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation();
                 markRead(notification.id);
                 window.open(notification.meetingUrl, "_blank", "noopener,noreferrer");
               }}

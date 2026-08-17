@@ -3,10 +3,11 @@ import { assertRole, assertStudentEnrolled, assertTeacherOwnsResource } from "@/
 import type { Session } from "@/lib/auth/session";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
 import { enrollmentRepository } from "@/lib/server/repositories/enrollmentRepository";
-import { questionRepository, type QuestionDoc } from "@/lib/server/repositories/questionRepository";
+import { questionRepository } from "@/lib/server/repositories/questionRepository";
 import { quizAttemptRepository, type QuizAttemptDoc } from "@/lib/server/repositories/quizAttemptRepository";
 import { quizRepository } from "@/lib/server/repositories/quizRepository";
 import { userRepository } from "@/lib/server/repositories/userRepository";
+import { computeScore } from "@/lib/server/quizGrading";
 import type { SubmitQuizAttemptInput } from "@/lib/validation/quiz.schema";
 
 /**
@@ -17,24 +18,11 @@ import type { SubmitQuizAttemptInput } from "@/lib/validation/quiz.schema";
  * than folded into it, since `quizAttempts` is its own collection with
  * its own access rules (a student's *history* of attempts, not a
  * teacher-owned CRUD resource).
+ *
+ * Grading itself (`isAnswerCorrect`/`computeScore`) lives in
+ * `lib/server/quizGrading.ts` (moved there for TASK-3106) so the
+ * teacher-preview flow scores identically without persisting anything.
  */
-
-/** A question is correct only if the submitted set exactly matches the stored correct set — partial credit isn't part of the MVP grading model in `features/quizzes.md`. */
-function isAnswerCorrect(question: QuestionDoc, selectedOptionIds: string[]): boolean {
-  const correct = new Set(question.correctOptionIds);
-  const selected = new Set(selectedOptionIds);
-  return correct.size === selected.size && [...correct].every((id) => selected.has(id));
-}
-
-function computeScore(questions: QuestionDoc[], answers: SubmitQuizAttemptInput["answers"]): number {
-  if (questions.length === 0) return 0;
-  const answerByQuestionId = new Map(answers.map((answer) => [answer.questionId, answer.selectedOptionIds]));
-  const correctCount = questions.reduce((count, question) => {
-    const selected = answerByQuestionId.get(question.id) ?? [];
-    return isAnswerCorrect(question, selected) ? count + 1 : count;
-  }, 0);
-  return Math.round((correctCount / questions.length) * 100);
-}
 
 export const quizAttemptService = {
   /**
@@ -134,6 +122,33 @@ export const quizAttemptService = {
       gradedBy: session.uid,
       gradedAt: Date.now(),
     });
+  },
+
+  /**
+   * TASK-3106 — the owning teacher/Admin "submits" a preview run of
+   * their own quiz. Scores with the exact same rule a real attempt
+   * uses (`computeScore`, shared via `lib/server/quizGrading.ts`), but
+   * — unlike `submitAttempt` — never calls `quizAttemptRepository.create`
+   * and is reachable for a `draft` quiz (a real attempt requires
+   * `published`). The returned shape mirrors `QuizAttemptDoc` closely
+   * enough for the student-facing results card to render unmodified,
+   * but is never written anywhere and has no `id` a later lookup could
+   * resolve — `previewedAt` instead of `submittedAt` makes that
+   * ephemeral nature explicit to any caller reading the shape.
+   */
+  async previewAttempt(session: Session, quizId: string, input: SubmitQuizAttemptInput) {
+    assertRole(session, "teacher", "admin");
+    const quiz = await quizRepository.findById(quizId);
+    if (!quiz) throw new NotFoundError();
+    assertTeacherOwnsResource(session, quiz);
+
+    const questions = await questionRepository.findByIds(quiz.questionIds);
+    return {
+      quizId: quiz.id,
+      answers: input.answers,
+      score: computeScore(questions, input.answers),
+      previewedAt: Date.now(),
+    };
   },
 
   /** A single attempt — the student who submitted it, the owning teacher, or Admin. */

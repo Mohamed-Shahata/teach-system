@@ -26,6 +26,18 @@ export const notificationService = {
     return notificationRepository.listByTeacherRecipient(session.uid);
   },
 
+  /** TASK-3003 — the signed-in user's own generic audit trail, any role, most recent first. */
+  async listMyAuditNotifications(session: Session) {
+    assertRole(session, "student", "teacher", "admin");
+    return notificationRepository.listByRecipientAudit(session.uid);
+  },
+
+  /** TASK-3005 — the signed-in teacher acknowledges ("noted") one of their own class reminders. */
+  async acknowledgeClassReminder(session: Session, id: string) {
+    assertRole(session, "teacher");
+    return notificationRepository.acknowledge(session, id);
+  },
+
   /**
    * TASK-1602 (Phase 6, item 18) — sends this schedule slot's meeting link
    * to every student who is:
@@ -68,6 +80,10 @@ export const notificationService = {
         subjectId: slot.subjectId,
         stageId: slot.stageId,
         meetingUrl: slot.meetingUrl as string,
+        // TASK-3002 — no direct courseId on a schedule slot, so this
+        // routes to the student's page for this teacher (their courses +
+        // review), the closest "course page" a meeting_link can target.
+        link: `/student/teachers/${slot.teacherId}`,
         read: false,
         createdAt: now,
       })),

@@ -8,6 +8,8 @@ import { teacherProfileRepository } from "@/lib/server/repositories/teacherProfi
 import { systemStatsRepository } from "@/lib/server/repositories/systemStatsRepository";
 import { subjectRepository } from "@/lib/server/repositories/subjectRepository";
 import { educationStageRepository } from "@/lib/server/repositories/educationStageRepository";
+import { subscriptionRepository } from "@/lib/server/repositories/subscriptionRepository";
+import { auditNotificationService } from "@/lib/server/services/auditNotificationService";
 import type { CreateCourseInput, UpdateCourseInput } from "@/lib/validation/course.schema";
 
 function slugify(value: string): string {
@@ -70,6 +72,47 @@ export const courseService = {
     return course;
   },
 
+  /**
+   * TASK-3202 — course metadata for a student-facing lesson/course
+   * view (title, `lessonOrder`, etc.). Deliberately *not*
+   * enrollment-gated the way `lessonService.getLessonForStudent` is:
+   * a course's title/description isn't sensitive, and TASK-3204 (course
+   * detail reachable from a teacher's account page, no enrollment
+   * required) will need the same open read — lesson *content* is the
+   * part that stays gated, at the lesson read itself.
+   */
+  async getCourseForStudent(session: Session, id: string) {
+    assertRole(session, "student", "admin");
+    const course = await courseRepository.findById(id);
+    if (!course) {
+      throw new NotFoundError();
+    }
+    return course;
+  },
+
+  /**
+   * TASK-3204 — whether an *active* subscription (Phase 29) covers this
+   * course's content: the higher-level "this student studies with this
+   * teacher, this subject, this grade" relationship applies to every
+   * course in that subject/stage, not just one — see
+   * `subscriptionRepository`'s doc comment. Non-students (teacher/admin
+   * routes never call this) simply get `false`.
+   */
+  async hasActiveSubscriptionForCourse(
+    session: Session,
+    course: Pick<import("@/lib/server/repositories/courseRepository").CourseDoc, "teacherId" | "subjectId" | "stageId">,
+  ): Promise<boolean> {
+    if (session.role !== "student") return false;
+    const subscriptions = await subscriptionRepository.listByStudent(session.uid);
+    return subscriptions.some(
+      (sub) =>
+        sub.status === "active" &&
+        sub.teacherId === course.teacherId &&
+        sub.subjectId === course.subjectId &&
+        sub.stageId === course.stageId,
+    );
+  },
+
   async createCourse(session: Session, input: CreateCourseInput) {
     assertRole(session, "teacher");
     await assertSubjectAndStageExist(input.subjectId, input.stageId);
@@ -96,6 +139,14 @@ export const courseService = {
     });
     await teacherProfileRepository.incrementStats(session.uid, { totalCourses: 1 });
     await systemStatsRepository.incrementStats({ totalCourses: 1 });
+    await auditNotificationService.notify({
+      action: "created",
+      entityType: "course",
+      entityId: course.id,
+      title: { en: `Course "${course.title.en}" created`, ar: `تم إنشاء الدورة "${course.title.ar ?? course.title.en}"` },
+      recipientIds: [session.uid],
+      link: `/teacher/courses/${course.id}`,
+    });
     return course;
   },
 
@@ -110,13 +161,22 @@ export const courseService = {
     if (slug) {
       await assertSlugAvailable(existing.teacherId, slug, id);
     }
-    return courseRepository.update(session, id, {
+    const updated = await courseRepository.update(session, id, {
       ...withoutUndefined({
         ...input,
         slug,
       }),
       updatedAt: Date.now(),
     });
+    await auditNotificationService.notify({
+      action: "updated",
+      entityType: "course",
+      entityId: updated.id,
+      title: { en: `Course "${updated.title.en}" updated`, ar: `تم تعديل الدورة "${updated.title.ar ?? updated.title.en}"` },
+      recipientIds: [session.uid],
+      link: `/teacher/courses/${updated.id}`,
+    });
+    return updated;
   },
 
   async publishCourse(session: Session, id: string) {
@@ -151,6 +211,13 @@ export const courseService = {
     await systemStatsRepository.incrementStats({
       totalCourses: -1,
       ...(deleted.status === "published" ? { totalPublishedCourses: -1 } : {}),
+    });
+    await auditNotificationService.notify({
+      action: "deleted",
+      entityType: "course",
+      entityId: deleted.id,
+      title: { en: `Course "${deleted.title.en}" deleted`, ar: `تم حذف الدورة "${deleted.title.ar ?? deleted.title.en}"` },
+      recipientIds: [session.uid],
     });
   },
 };

@@ -84,6 +84,14 @@ beforeEach(async () => {
       courseId: "course-1",
     });
 
+    // TASK-3105 — a free-preview lesson, readable by a non-enrolled
+    // student too.
+    await db.doc("lessons/lesson-2").set({
+      teacherId: TEACHER_UID,
+      courseId: "course-1",
+      isFreePreview: true,
+    });
+
     await db.doc("payments/payment-1").set({
       studentId: STUDENT_UID,
       teacherId: TEACHER_UID,
@@ -280,6 +288,15 @@ describe("lessons/{lessonId}", () => {
 
   test("a non-owning teacher cannot read the lesson", async () => {
     await assertFails(asOtherTeacher().doc("lessons/lesson-1").get());
+  });
+
+  // TASK-3105 — isFreePreview bypasses the enrollment check.
+  test("a non-enrolled student can read a lesson flagged isFreePreview", async () => {
+    await assertSucceeds(asOtherStudent().doc("lessons/lesson-2").get());
+  });
+
+  test("a non-owning teacher still cannot read a free-preview lesson", async () => {
+    await assertFails(asOtherTeacher().doc("lessons/lesson-2").get());
   });
 });
 
@@ -682,6 +699,36 @@ describe("notifications/{notificationId}", () => {
         teacherId: TEACHER_UID,
         scheduleId: "slot-1",
         meetingUrl: "https://tampered.example.com",
+        read: true,
+      }),
+    );
+  });
+
+  // TASK-3003 — the generic `audit` shape has none of the meeting_link-
+  // specific fields (teacherId/scheduleId/meetingUrl absent on both sides),
+  // so the existing `== ` immutability checks compare two missing fields
+  // (Firestore rules: null == null), which still passes as intended.
+  test("the recipient can mark their own audit notification read", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().doc("notifications/notif-audit-1").set({
+        recipientId: STUDENT_UID,
+        type: "audit",
+        action: "created",
+        entityType: "course",
+        entityId: "course-1",
+        title: { en: "Course created", ar: "تم إنشاء الدورة" },
+        read: false,
+      });
+    });
+
+    await assertSucceeds(
+      asStudent().doc("notifications/notif-audit-1").set({
+        recipientId: STUDENT_UID,
+        type: "audit",
+        action: "created",
+        entityType: "course",
+        entityId: "course-1",
+        title: { en: "Course created", ar: "تم إنشاء الدورة" },
         read: true,
       }),
     );

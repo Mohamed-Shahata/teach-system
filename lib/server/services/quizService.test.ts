@@ -283,6 +283,44 @@ describe("quizService", () => {
   });
 });
 
+describe("quizService — exam preview (TASK-3106)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns a draft quiz's questions, correctOptionIds stripped, to the owning teacher", async () => {
+    quizFindById.mockResolvedValue({ ...quiz, status: "draft" });
+    questionFindByIds.mockResolvedValue([question]);
+
+    const { quiz: previewedQuiz, questions } = await quizService.getQuizPreview(makeSession("teacher"), "quiz-1");
+
+    expect(previewedQuiz.status).toBe("draft");
+    expect(questions).toHaveLength(1);
+    expect(questions[0]).not.toHaveProperty("correctOptionIds");
+  });
+
+  it("allows Admin to preview any teacher's draft quiz", async () => {
+    quizFindById.mockResolvedValue({ ...quiz, status: "draft" });
+    questionFindByIds.mockResolvedValue([question]);
+
+    await expect(quizService.getQuizPreview(makeSession("admin", "admin-1"), "quiz-1")).resolves.toBeTruthy();
+  });
+
+  it("rejects a non-owning teacher previewing someone else's quiz", async () => {
+    quizFindById.mockResolvedValue({ ...quiz, status: "draft" });
+
+    await expect(
+      quizService.getQuizPreview(makeSession("teacher", "teacher-2"), "quiz-1"),
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it("404s previewing a quiz that doesn't exist", async () => {
+    quizFindById.mockResolvedValue(null);
+
+    await expect(quizService.getQuizPreview(makeSession("teacher"), "missing")).rejects.toThrow(NotFoundError);
+  });
+});
+
 describe("quizService — standalone stage-wide exams (TASK-2104)", () => {
   const standaloneQuiz = {
     id: "quiz-2",

@@ -81,6 +81,33 @@ export function assertStudentEnrolled(session: Session, enrollment: EnrollmentLi
 }
 
 /**
+ * TASK-3204 — asserts `session` may access a course's lesson *content*
+ * (video/files): a non-cancelled enrollment in the specific course, OR
+ * an active subscription (Phase 29) covering the course's
+ * teacher+subject+stage, OR an admin. `subscribed` is computed by the
+ * caller (`courseService.hasActiveSubscriptionForCourse`) rather than
+ * this guard reading Firestore itself, matching every other guard here
+ * taking pre-fetched data rather than doing its own I/O.
+ */
+export function assertStudentHasCourseAccess(
+  session: Session,
+  enrollment: EnrollmentLike | null,
+  subscribed: boolean,
+): void {
+  if (session.role === "admin") return;
+  if (
+    session.role === "student" &&
+    enrollment &&
+    enrollment.studentId === session.uid &&
+    enrollment.status !== "cancelled"
+  ) {
+    return;
+  }
+  if (session.role === "student" && subscribed) return;
+  throw new ForbiddenError();
+}
+
+/**
  * Asserts `session` may read progress for `enrollment`: the enrolled
  * student themselves, the owning teacher (read-only aggregate per the
  * permission matrix), or an admin.

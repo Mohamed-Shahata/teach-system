@@ -157,8 +157,12 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/enrollments/$(enrollmentId)).data.status != 'cancelled';
       }
 
+      // TASK-3105 — a lesson flagged isFreePreview is readable by any
+      // signed-in student regardless of enrollment, so a prospective
+      // student can evaluate the teacher before paying.
       allow read: if isOwner(resource.data.teacherId)
-        || (isSignedIn() && callerRole() == 'student' && hasActiveEnrollment(resource.data.courseId));
+        || (isSignedIn() && callerRole() == 'student'
+          && (hasActiveEnrollment(resource.data.courseId) || resource.data.isFreePreview == true));
 
       allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
 
@@ -323,8 +327,11 @@ service cloud.firestore {
       // client-facing create path.
       allow create: if false;
 
-      // A recipient may only flip their own notification to read=true;
-      // every other field is immutable from the client.
+      // A recipient may flip their own notification to read=true, or (TASK-3005)
+      // a class_reminder's acknowledged=true — every other field is immutable
+      // from the client. (In practice both paths go through
+      // notificationService's API routes, Admin SDK, and bypass these rules
+      // entirely — this is defense-in-depth against a direct client write.)
       allow update: if (isAdmin() || (isSignedIn() && request.auth.uid == resource.data.recipientId))
         && request.resource.data.recipientId == resource.data.recipientId
         && request.resource.data.teacherId == resource.data.teacherId

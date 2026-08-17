@@ -31,6 +31,16 @@ vi.mock("@/lib/server/repositories/educationStageRepository", () => ({
   educationStageRepository: { findById: stageFindById },
 }));
 
+const listSubscriptionsByStudent = vi.fn();
+vi.mock("@/lib/server/repositories/subscriptionRepository", () => ({
+  subscriptionRepository: { listByStudent: listSubscriptionsByStudent },
+}));
+
+const auditNotify = vi.fn();
+vi.mock("@/lib/server/services/auditNotificationService", () => ({
+  auditNotificationService: { notify: auditNotify },
+}));
+
 const { courseService } = await import("./courseService");
 const { ConflictError, ForbiddenError, NotFoundError, ValidationError } = await import("@/lib/errors");
 
@@ -154,7 +164,12 @@ describe("courseService", () => {
   });
 
   it("decrements course counters on delete", async () => {
-    deleteCourse.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "published" });
+    deleteCourse.mockResolvedValue({
+      id: "course-1",
+      teacherId: "teacher-1",
+      status: "published",
+      title: { en: "Intro", ar: "مقدمة" },
+    });
 
     await courseService.deleteCourse(makeSession("teacher"), "course-1");
 
@@ -184,10 +199,74 @@ describe("courseService", () => {
     );
   });
 
+  it("returns course metadata for a student without an ownership check", async () => {
+    findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "published" });
+
+    const course = await courseService.getCourseForStudent(makeSession("student", "student-1"), "course-1");
+
+    expect(course).toEqual({ id: "course-1", teacherId: "teacher-1", status: "published" });
+  });
+
+  it("throws NotFoundError from getCourseForStudent when the course doesn't exist", async () => {
+    await expect(
+      courseService.getCourseForStudent(makeSession("student", "student-1"), "missing"),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("rejects getCourseForStudent for a teacher session", async () => {
+    await expect(
+      courseService.getCourseForStudent(makeSession("teacher"), "course-1"),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
   it("rejects non-teacher sessions", async () => {
     await expect(courseService.listCourses(makeSession("student"))).rejects.toBeInstanceOf(ForbiddenError);
     await expect(courseService.createCourse(makeSession("admin"), createInput)).rejects.toBeInstanceOf(
       ForbiddenError,
     );
+  });
+
+  describe("hasActiveSubscriptionForCourse (TASK-3204)", () => {
+    const course = { teacherId: "teacher-1", subjectId: "physics", stageId: "grade-9" };
+
+    it("returns false for a non-student session without checking subscriptions", async () => {
+      const result = await courseService.hasActiveSubscriptionForCourse(makeSession("admin"), course);
+      expect(result).toBe(false);
+      expect(listSubscriptionsByStudent).not.toHaveBeenCalled();
+    });
+
+    it("returns true for an active subscription matching teacher+subject+stage", async () => {
+      listSubscriptionsByStudent.mockResolvedValue([
+        { status: "active", teacherId: "teacher-1", subjectId: "physics", stageId: "grade-9" },
+      ]);
+      const result = await courseService.hasActiveSubscriptionForCourse(
+        makeSession("student", "student-1"),
+        course,
+      );
+      expect(listSubscriptionsByStudent).toHaveBeenCalledWith("student-1");
+      expect(result).toBe(true);
+    });
+
+    it("returns false when the subscription is cancelled", async () => {
+      listSubscriptionsByStudent.mockResolvedValue([
+        { status: "cancelled", teacherId: "teacher-1", subjectId: "physics", stageId: "grade-9" },
+      ]);
+      const result = await courseService.hasActiveSubscriptionForCourse(
+        makeSession("student", "student-1"),
+        course,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("returns false when the subscription covers a different subject/stage", async () => {
+      listSubscriptionsByStudent.mockResolvedValue([
+        { status: "active", teacherId: "teacher-1", subjectId: "chemistry", stageId: "grade-9" },
+      ]);
+      const result = await courseService.hasActiveSubscriptionForCourse(
+        makeSession("student", "student-1"),
+        course,
+      );
+      expect(result).toBe(false);
+    });
   });
 });

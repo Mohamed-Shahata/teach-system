@@ -19,13 +19,15 @@ export interface LessonDoc {
   order: number;
   video?: LessonVideoInput;
   fileIds: string[];
+  /** TASK-3105 — a flagged lesson is playable by any authenticated student regardless of enrollment. Defaults to `false`. */
+  isFreePreview: boolean;
   createdAt: number;
   updatedAt: number;
 }
 
 export type CreateLessonDoc = Omit<LessonDoc, "id">;
 export type UpdateLessonDoc = Partial<
-  Pick<LessonDoc, "title" | "description" | "order" | "video" | "fileIds">
+  Pick<LessonDoc, "title" | "description" | "order" | "video" | "fileIds" | "isFreePreview">
 > & { updatedAt: number };
 
 const COLLECTION = "lessons";
@@ -40,6 +42,7 @@ function toLessonDoc(id: string, data: FirebaseFirestore.DocumentData): LessonDo
     order: Number(data.order),
     ...(data.video ? { video: data.video as LessonVideoInput } : {}),
     fileIds: Array.isArray(data.fileIds) ? data.fileIds.map(String) : [],
+    isFreePreview: Boolean(data.isFreePreview),
     createdAt: Number(data.createdAt),
     updatedAt: Number(data.updatedAt),
   };

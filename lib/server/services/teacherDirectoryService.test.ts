@@ -1,16 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const listByStudent = vi.fn();
-const findByIdsProfiles = vi.fn();
+const listByStudentEnrollments = vi.fn();
+const listByStudentSubscriptions = vi.fn();
+const listPublicProfiles = vi.fn();
 const findByTeacherIdProfile = vi.fn();
 const listSubjects = vi.fn();
 const listPublishedCoursesByTeacher = vi.fn();
 
 vi.mock("@/lib/server/repositories/enrollmentRepository", () => ({
-  enrollmentRepository: { listByStudent },
+  enrollmentRepository: { listByStudent: listByStudentEnrollments },
+}));
+vi.mock("@/lib/server/repositories/subscriptionRepository", () => ({
+  subscriptionRepository: { listByStudent: listByStudentSubscriptions },
 }));
 vi.mock("@/lib/server/repositories/teacherProfileRepository", () => ({
-  teacherProfileRepository: { findByIds: findByIdsProfiles, findByTeacherId: findByTeacherIdProfile },
+  teacherProfileRepository: { listPublic: listPublicProfiles, findByTeacherId: findByTeacherIdProfile },
 }));
 vi.mock("@/lib/server/repositories/subjectRepository", () => ({
   subjectRepository: { list: listSubjects },
@@ -39,126 +43,138 @@ function enrollment(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+function subscription(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: "sub-1",
+    studentId: "student-1",
+    teacherId: "teacher-1",
+    offeringId: "off-1",
+    subjectId: "physics",
+    stageId: "stage-1",
+    status: "active",
+    createdAt: 1000,
+    ...overrides,
+  };
+}
+
+function profile(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    teacherId: "teacher-1",
+    slug: "yara",
+    displayName: "Yara",
+    isPublic: true,
+    subjectIds: ["physics"],
+    createdAt: 1,
+    stats: { totalStudents: 0, totalCourses: 0, totalPublishedCourses: 2, totalLessons: 0, totalEnrollments: 0 },
+    ...overrides,
+  };
+}
+
 describe("teacherDirectoryService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listSubjects.mockResolvedValue([{ id: "physics", name: { en: "Physics", ar: "فيزياء" }, createdAt: 1 }]);
+    listByStudentEnrollments.mockResolvedValue([]);
+    listByStudentSubscriptions.mockResolvedValue([]);
   });
 
-  describe("listMyTeachers", () => {
-    it("groups the student's enrollments by teacher and joins profile/subject info", async () => {
-      listByStudent.mockResolvedValue([
-        enrollment({ id: "e1", teacherId: "teacher-1", courseId: "course-1" }),
-        enrollment({ id: "e2", teacherId: "teacher-1", courseId: "course-2" }),
-        enrollment({ id: "e3", teacherId: "teacher-2", courseId: "course-3" }),
+  describe("listTeacherDirectory", () => {
+    it("returns every public teacher, sorted by name, flagged by active subscription", async () => {
+      listPublicProfiles.mockResolvedValue([
+        profile({ teacherId: "teacher-2", displayName: "Amir", subjectIds: undefined, stats: undefined }),
+        profile({ teacherId: "teacher-1", displayName: "Yara" }),
       ]);
-      findByIdsProfiles.mockResolvedValue(
-        new Map([
-          [
-            "teacher-1",
-            {
-              teacherId: "teacher-1",
-              slug: "yara",
-              displayName: "Yara",
-              isPublic: true,
-              subjectIds: ["physics"],
-              createdAt: 1,
-            },
-          ],
-          [
-            "teacher-2",
-            { teacherId: "teacher-2", slug: "amir", displayName: "Amir", isPublic: true, createdAt: 1 },
-          ],
-        ]),
-      );
+      listByStudentSubscriptions.mockResolvedValue([subscription({ teacherId: "teacher-1", status: "active" })]);
 
-      const result = await teacherDirectoryService.listMyTeachers(makeSession("student"));
+      const result = await teacherDirectoryService.listTeacherDirectory(makeSession("student"));
 
-      expect(listByStudent).toHaveBeenCalledWith("student-1");
+      expect(listByStudentSubscriptions).toHaveBeenCalledWith("student-1");
       expect(result).toEqual([
-        expect.objectContaining({ teacherId: "teacher-2", displayName: "Amir", courseCount: 1, slug: "amir" }),
+        expect.objectContaining({ teacherId: "teacher-2", displayName: "Amir", courseCount: 0, subscribed: false }),
         expect.objectContaining({
           teacherId: "teacher-1",
           displayName: "Yara",
           courseCount: 2,
           subjectName: { en: "Physics", ar: "فيزياء" },
-          slug: "yara",
+          subscribed: true,
         }),
       ]);
     });
 
-    it("excludes cancelled enrollments from the derived teacher set", async () => {
-      listByStudent.mockResolvedValue([
-        enrollment({ id: "e1", teacherId: "teacher-1", status: "cancelled" }),
-      ]);
-      findByIdsProfiles.mockResolvedValue(new Map());
+    it("does not flag a cancelled subscription as subscribed", async () => {
+      listPublicProfiles.mockResolvedValue([profile()]);
+      listByStudentSubscriptions.mockResolvedValue([subscription({ status: "cancelled" })]);
 
-      const result = await teacherDirectoryService.listMyTeachers(makeSession("student"));
+      const [entry] = await teacherDirectoryService.listTeacherDirectory(makeSession("student"));
 
-      expect(result).toEqual([]);
-    });
-
-    it("falls back to the teacherId when no profile doc is found", async () => {
-      listByStudent.mockResolvedValue([enrollment()]);
-      findByIdsProfiles.mockResolvedValue(new Map());
-
-      const [entry] = await teacherDirectoryService.listMyTeachers(makeSession("student"));
-
-      expect(entry).toEqual(expect.objectContaining({ teacherId: "teacher-1", displayName: "teacher-1" }));
+      expect(entry.subscribed).toBe(false);
     });
 
     it("rejects non-student sessions", async () => {
-      await expect(teacherDirectoryService.listMyTeachers(makeSession("teacher"))).rejects.toBeInstanceOf(
+      await expect(teacherDirectoryService.listTeacherDirectory(makeSession("teacher"))).rejects.toBeInstanceOf(
         ForbiddenError,
       );
     });
   });
 
-  describe("getTeacherCoursesForStudent", () => {
-    it("flags courses the student is already enrolled in", async () => {
-      listByStudent.mockResolvedValue([
-        enrollment({ id: "e1", teacherId: "teacher-1", courseId: "course-1" }),
-      ]);
-      findByTeacherIdProfile.mockResolvedValue({
-        teacherId: "teacher-1",
-        slug: "yara",
-        displayName: "Yara",
-        isPublic: true,
-        subjectIds: ["physics"],
-        createdAt: 1,
-      });
+  describe("getTeacherAccountView", () => {
+    it("returns profile details, subscription flag, and course enrollment flags", async () => {
+      findByTeacherIdProfile.mockResolvedValue(
+        profile({
+          headline: { en: "Physics for everyone" },
+          bio: { en: "10 years teaching physics." },
+          yearsOfExperience: 10,
+          specialization: "Mechanics",
+          socialLinks: { website: "https://example.com" },
+        }),
+      );
       listPublishedCoursesByTeacher.mockResolvedValue([
         { id: "course-1", teacherId: "teacher-1", slug: "c1", title: { en: "Course 1", ar: "كورس ١" } },
         { id: "course-2", teacherId: "teacher-1", slug: "c2", title: { en: "Course 2", ar: "كورس ٢" } },
       ]);
+      listByStudentEnrollments.mockResolvedValue([enrollment({ courseId: "course-1" })]);
+      listByStudentSubscriptions.mockResolvedValue([subscription({ status: "active" })]);
 
-      const result = await teacherDirectoryService.getTeacherCoursesForStudent(
-        makeSession("student"),
-        "teacher-1",
-      );
+      const result = await teacherDirectoryService.getTeacherAccountView(makeSession("student"), "teacher-1");
 
       expect(result.displayName).toBe("Yara");
-      expect(result.subjectName).toEqual({ en: "Physics", ar: "فيزياء" });
+      expect(result.subscribed).toBe(true);
+      expect(result.headline).toEqual({ en: "Physics for everyone" });
+      expect(result.yearsOfExperience).toBe(10);
       expect(result.courses).toEqual([
         expect.objectContaining({ courseId: "course-1", enrolled: true }),
         expect.objectContaining({ courseId: "course-2", enrolled: false }),
       ]);
     });
 
-    it("treats a student with no non-cancelled enrollment for this teacher as not found", async () => {
-      listByStudent.mockResolvedValue([
-        enrollment({ id: "e1", teacherId: "teacher-1", status: "cancelled" }),
-      ]);
+    it("is not gated by any prior enrollment or subscription", async () => {
+      findByTeacherIdProfile.mockResolvedValue(profile());
+      listPublishedCoursesByTeacher.mockResolvedValue([]);
 
       await expect(
-        teacherDirectoryService.getTeacherCoursesForStudent(makeSession("student"), "teacher-1"),
+        teacherDirectoryService.getTeacherAccountView(makeSession("student"), "teacher-1"),
+      ).resolves.toEqual(expect.objectContaining({ teacherId: "teacher-1", subscribed: false, courses: [] }));
+    });
+
+    it("treats a non-public profile as not found", async () => {
+      findByTeacherIdProfile.mockResolvedValue(profile({ isPublic: false }));
+
+      await expect(
+        teacherDirectoryService.getTeacherAccountView(makeSession("student"), "teacher-1"),
       ).rejects.toBeInstanceOf(NotFoundError);
-      expect(findByTeacherIdProfile).not.toHaveBeenCalled();
+    });
+
+    it("treats a missing profile as not found", async () => {
+      findByTeacherIdProfile.mockResolvedValue(null);
+
+      await expect(
+        teacherDirectoryService.getTeacherAccountView(makeSession("student"), "teacher-1"),
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("rejects non-student sessions", async () => {
       await expect(
-        teacherDirectoryService.getTeacherCoursesForStudent(makeSession("teacher"), "teacher-1"),
+        teacherDirectoryService.getTeacherAccountView(makeSession("teacher"), "teacher-1"),
       ).rejects.toBeInstanceOf(ForbiddenError);
     });
   });

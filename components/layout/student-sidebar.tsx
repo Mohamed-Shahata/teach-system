@@ -24,6 +24,13 @@ function Icon({ path }: { path: string }) {
 const NAV_ITEMS = [
   {
     segment: "dashboard",
+    labelKey: "overview",
+    icon: (
+      <Icon path="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" />
+    ),
+  },
+  {
+    segment: "courses",
     labelKey: "myCourses",
     icon: (
       <Icon path="M12 6.5c-1.5-1-4-1.5-6-1.2v12.5c2 -.3 4.5.2 6 1.2 1.5-1 4-1.5 6-1.2V5.3c-2-.3-4.5.2-6 1.2zM12 6.5v12" />
@@ -38,9 +45,16 @@ const NAV_ITEMS = [
   },
   {
     segment: "teachers",
-    labelKey: "myTeachers",
+    labelKey: "teachers",
     icon: (
       <Icon path="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 20a7.5 7.5 0 0 1 15 0" />
+    ),
+  },
+  {
+    segment: "schedule",
+    labelKey: "schedule",
+    icon: (
+      <Icon path="M7 3.5v3M17 3.5v3M4 8.5h16M5.5 6h13a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6ZM8 12.5h2M8 15.5h2M14 12.5h2M14 15.5h2" />
     ),
   },
   {
@@ -53,10 +67,16 @@ const NAV_ITEMS = [
 ] as const;
 
 /**
- * TASK-1103/TASK-1005/TASK-2104/TASK-2302 — student sidebar. "My
- * courses", "Exams" (standalone stage-wide exams, TASK-2104), "My
- * teachers" (TASK-2302), and "Settings" (TASK-1005); the
- * `student/courses/[courseId]/*` lesson/quiz views
+ * TASK-1103/TASK-1005/TASK-2104/TASK-2302/TASK-3202/TASK-3203/TASK-3205 —
+ * student sidebar. "Dashboard" (notifications, invoices, enrollment
+ * history — TASK-1103's original page), "My courses" (TASK-3202's
+ * dedicated active-enrollments-with-progress list, separate from the
+ * dashboard), "Exams" (standalone stage-wide exams, TASK-2104),
+ * "Teachers" (TASK-2302, renamed from "My teachers" by TASK-3203 — now
+ * the full directory with a "My Teachers" tab), "Schedule" (TASK-3205 —
+ * weekly timetable derived from subscribed teachers' slots), and
+ * "Settings" (TASK-1005); the
+ * `student/courses/[courseId]/lessons|quizzes/*` player views
  * (folder-structure.md) are reached by navigating from a course card,
  * not a top-level nav item.
  */
