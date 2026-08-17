@@ -154,6 +154,33 @@ beforeEach(async () => {
       meetingUrl: "https://example.com",
       read: false,
     });
+
+    await db.doc("teacherOfferings/offering-1").set({
+      teacherId: TEACHER_UID,
+      subjectId: "subject-1",
+      stageId: "stage-1",
+      monthlyPrice: 300,
+    });
+
+    await db.doc("subscriptions/sub-1").set({
+      studentId: STUDENT_UID,
+      teacherId: TEACHER_UID,
+      offeringId: "offering-1",
+      subjectId: "subject-1",
+      stageId: "stage-1",
+      status: "active",
+    });
+
+    await db.doc("subscriptionInvoices/invoice-1").set({
+      subscriptionId: "sub-1",
+      studentId: STUDENT_UID,
+      teacherId: TEACHER_UID,
+      offeringId: "offering-1",
+      period: "2026-08",
+      amount: 300,
+      currency: "EGP",
+      status: "pending",
+    });
   });
 });
 
@@ -656,6 +683,122 @@ describe("notifications/{notificationId}", () => {
         scheduleId: "slot-1",
         meetingUrl: "https://tampered.example.com",
         read: true,
+      }),
+    );
+  });
+});
+
+describe("teacherOfferings/{offeringId}", () => {
+  test("the owning teacher can read their own offering", async () => {
+    await assertSucceeds(asTeacher().doc("teacherOfferings/offering-1").get());
+  });
+
+  test("a different teacher cannot read someone else's offering", async () => {
+    await assertFails(asOtherTeacher().doc("teacherOfferings/offering-1").get());
+  });
+
+  test("admin can create an offering", async () => {
+    await assertSucceeds(
+      asAdmin().doc("teacherOfferings/offering-new").set({
+        teacherId: TEACHER_UID,
+        subjectId: "subject-1",
+        stageId: "stage-1",
+        monthlyPrice: 400,
+      }),
+    );
+  });
+
+  test("a teacher cannot write their own offering directly", async () => {
+    await assertFails(
+      asTeacher().doc("teacherOfferings/offering-1").set({
+        teacherId: TEACHER_UID,
+        subjectId: "subject-1",
+        stageId: "stage-1",
+        monthlyPrice: 999,
+      }),
+    );
+  });
+});
+
+describe("subscriptions/{subscriptionId}", () => {
+  test("the subscribed student can read their own subscription", async () => {
+    await assertSucceeds(asStudent().doc("subscriptions/sub-1").get());
+  });
+
+  test("the owning teacher can read the subscription", async () => {
+    await assertSucceeds(asTeacher().doc("subscriptions/sub-1").get());
+  });
+
+  test("a different student cannot read someone else's subscription", async () => {
+    await assertFails(asOtherStudent().doc("subscriptions/sub-1").get());
+  });
+
+  test("a student cannot create their own subscription", async () => {
+    await assertFails(
+      asStudent().doc("subscriptions/sub-new").set({
+        studentId: STUDENT_UID,
+        teacherId: TEACHER_UID,
+        offeringId: "offering-1",
+        subjectId: "subject-1",
+        stageId: "stage-1",
+        status: "active",
+      }),
+    );
+  });
+
+  test("admin can create a subscription", async () => {
+    await assertSucceeds(
+      asAdmin().doc("subscriptions/sub-new").set({
+        studentId: STUDENT_UID,
+        teacherId: TEACHER_UID,
+        offeringId: "offering-1",
+        subjectId: "subject-1",
+        stageId: "stage-1",
+        status: "active",
+      }),
+    );
+  });
+});
+
+describe("subscriptionInvoices/{invoiceId}", () => {
+  test("the billed student can read their own invoice", async () => {
+    await assertSucceeds(asStudent().doc("subscriptionInvoices/invoice-1").get());
+  });
+
+  test("the owning teacher can read the invoice", async () => {
+    await assertSucceeds(asTeacher().doc("subscriptionInvoices/invoice-1").get());
+  });
+
+  test("a different student cannot read someone else's invoice", async () => {
+    await assertFails(asOtherStudent().doc("subscriptionInvoices/invoice-1").get());
+  });
+
+  test("a student cannot confirm their own invoice", async () => {
+    await assertFails(
+      asStudent().doc("subscriptionInvoices/invoice-1").set({
+        subscriptionId: "sub-1",
+        studentId: STUDENT_UID,
+        teacherId: TEACHER_UID,
+        offeringId: "offering-1",
+        period: "2026-08",
+        amount: 300,
+        currency: "EGP",
+        status: "confirmed",
+      }),
+    );
+  });
+
+  test("admin can review (confirm) an invoice", async () => {
+    await assertSucceeds(
+      asAdmin().doc("subscriptionInvoices/invoice-1").set({
+        subscriptionId: "sub-1",
+        studentId: STUDENT_UID,
+        teacherId: TEACHER_UID,
+        offeringId: "offering-1",
+        period: "2026-08",
+        amount: 300,
+        currency: "EGP",
+        status: "confirmed",
       }),
     );
   });

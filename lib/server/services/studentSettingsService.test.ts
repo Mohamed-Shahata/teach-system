@@ -3,9 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const findById = vi.fn();
 const updateDisplayName = vi.fn();
 const updateAvatar = vi.fn();
-const updatePushEnabled = vi.fn();
 vi.mock("@/lib/server/repositories/userRepository", () => ({
-  userRepository: { findById, updateDisplayName, updateAvatar, updatePushEnabled },
+  userRepository: { findById, updateDisplayName, updateAvatar },
 }));
 
 const updateUser = vi.fn();
@@ -144,29 +143,12 @@ describe("studentSettingsService.updateAvatar", () => {
   });
 });
 
-describe("studentSettingsService.updatePushPreference", () => {
+describe("studentSettingsService.getProfile — pushEnabled is always true (TASK-3001)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("rejects a non-student session", async () => {
-    await expect(studentSettingsService.updatePushPreference(makeSession("admin"), false)).rejects.toBeInstanceOf(
-      ForbiddenError,
-    );
-  });
-
-  it("throws NotFoundError if the user doc is missing", async () => {
-    findById.mockResolvedValue(null);
-    await expect(studentSettingsService.updatePushPreference(makeSession(), false)).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
-  });
-
-  it("persists the toggle and reflects it in the returned profile", async () => {
-    findById.mockResolvedValue(STUDENT_USER);
-    updatePushEnabled.mockResolvedValue(undefined);
-
-    const result = await studentSettingsService.updatePushPreference(makeSession(), false);
-
-    expect(updatePushEnabled).toHaveBeenCalledWith("student-1", false);
-    expect(result.pushEnabled).toBe(false);
+  it("reports pushEnabled true even if the stored doc has it false (legacy data, self-service toggle removed)", async () => {
+    findById.mockResolvedValue({ ...STUDENT_USER, pushEnabled: false });
+    const result = await studentSettingsService.getProfile(makeSession());
+    expect(result.pushEnabled).toBe(true);
   });
 });

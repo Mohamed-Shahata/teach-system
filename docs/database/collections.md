@@ -268,9 +268,11 @@ only by the server-side gateway webhook handler, never by client input.
 > service, validation, `admin/offerings` + `admin/teachers/[teacherId]
 > /offerings` API routes) but had no entry here and no task file. See
 > the TASK-1802 note in `tasks/phase-18-mvp-finalization.md` for the
-> full gap and what's still outstanding (a `firestore.rules` entry, a
-> `tasks/` phase file, and UI — everything here is backend-only so
-> far, no page mounts it yet).
+> full gap. `tasks/phase-29-teacher-subscriptions.md` now tracks this
+> feature; TASK-2907 added `firestore.rules` coverage for this
+> collection (and `subscriptions`/`subscriptionInvoices` below) — what's
+> still outstanding is UI (TASK-2908/2909), everything here is
+> backend-only so far, no page mounts it yet.
 
 Purpose: Admin-set monthly price for one of a teacher's subjects at one
 grade level (e.g. "Physics, Grade 3 Secondary" → a price). One offering

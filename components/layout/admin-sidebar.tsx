@@ -30,7 +30,8 @@ function Icon({ path }: { path: string }) {
  * TASK-1906, TASK-1907) are picked up, same pattern as the old
  * `teacher/exams` placeholder before Phase 12 landed. "Courses"
  * (TASK-2401) added after the fact — a read-only, center-wide view, not
- * one of the original six sections.
+ * one of the original six sections. "Subscription invoices" (TASK-2908,
+ * Phase 29) added the same way — the review queue for `subscriptionInvoices`.
  */
 const NAV_ITEMS = [
   {
@@ -76,6 +77,13 @@ const NAV_ITEMS = [
     labelKey: "payments",
     icon: (
       <Icon path="M3 7h18v10H3zM3 10h18M7 15h4" />
+    ),
+  },
+  {
+    segment: "subscription-invoices",
+    labelKey: "subscriptionInvoices",
+    icon: (
+      <Icon path="M6 3h9l3 3v15H6zM15 3v3h3M9 12h6M9 15h6M9 9h3" />
     ),
   },
   {

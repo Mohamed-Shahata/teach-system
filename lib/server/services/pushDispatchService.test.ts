@@ -111,13 +111,23 @@ describe("pushDispatchService.dispatchForNotifications", () => {
     expect(sendMulticast).toHaveBeenCalledTimes(1);
   });
 
-  it("skips a recipient who explicitly opted out of push (pushEnabled: false)", async () => {
-    findByIds.mockResolvedValue(new Map([["student-1", { pushEnabled: false }]]));
+  it("skips a teacher/admin recipient who explicitly opted out of push (pushEnabled: false)", async () => {
+    findByIds.mockResolvedValue(new Map([["student-1", { role: "teacher", pushEnabled: false }]]));
 
     await pushDispatchService.dispatchForNotifications([notification]);
 
     expect(listForUser).not.toHaveBeenCalled();
     expect(sendMulticast).not.toHaveBeenCalled();
+  });
+
+  it("TASK-3001: always dispatches to a student recipient even if pushEnabled is stored false (no student opt-out)", async () => {
+    findByIds.mockResolvedValue(new Map([["student-1", { role: "student", pushEnabled: false }]]));
+    listForUser.mockResolvedValue([{ id: "tok-doc-1", token: "tok-1" }]);
+    sendMulticast.mockResolvedValue([{ token: "tok-1", success: true }]);
+
+    await pushDispatchService.dispatchForNotifications([notification]);
+
+    expect(sendMulticast).toHaveBeenCalled();
   });
 
   it("dispatches for a recipient with no recorded preference (default enabled)", async () => {

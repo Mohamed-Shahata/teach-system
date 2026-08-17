@@ -138,10 +138,11 @@ export const updateTeacherPermissionsSchema = z.object({
 export type UpdateTeacherPermissionsInput = z.infer<typeof updateTeacherPermissionsSchema>;
 
 /**
- * `PATCH /api/student/settings/push` and `/api/teacher/settings/push`
- * body — TASK-2604's per-user push on/off toggle
- * (`users/{uid}.pushEnabled`), separate from the in-app bell which
- * always stays on.
+ * `PATCH /api/teacher/settings/push` body — TASK-2604's per-user push
+ * on/off toggle (`users/{uid}.pushEnabled`), separate from the in-app
+ * bell which always stays on. Student-side toggle removed by TASK-3001
+ * (mandatory-on push for students); `app/api/student/settings/push`
+ * no longer exists.
  */
 export const updatePushEnabledSchema = z.object({
   enabled: z.boolean(),

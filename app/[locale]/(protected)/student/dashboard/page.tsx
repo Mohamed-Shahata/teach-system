@@ -3,11 +3,13 @@ import { requireSession } from "@/lib/auth/session";
 import { assertRole } from "@/lib/auth/guards";
 import { enrollmentService } from "@/lib/server/services/enrollmentService";
 import { notificationService } from "@/lib/server/services/notificationService";
+import { subscriptionInvoiceService } from "@/lib/server/services/subscriptionInvoiceService";
 import { courseRepository, type LocalizedText } from "@/lib/server/repositories/courseRepository";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
 import { MeetingNotifications } from "@/components/student/meeting-notifications";
+import { SubscriptionInvoicesPanel } from "@/components/student/subscription-invoices-panel";
 
 /**
  * TASK-1103 — the student's own courses, each with a progress bar built
@@ -37,6 +39,7 @@ export default async function StudentDashboardPage() {
   const enrollments = await enrollmentService.listMyEnrollments(session);
   const courses = await courseRepository.findByIds(enrollments.map((enrollment) => enrollment.courseId));
   const notifications = await notificationService.listMyNotifications(session);
+  const subscriptionInvoices = await subscriptionInvoiceService.listForStudent(session);
 
   return (
     <div className="flex flex-col gap-6">
@@ -46,6 +49,8 @@ export default async function StudentDashboardPage() {
       </div>
 
       <MeetingNotifications initialNotifications={notifications} />
+
+      <SubscriptionInvoicesPanel invoices={subscriptionInvoices} />
 
       {enrollments.length === 0 ? (
         <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />

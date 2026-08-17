@@ -29,7 +29,7 @@ export interface StudentProfile {
   email: string;
   displayName: string;
   avatarUrl?: string;
-  /** TASK-2604 — whether OS-level push is enabled; defaults to `true` when never toggled (see `UserDoc.pushEnabled`). */
+  /** Always `true` for students since TASK-3001 (mandatory-on, no self-service toggle). Kept as a field for shape-compatibility with `TeacherProfile`, which still has a real toggle. */
   pushEnabled: boolean;
 }
 
@@ -45,7 +45,16 @@ function toProfile(user: {
     email: user.email,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
-    pushEnabled: user.pushEnabled !== false,
+  /**
+   * TASK-2604 → superseded by TASK-3001: push notifications are now
+   * mandatory-on for students (no opt-out), so `pushEnabled` is always
+   * reported `true` regardless of what's stored on the doc — the
+   * self-service toggle (and its API route) was removed. The field
+   * itself is left in place on `UserDoc` (rather than migrated away)
+   * since `pushDispatchService` still reads it for teachers/admins, who
+   * keep the opt-out.
+   */
+  pushEnabled: true,
   };
 }
 
@@ -106,14 +115,4 @@ export const studentSettingsService = {
     return toProfile({ ...user, displayName: user.displayName, avatarUrl });
   },
 
-  /** TASK-2604 — the self-service push on/off toggle. */
-  async updatePushPreference(session: Session, enabled: boolean): Promise<StudentProfile> {
-    assertRole(session, "student");
-    const user = await userRepository.findById(session.uid);
-    if (!user) throw new NotFoundError();
-
-    await userRepository.updatePushEnabled(session.uid, enabled);
-
-    return toProfile({ ...user, pushEnabled: enabled });
-  },
 };

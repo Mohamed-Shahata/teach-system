@@ -50,10 +50,17 @@ export const pushDispatchService = {
 
     await Promise.all(
       notifications
-        // TASK-2604 — the recipient opted out of OS-level push; the in-app
-        // bell entry the caller already wrote is unaffected. `undefined`
-        // means "never toggled" and defaults to enabled (see `UserDoc.pushEnabled`).
-        .filter((notification) => users.get(notification.recipientId)?.pushEnabled !== false)
+        // TASK-2604/TASK-3001 — the recipient opted out of OS-level push.
+        // Students can no longer opt out (TASK-3001: notifications are
+        // mandatory-on for students, the toggle was removed from student
+        // settings) — `pushEnabled` on a student doc is never read here.
+        // Teachers/admins keep the opt-out: `undefined` means "never
+        // toggled" and defaults to enabled (see `UserDoc.pushEnabled`).
+        .filter((notification) => {
+          const recipient = users.get(notification.recipientId);
+          if (recipient?.role === "student") return true;
+          return recipient?.pushEnabled !== false;
+        })
         .map((notification) => this.dispatchOne(notification, users.get(notification.recipientId)?.locale)),
     );
   },

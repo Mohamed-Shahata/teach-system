@@ -45,7 +45,14 @@ Status: Not Started | In Progress | Blocked | Done
 | 26 | Real Push Notifications (FCM / Web Push) | Done |
 | 27 | Student Reviews & Ratings for Teachers | Done |
 | 28 | Exam Results Export (PDF / Excel) | Done |
-| 29 | Teacher Subscriptions & Offerings | In Progress |
+| 29 | Teacher Subscriptions & Offerings | Done |
+| 30 | Notifications UX & Delivery Coverage | Not Started |
+| 31 | Teacher Profile & Preview Tools | Not Started |
+| 32 | Student Profile, My Courses & Teachers Directory Revamp | Not Started |
+| 33 | Admin Overview, Analytics & Reporting | Not Started |
+| 34 | Admin Manual Payments & Subscription Oversight | Not Started |
+| 35 | Consolidated Table Action Menus | Not Started |
+| 36 | Caching Strategy & Performance | Not Started |
 | 15 | Security | In Progress |
 | 16 | Testing | In Progress |
 | 17 | Deployment | Not Started |
@@ -303,3 +310,64 @@ Status: Not Started | In Progress | Blocked | Done
 > `phase-13-file-management.md`'s TASK-1304 note for the full detail.
 
 Before starting any task, follow `development/ai-agent-workflow.md`.
+
+> Phase 29 gains a history note: TASK-2907 (`firestore.rules` coverage
+> for `teacherOfferings`/`subscriptions`/`subscriptionInvoices`) is now
+> `Done` — see `phase-29-teacher-subscriptions.md`'s TASK-2907 note for
+> the rule shape and the (unrun, no-emulator-here) test coverage added
+> to `test/firestore.rules.test.ts`. Phase 29 stays `In Progress`:
+> TASK-2908 (Admin UI) and TASK-2909 (teacher/student invoice views)
+> remain `Not Started`, with TASK-2908 next — its dependencies
+> (TASK-2902, TASK-2904, TASK-2906) are already `Done`.
+
+> TASK-2908 (Admin UI — offerings & subscriptions management) is now
+> `Done`: two of its three pieces (teacher offerings management,
+> student subscription setup/cancel + single-invoice generation) turned
+> out to already exist undocumented in `TeacherManager`/`StudentManager`;
+> the actual gap was invoice **review** — added `SubscriptionInvoicesQueue`
+> (a `PaymentsQueue`-shaped confirm/reject view) plus a bulk "generate
+> this month's invoices" action, on a new `admin/subscription-invoices`
+> page/nav entry, entirely on top of already-existing routes/services.
+> See `phase-29-teacher-subscriptions.md`'s TASK-2908 note for the full
+> detail. Phase 29 stays `In Progress`: TASK-2909 (teacher/student-facing
+> invoice views) remains `Not Started` and is next — its only
+> dependency, TASK-2906, is already `Done`.
+
+> TASK-2909 (teacher/student-facing invoice views) is now `Done`:
+> `SubscriptionInvoicesPanel` mounted on `teacher/dashboard` (a
+> `PaymentsQueue`-shaped confirm/reject queue, reusing TASK-2908's
+> existing Admin review route since it already authorizes by session
+> role/ownership, not URL prefix) and a read-only counterpart mounted on
+> `student/dashboard`. See `phase-29-teacher-subscriptions.md`'s
+> TASK-2909 note for the full detail. Phase 29 stays `In Progress`:
+> TASK-2910 (`docs/features/subscriptions.md`) is the only task left in
+> the phase and is next — its dependencies (TASK-2901–2906) are all
+> already `Done`.
+
+> Phase 29 moved to "Done": TASK-2910 (`docs/features/subscriptions.md`)
+> landed — a dedicated feature doc matching `payments.md`/`enrollment.md`'s
+> depth, covering `teacherOfferings`/`subscriptions`/`subscriptionInvoices`
+> end to end (purpose, user stories, data, authorization, UI, edge cases)
+> and added to `docs/features/README.md`'s index. All nine of this
+> phase's tasks (TASK-2901–2910) are now `Done`.
+
+> Phases 30–36 are a third post-MVP feature batch (user request, this
+> session), organized from a single free-form list of requested
+> improvements into per-area task files the same way batches one
+> (20–24) and two (25–28) were. Grouped by area rather than by
+> request order: Phase 30 (notifications UX/coverage), Phase 31
+> (teacher profile + preview tooling), Phase 32 (student profile/My
+> Courses/teachers directory rework), Phase 33 (admin overview/
+> analytics/reporting), Phase 34 (admin manual cash payments +
+> subscription oversight lists), Phase 35 (consolidated table action
+> menus — pure UI consistency), Phase 36 (caching/performance — kept
+> open-ended pending a real audit, TASK-3601, since the user's request
+> didn't name specific slow paths). All tasks are `Not Started`; this
+> commit is documentation-only — no implementation yet. Cross-phase
+> dependencies are called out explicitly in each task (e.g. Phase 32's
+> TASK-3204 depends on Phase 31's TASK-3105; Phase 34's TASK-3405
+> depends on Phase 30's TASK-3003), so implementation order isn't
+> strictly 30→36 — see each task's `Dependencies` line. One schema
+> ambiguity was flagged rather than silently decided: TASK-3201 (student
+> age) defaults to storing `birthDate` and computing age server-side
+> instead of a raw `age` number, open for reconsideration.

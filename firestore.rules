@@ -411,5 +411,49 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // ---------------------------------------------------------------
+    // teacherOfferings/{offeringId} — TASK-2901/2907 (Phase 29).
+    // Admin prices one of a teacher's subjects at one grade level.
+    // Every repository in this phase reads/writes exclusively through
+    // the Admin SDK today (see the file header and the phase-29 task
+    // note), so this — like `questions`/`files` — is a defense-in-depth
+    // floor, not the live authorization path: only the Admin may write,
+    // the owning teacher may read their own priced offerings.
+    // ---------------------------------------------------------------
+    match /teacherOfferings/{offeringId} {
+      allow read: if isOwner(resource.data.teacherId);
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // subscriptions/{subscriptionId} — TASK-2903/2907 (Phase 29). A
+    // student's standing monthly subscription to one teacher, set up
+    // and cancelled by the Admin only (per features description in
+    // tasks/phase-29-teacher-subscriptions.md) — the owning teacher and
+    // the subscribed student may read, never write.
+    // ---------------------------------------------------------------
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAdmin()
+        || isOwner(resource.data.teacherId)
+        || (isSignedIn() && request.auth.uid == resource.data.studentId);
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // subscriptionInvoices/{invoiceId} — TASK-2905/2907 (Phase 29). One
+    // month's bill for one `subscriptions` doc, generated and reviewed
+    // (pending -> confirmed/rejected) by the Admin only — mirrors
+    // `payments`' state machine but, unlike `payments`, has no
+    // student-facing create path (invoices are Admin-generated, never
+    // student-submitted). The owning teacher and billed student may
+    // read their own.
+    // ---------------------------------------------------------------
+    match /subscriptionInvoices/{invoiceId} {
+      allow read: if isAdmin()
+        || isOwner(resource.data.teacherId)
+        || (isSignedIn() && request.auth.uid == resource.data.studentId);
+      allow write: if isAdmin();
+    }
   }
 }

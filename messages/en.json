@@ -606,6 +606,27 @@
       "errors": {
         "delete": "Could not delete this file."
       }
+    },
+    "subscriptionInvoices": {
+      "title": "Subscription Invoices",
+      "subtitle": "Monthly bills for your subscribed students — confirm once payment is received, or reject a no-show.",
+      "columns": {
+        "period": "Period",
+        "student": "Student",
+        "amount": "Amount",
+        "status": "Status"
+      },
+      "status": {
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "rejected": "Rejected"
+      },
+      "confirm": "Confirm",
+      "reject": "Reject",
+      "errors": {
+        "confirm": "Couldn't confirm this invoice. Please try again.",
+        "reject": "Couldn't reject this invoice. Please try again."
+      }
     }
   },
   "studentDashboard": {
@@ -662,7 +683,7 @@
       "push": {
         "title": "Push notifications",
         "description": "Get an OS/browser notification when a class is starting, on top of the bell above — separate from it, so you can keep the badge without the interruption.",
-        "enableLabel": "Enable push notifications"
+        "alwaysOnDescription": "In-app notifications are always on for students, so you never miss a class link or update. We also try to register this device for push notifications automatically."
       }
     },
     "meetingNotifications": {
@@ -670,6 +691,14 @@
       "new": "New",
       "message": "Your teacher shared the meeting link for {subject}.",
       "join": "Join"
+    },
+    "subscriptionInvoices": {
+      "title": "Subscription Invoices",
+      "status": {
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "rejected": "Rejected"
+      }
     }
   },
   "studentQuiz": {
@@ -709,7 +738,8 @@
       "students": "Students",
       "payments": "Payments",
       "settings": "Settings",
-      "courses": "Courses"
+      "courses": "Courses",
+      "subscriptionInvoices": "Subscription invoices"
     },
     "topbarTitle": "Admin Dashboard",
     "education": {
@@ -1034,6 +1064,32 @@
       },
       "errors": {
         "toggle": "Could not update the review. Please try again."
+      }
+    },
+    "subscriptionInvoices": {
+      "title": "Subscription Invoices",
+      "subtitle": "Pending monthly bills across every teacher subscription — confirm once payment is received, reject a no-show, or generate this month's invoices for every active subscription.",
+      "empty": "No pending invoices.",
+      "columns": {
+        "period": "Period",
+        "student": "Student",
+        "teacher": "Teacher",
+        "amount": "Amount",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "status": {
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "rejected": "Rejected"
+      },
+      "generateThisMonth": "Generate this month's invoices",
+      "confirm": "Confirm",
+      "reject": "Reject",
+      "errors": {
+        "confirm": "Couldn't confirm this invoice. Please try again.",
+        "reject": "Couldn't reject this invoice. Please try again.",
+        "generate": "Couldn't generate invoices. Please try again."
       }
     }
   },
