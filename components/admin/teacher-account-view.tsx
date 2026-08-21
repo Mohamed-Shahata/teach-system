@@ -17,7 +17,7 @@ interface TeacherAccountViewProps {
   stageNames: Map<string, LocalizedText>;
 }
 
-function localized(value?: LocalizedText): string {
+function localized(value?: { en?: string; ar?: string }): string {
   return value?.en || value?.ar || "";
 }
 
