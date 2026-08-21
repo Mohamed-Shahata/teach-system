@@ -46,3 +46,32 @@ webhook handler can set `succeeded`.
   external-input rules).
 - Amounts are always taken from the course's stored `price` server-side
   — never trusted from client-submitted payment amounts.
+
+## Admin combined payments view (TASK-3401)
+`admin/payments` (`adminPaymentsOverviewService.listAll`) merges this
+collection with subscriptions' `subscriptionInvoices` (Phase 29's
+recurring-billing model, see `features/subscriptions.md`) into one
+read-only, recency-sorted list — a course `payments` row and a
+`subscriptionInvoices` row are structurally different models
+(course/teacher vs offering/subject), so each is normalized onto a
+shared `CombinedPaymentRow` shape (`itemLabel` is the course title for a
+payment row, the subject name for an invoice row) tagged with a
+`source: "payment" | "subscriptionInvoice"` field so the Admin can tell
+which model a row came from without a second lookup.
+
+Status filtering uses the three values both models actually share
+(`pending`/`confirmed`/`rejected`) — a gateway `succeeded` payment
+normalizes to `confirmed` on this combined view, since the two states
+mean the same thing from a "did the money land" perspective; the raw
+`succeeded` vs `confirmed` distinction is still visible on the
+older, payment-only status filter this page previously had, and remains
+queryable directly via `paymentService`/`adminPaymentsService
+.listAllPayments` if that finer detail is ever needed again. This page
+stays read-only, same as before TASK-3401 — confirm/reject for a course
+payment still goes through the owning teacher's queue (`PATCH
+/api/teacher/payments/[paymentId]`), and confirm/reject for a
+subscription invoice still goes through the dedicated
+`admin/subscription-invoices` review queue (TASK-2908), linked directly
+from this page. Search (by student or teacher display name) is
+client-side only, matching the page's existing low-traffic-admin-page
+pattern for its status filter.

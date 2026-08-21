@@ -56,6 +56,25 @@ export const lessonProgressRepository = {
   },
 
   /**
+   * Batch lookup across *several* students × lessons in a single round
+   * trip (TASK-3603) — one `getAll` over the full deterministic id
+   * cross-product, instead of the N+1 pattern of calling
+   * `listByStudentForLessons` once per student. Used by
+   * `studentService.getCourseStudentsProgress`, which used to issue one
+   * `getAll` per enrolled student. Callers group the flat result back
+   * by `studentId` themselves (same shape `listByStudentForLessons`
+   * already required).
+   */
+  async listByStudentsForLessons(studentIds: string[], lessonIds: string[]): Promise<LessonProgressDoc[]> {
+    if (studentIds.length === 0 || lessonIds.length === 0) return [];
+    const refs = studentIds.flatMap((studentId) =>
+      lessonIds.map((lessonId) => adminDb.collection(COLLECTION).doc(progressId(studentId, lessonId))),
+    );
+    const snaps = await adminDb.getAll(...refs);
+    return snaps.filter((snap) => snap.exists).map((snap) => toLessonProgressDoc(snap.id, snap.data() ?? {}));
+  },
+
+  /**
    * Creates or overwrites the student's progress doc for one lesson.
    * Uses `.set()` (not `.create()`) — unlike `enrollments`, repeated
    * writes to the same id are the expected steady state here (every

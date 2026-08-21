@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Alert, Badge, Button, Dialog, Input, Pagination, Table } from "@/components/ui";
+import { TableActionsMenu } from "@/components/ui/table-actions-menu";
 import type { Column } from "@/components/ui/table";
 import type { StudentSummary } from "@/lib/server/services/studentManagementService";
 import type { EducationStageDoc } from "@/lib/server/repositories/educationStageRepository";
@@ -60,6 +62,7 @@ export function StudentManager({ initialStudents, stages, subjects }: StudentMan
   const t = useTranslations("adminDashboard.students");
   const tCommon = useTranslations("common");
   const locale = useLocale();
+  const router = useRouter();
 
   const [students, setStudents] = React.useState(initialStudents);
   const [search, setSearch] = React.useState("");
@@ -263,22 +266,19 @@ export function StudentManager({ initialStudents, stages, subjects }: StudentMan
         emptyMessage={t("empty")}
         actionsLabel={tCommon("actions")}
         rowActions={(row) => (
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={() => openEdit(row)}>
-              {t("edit")}
-            </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setSubscriptionsTarget(row)}>
-              {t("subscriptions")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={row.disabled ? "outline" : "destructive"}
-              onClick={() => setStatusTarget(row)}
-            >
-              {row.disabled ? t("activate") : t("deactivate")}
-            </Button>
-          </div>
+          <TableActionsMenu
+            triggerLabel={tCommon("actions")}
+            actions={[
+              { label: t("viewProfile"), onClick: () => router.push(`/${locale}/admin/students/${row.uid}`) },
+              { label: t("edit"), onClick: () => openEdit(row) },
+              { label: t("subscriptions"), onClick: () => setSubscriptionsTarget(row) },
+              {
+                label: row.disabled ? t("activate") : t("deactivate"),
+                variant: row.disabled ? "default" : "destructive",
+                onClick: () => setStatusTarget(row),
+              },
+            ]}
+          />
         )}
       />
 
@@ -523,6 +523,7 @@ function StudentSubscriptionsDialog({ student, subjects, onClose }: StudentSubsc
     Record<string, { status: "pending" | "confirmed" | "rejected"; period: string }>
   >({});
   const [generatingInvoiceFor, setGeneratingInvoiceFor] = React.useState<string | null>(null);
+  const [payingCash, setPayingCash] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -641,6 +642,40 @@ function StudentSubscriptionsDialog({ student, subjects, onClose }: StudentSubsc
     }
   }
 
+  // TASK-3402 — one action: student pays cash for this offering, this
+  // month. Subscribes (if not already) + records a confirmed invoice for
+  // the current period, in a single request.
+  async function payCash(offeringId: string) {
+    const offering = offerings.find((o) => o.id === offeringId);
+    if (!offering) return;
+    setPayingCash(offeringId);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/payments/manual-subscription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId: student.uid, teacherId: offering.teacherId, offeringId: offering.id }),
+      });
+      if (!res.ok) throw new Error("payCash");
+      const body = (await res.json()) as {
+        subscription: SubscriptionDoc;
+        invoice: { status: "pending" | "confirmed" | "rejected"; period: string; subscriptionId: string };
+      };
+      setSubscriptions((current) =>
+        current.some((s) => s.id === body.subscription.id) ? current : [...current, body.subscription],
+      );
+      setLatestInvoiceBySub((current) => ({
+        ...current,
+        [body.invoice.subscriptionId]: { status: body.invoice.status, period: body.invoice.period },
+      }));
+      setSelectedOfferingId("");
+    } catch {
+      setError(t("errors.subscriptions"));
+    } finally {
+      setPayingCash(null);
+    }
+  }
+
   async function unsubscribe(subscriptionId: string) {
     setError(null);
     try {
@@ -705,6 +740,15 @@ function StudentSubscriptionsDialog({ student, subjects, onClose }: StudentSubsc
                         >
                           {t("generateInvoice")}
                         </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          loading={payingCash === sub.offeringId}
+                          onClick={() => payCash(sub.offeringId)}
+                        >
+                          {t("payCash")}
+                        </Button>
                         <Button type="button" size="sm" variant="destructive" onClick={() => unsubscribe(sub.id)}>
                           {t("unsubscribe")}
                         </Button>
@@ -733,6 +777,15 @@ function StudentSubscriptionsDialog({ student, subjects, onClose }: StudentSubsc
                 </select>
                 <Button type="button" loading={saving} disabled={!selectedOfferingId} onClick={subscribe}>
                   {t("subscribe")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  loading={payingCash === selectedOfferingId}
+                  disabled={!selectedOfferingId}
+                  onClick={() => payCash(selectedOfferingId)}
+                >
+                  {t("payCash")}
                 </Button>
               </div>
             )}

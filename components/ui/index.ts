@@ -7,6 +7,7 @@ export * from "./radio";
 export * from "./switch";
 export * from "./dialog";
 export * from "./dropdown-menu";
+export * from "./table-actions-menu";
 export * from "./tooltip";
 export * from "./card";
 export * from "./badge";

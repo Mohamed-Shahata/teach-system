@@ -6,7 +6,7 @@ const findByIdUser = vi.fn();
 const findByIdsCourses = vi.fn();
 const findByIdCourse = vi.fn();
 const listByCourseLessons = vi.fn();
-const listByStudentForLessons = vi.fn();
+const listByStudentsForLessons = vi.fn();
 
 vi.mock("@/lib/server/repositories/enrollmentRepository", () => ({
   enrollmentRepository: { listByTeacher },
@@ -21,7 +21,7 @@ vi.mock("@/lib/server/repositories/lessonRepository", () => ({
   lessonRepository: { listByCourse: listByCourseLessons },
 }));
 vi.mock("@/lib/server/repositories/lessonProgressRepository", () => ({
-  lessonProgressRepository: { listByStudentForLessons },
+  lessonProgressRepository: { listByStudentsForLessons },
 }));
 vi.mock("@/lib/server/services/enrollmentService", () => ({
   watchPercent: (videoDurationSeconds: number, watchedSeconds: number) =>
@@ -207,13 +207,18 @@ describe("studentService", () => {
       findByIdsUsers.mockResolvedValue(
         new Map([["student-1", { uid: "student-1", displayName: "Amira", email: "amira@example.com", role: "student", createdBy: { uid: "teacher-1", role: "teacher" }, createdAt: 1 }]]),
       );
-      listByStudentForLessons.mockResolvedValue([
+      listByStudentsForLessons.mockResolvedValue([
         { id: "student-1_lesson-2", studentId: "student-1", lessonId: "lesson-2", watchedSeconds: 30, videoDurationSeconds: 60, lastPositionSeconds: 30, updatedAt: 1 },
       ]);
 
       const result = await studentService.getCourseStudentsProgress(session, "course-1");
 
       expect(listByTeacher).toHaveBeenCalledWith(session, "course-1");
+      // TASK-3603: one batched call across every enrolled student, not
+      // one `listByStudentForLessons`-style call per student (the old
+      // N+1 flagged by TASK-3601).
+      expect(listByStudentsForLessons).toHaveBeenCalledTimes(1);
+      expect(listByStudentsForLessons).toHaveBeenCalledWith(["student-1"], ["lesson-1", "lesson-2"]);
       expect(result).toEqual([
         {
           studentId: "student-1",
@@ -228,6 +233,23 @@ describe("studentService", () => {
       ]);
     });
 
+    it("TASK-3603: issues exactly one lessonProgress read regardless of enrolled student count", async () => {
+      findByIdCourse.mockResolvedValue({ id: "course-1", teacherId: "teacher-1" });
+      listByCourseLessons.mockResolvedValue([lesson({ id: "lesson-1" })]);
+      listByTeacher.mockResolvedValue([
+        enrollment({ studentId: "student-1", progress: { completedLessonIds: [], percent: 0 } }),
+        enrollment({ studentId: "student-2", progress: { completedLessonIds: [], percent: 0 } }),
+        enrollment({ studentId: "student-3", progress: { completedLessonIds: [], percent: 0 } }),
+      ]);
+      findByIdsUsers.mockResolvedValue(new Map());
+      listByStudentsForLessons.mockResolvedValue([]);
+
+      await studentService.getCourseStudentsProgress(makeSession("teacher"), "course-1");
+
+      expect(listByStudentsForLessons).toHaveBeenCalledTimes(1);
+      expect(listByStudentsForLessons).toHaveBeenCalledWith(["student-1", "student-2", "student-3"], ["lesson-1"]);
+    });
+
     it("TASK-2504: returns an empty list when the course has no enrollments, without fetching lesson progress", async () => {
       findByIdCourse.mockResolvedValue({ id: "course-1", teacherId: "teacher-1" });
       listByCourseLessons.mockResolvedValue([lesson()]);
@@ -236,7 +258,7 @@ describe("studentService", () => {
       const result = await studentService.getCourseStudentsProgress(makeSession("teacher"), "course-1");
 
       expect(result).toEqual([]);
-      expect(listByStudentForLessons).not.toHaveBeenCalled();
+      expect(listByStudentsForLessons).not.toHaveBeenCalled();
     });
 
     it("TASK-2504: throws NotFoundError for a course that doesn't exist", async () => {

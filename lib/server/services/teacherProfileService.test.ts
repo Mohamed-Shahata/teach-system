@@ -28,6 +28,29 @@ const BASE_PROFILE = {
   },
 };
 
+describe("teacherProfileService.getProfileForAdmin", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejects a non-admin session", async () => {
+    await expect(
+      teacherProfileService.getProfileForAdmin(makeSession("teacher"), "teacher-1"),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("returns null instead of throwing when no profile doc exists yet", async () => {
+    findByTeacherId.mockResolvedValue(null);
+    const result = await teacherProfileService.getProfileForAdmin(makeSession("admin", "admin-1"), "teacher-1");
+    expect(result).toBeNull();
+  });
+
+  it("returns the given teacher's profile for an admin session", async () => {
+    findByTeacherId.mockResolvedValue(BASE_PROFILE);
+    const result = await teacherProfileService.getProfileForAdmin(makeSession("admin", "admin-1"), "teacher-1");
+    expect(findByTeacherId).toHaveBeenCalledWith("teacher-1");
+    expect(result?.teacherId).toBe("teacher-1");
+  });
+});
+
 describe("teacherProfileService.getMyProfile", () => {
   beforeEach(() => vi.clearAllMocks());
 

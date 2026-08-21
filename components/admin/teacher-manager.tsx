@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Alert, Badge, Button, Checkbox, Dialog, Input, Pagination, Table } from "@/components/ui";
+import { TableActionsMenu } from "@/components/ui/table-actions-menu";
 import type { Column } from "@/components/ui/table";
 import type { TeacherSummary } from "@/lib/server/services/teacherManagementService";
 import type { SubjectDoc } from "@/lib/server/repositories/subjectRepository";
@@ -69,6 +70,7 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
   const t = useTranslations("adminDashboard.teachers");
   const tCommon = useTranslations("common");
   const locale = useLocale();
+  const router = useRouter();
 
   const [teachers, setTeachers] = React.useState(initialTeachers);
   const [search, setSearch] = React.useState("");
@@ -313,42 +315,32 @@ export function TeacherManager({ initialTeachers, subjects, stages }: TeacherMan
         emptyMessage={t("empty")}
         actionsLabel={tCommon("actions")}
         rowActions={(row) => (
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={() => openEdit(row)}>
-              {t("edit")}
-            </Button>
-            <Link
-              href={`/${locale}/admin/teachers/${row.uid}/students`}
-              className="inline-flex h-8 items-center justify-center rounded-full border border-border bg-transparent px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {t("viewStudents")}
-            </Link>
-            <Link
-              href={`/${locale}/admin/teachers/${row.uid}/reviews`}
-              className="inline-flex h-8 items-center justify-center rounded-full border border-border bg-transparent px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {t("viewReviews")}
-            </Link>
-            <Button type="button" size="sm" variant="outline" onClick={() => setOfferingsTarget(row)}>
-              {t("offerings")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={row.canCreateStudents ? "destructive" : "outline"}
-              onClick={() => setPermissionsTarget(row)}
-            >
-              {row.canCreateStudents ? t("permissions.disable") : t("permissions.enable")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={row.disabled ? "outline" : "destructive"}
-              onClick={() => setStatusTarget(row)}
-            >
-              {row.disabled ? t("activate") : t("deactivate")}
-            </Button>
-          </div>
+          <TableActionsMenu
+            triggerLabel={tCommon("actions")}
+            actions={[
+              { label: t("edit"), onClick: () => openEdit(row) },
+              { label: t("viewProfile"), onClick: () => router.push(`/${locale}/admin/teachers/${row.uid}`) },
+              {
+                label: t("viewStudents"),
+                onClick: () => router.push(`/${locale}/admin/teachers/${row.uid}/students`),
+              },
+              {
+                label: t("viewReviews"),
+                onClick: () => router.push(`/${locale}/admin/teachers/${row.uid}/reviews`),
+              },
+              { label: t("offerings"), onClick: () => setOfferingsTarget(row) },
+              {
+                label: row.canCreateStudents ? t("permissions.disable") : t("permissions.enable"),
+                variant: row.canCreateStudents ? "destructive" : "default",
+                onClick: () => setPermissionsTarget(row),
+              },
+              {
+                label: row.disabled ? t("activate") : t("deactivate"),
+                variant: row.disabled ? "default" : "destructive",
+                onClick: () => setStatusTarget(row),
+              },
+            ]}
+          />
         )}
       />
 

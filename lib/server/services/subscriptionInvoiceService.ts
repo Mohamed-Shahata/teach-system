@@ -8,6 +8,7 @@ import {
 } from "@/lib/server/repositories/subscriptionInvoiceRepository";
 import { subscriptionRepository } from "@/lib/server/repositories/subscriptionRepository";
 import { teacherOfferingRepository } from "@/lib/server/repositories/teacherOfferingRepository";
+import { auditNotificationService } from "@/lib/server/services/auditNotificationService";
 import type { GenerateInvoiceInput, ReviewInvoiceInput } from "@/lib/validation/subscriptionInvoice.schema";
 
 /**
@@ -148,13 +149,27 @@ export const subscriptionInvoiceService = {
     if (!invoice) throw new NotFoundError();
     assertPending(invoice);
 
-    return subscriptionInvoiceRepository.update(session, id, {
+    const updated = await subscriptionInvoiceRepository.update(session, id, {
       status: "confirmed",
       ...(input.method ? { method: input.method } : {}),
       ...(input.referenceNote ? { referenceNote: input.referenceNote } : {}),
       confirmedBy: { uid: session.uid, role: session.role as "admin" | "teacher" },
       updatedAt: Date.now(),
     });
+
+    // TASK-3405(a) — same "payment confirmed" notification
+    // `paymentService.confirmManualPayment` sends for course payments,
+    // for the subscription-invoice side of manual review.
+    await auditNotificationService.notify({
+      action: "updated",
+      entityType: "subscriptionInvoice",
+      entityId: updated.id,
+      title: { en: "Payment confirmed", ar: "تم تأكيد الدفعة" },
+      recipientIds: [updated.studentId],
+      link: "/student/dashboard",
+    });
+
+    return updated;
   },
 
   /** Owning teacher or Admin rejects a `pending` invoice (e.g. no-show payment). */

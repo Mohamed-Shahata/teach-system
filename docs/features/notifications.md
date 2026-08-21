@@ -61,17 +61,51 @@ hand-writing its own `notificationRepository.createMany` call. It:
 | Enrollment | created | student + teacher | `/student/courses/{courseId}` |
 | Payment | created | student + teacher | none — no dedicated payments page exists for either role today (payments surface inline on the teacher dashboard's `PaymentsQueue` and the student's course list), so this degrades to mark-as-read-only |
 | Payment | confirmed / rejected / succeeded | student | none, same reason as above |
+| SubscriptionInvoice | confirmed (TASK-3405) | student | `/student/dashboard` — covers both `subscriptionInvoiceService.confirmInvoice` (teacher/Admin manual review) and `manualSubscriptionPaymentService.recordCashPayment` (TASK-3402's one-action cash flow, which writes an already-`confirmed` invoice directly and so notifies outside its own transaction, best-effort, same as every other `auditNotificationService` call) |
+| Subscription | renewal due (TASK-3405) | student | `/student/dashboard` — daily sweep, not a same-session mutation trigger; see below |
+| Course | published, draft→published transition only (TASK-3004) | every Admin | `/admin/courses/{id}` (TASK-3306's admin course-detail page) |
 
-Deliberately not yet wired (left for a follow-up task, same as
-TASK-3004/3005's own dependency notes): exams, subscriptions, and user
-accounts, and course `publish`/`unpublish` transitions specifically —
-the task description's "courses, lessons, exams, enrollments,
-payments, subscriptions, user accounts, etc." is intentionally
-open-ended; this pass covers the four most-mutated entities so the
-centralized helper and its UI exist, without hand-adding all ~40
-possible call sites in one go. TASK-3004 (Admin notified on course
-publish) and TASK-3005 (class-reminder acknowledge/expiry) are their
-own separate tasks and remain `Not Started`.
+`new_course` reuses the `audit` type/`action: "created"` shape (a
+distinct `entityType` rather than a fifth `NotificationDoc.type`, same
+reasoning as every other `auditNotificationService` caller) — fired
+from `courseService.publishCourse` only when the course's prior status
+wasn't already `published` (the same draft→published check that gates
+the `totalPublishedCourses` counter), so republishing an
+already-published course, or any other `updateCourse` edit, doesn't
+re-notify. Recipients come from `userRepository.listByRole("admin")`,
+read fresh on every publish (no cached admin list).
+
+Deliberately not yet wired: exams, user accounts, and course
+`unpublish` transitions specifically — the task description's
+"courses, lessons, exams, enrollments, payments, subscriptions, user
+accounts, etc." remains intentionally open-ended.
+
+### Renewal-due sweep (TASK-3405)
+
+Unlike every other row above — which fires inside the mutation that
+causes it (confirming a payment, in the same request) — "renewal due"
+has no single mutation to hook: it's a *lack* of one (the student
+hasn't paid this month) becoming true as time passes. So it's a
+scheduled sweep, not a same-session `auditNotificationService.notify`
+call from a service method:
+
+- `lib/server/services/subscriptionRenewalQuery.ts` — the shared "which
+  active subscriptions have no confirmed invoice for the current
+  period" query, factored out so TASK-3404's Admin-facing list and this
+  sweep can never disagree on who's overdue. Also excludes subscriptions
+  created within the current period, since a brand-new subscription
+  needs a first invoice, not a renewal reminder.
+- `lib/server/jobs/subscriptionRenewalNotificationsJob.ts` — the daily
+  job (triggered by `app/api/cron/subscription-renewal-notifications/route.ts`,
+  see `docs/deployment/vercel.md`'s cron section): for every subscription
+  the query returns, sends the "renewal due" notification and then calls
+  `subscriptionRepository.markRenewalNotified(id, period)`.
+- **No-duplicate guard:** each `subscriptions/{id}` doc tracks
+  `lastRenewalNotifiedPeriod` (`YYYY-MM`). The job skips any subscription
+  whose `lastRenewalNotifiedPeriod` already equals the current period —
+  so running the sweep more than once in a day, or every day for a
+  month a student still hasn't paid, sends exactly one notification per
+  overdue period, not one per run.
 
 ## Authorization
 

@@ -35,8 +35,9 @@ vi.mock("@/lib/server/repositories/enrollmentRepository", () => ({
 }));
 
 const hasActiveSubscriptionForCourse = vi.fn();
+const getCourseForPreview = vi.fn();
 vi.mock("@/lib/server/services/courseService", () => ({
-  courseService: { getCourse, hasActiveSubscriptionForCourse },
+  courseService: { getCourse, hasActiveSubscriptionForCourse, getCourseForPreview },
 }));
 
 const auditNotify = vi.fn();
@@ -209,6 +210,17 @@ describe("lessonService", () => {
       expect(result.every((lesson) => !lesson.locked)).toBe(true);
     });
 
+    it("unlocks every lesson for an admin session regardless of enrollment (TASK-3306)", async () => {
+      courseFindById.mockResolvedValue(course);
+      listByCourse.mockResolvedValue(lessons);
+      findByStudentAndCourse.mockResolvedValue(null);
+      hasActiveSubscriptionForCourse.mockResolvedValue(false);
+
+      const result = await lessonService.listLessonsForCourseDetail(makeSession("admin"), "course-1");
+
+      expect(result.every((lesson) => !lesson.locked)).toBe(true);
+    });
+
     it("throws NotFoundError when the course doesn't exist", async () => {
       courseFindById.mockResolvedValue(null);
 
@@ -221,6 +233,43 @@ describe("lessonService", () => {
       await expect(
         lessonService.listLessonsForCourseDetail(makeSession("teacher"), "course-1"),
       ).rejects.toBeInstanceOf(ForbiddenError);
+    });
+  });
+
+  describe("listLessonsForCoursePreview (TASK-3104)", () => {
+    const lessons = [
+      { id: "lesson-2", title: { en: "Two", ar: "٢" }, order: 1, isFreePreview: false },
+      { id: "lesson-1", title: { en: "One", ar: "١" }, order: 0, isFreePreview: true },
+    ];
+
+    it("reuses courseService.getCourseForPreview for the ownership check", async () => {
+      getCourseForPreview.mockResolvedValue({ id: "course-1", teacherId: "teacher-1" });
+      listByCourse.mockResolvedValue(lessons);
+
+      await lessonService.listLessonsForCoursePreview(makeSession("teacher", "teacher-1"), "course-1");
+
+      expect(getCourseForPreview).toHaveBeenCalledWith(makeSession("teacher", "teacher-1"), "course-1");
+    });
+
+    it("locks every non-free-preview lesson regardless of the teacher's own access", async () => {
+      getCourseForPreview.mockResolvedValue({ id: "course-1", teacherId: "teacher-1" });
+      listByCourse.mockResolvedValue(lessons);
+
+      const result = await lessonService.listLessonsForCoursePreview(makeSession("teacher", "teacher-1"), "course-1");
+
+      expect(result).toEqual([
+        { id: "lesson-1", title: { en: "One", ar: "١" }, order: 0, isFreePreview: true, locked: false },
+        { id: "lesson-2", title: { en: "Two", ar: "٢" }, order: 1, isFreePreview: false, locked: true },
+      ]);
+    });
+
+    it("propagates ForbiddenError from getCourseForPreview for a non-owning teacher", async () => {
+      getCourseForPreview.mockRejectedValue(new ForbiddenError());
+
+      await expect(
+        lessonService.listLessonsForCoursePreview(makeSession("teacher", "teacher-2"), "course-1"),
+      ).rejects.toBeInstanceOf(ForbiddenError);
+      expect(listByCourse).not.toHaveBeenCalled();
     });
   });
 

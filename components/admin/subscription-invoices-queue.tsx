@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Alert, Badge, Button, Table } from "@/components/ui";
+import { TableActionsMenu } from "@/components/ui/table-actions-menu";
 import type { Column } from "@/components/ui/table";
 import type { SubscriptionInvoiceDoc } from "@/lib/server/repositories/subscriptionInvoiceRepository";
 
@@ -106,20 +107,22 @@ export function SubscriptionInvoicesQueue({ initialInvoices }: SubscriptionInvoi
         actionsLabel={t("columns.actions")}
         rowActions={(row) =>
           row.status === "pending" ? (
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                loading={pendingId === row.id}
-                onClick={() => review(row.id, "rejected")}
-              >
-                {t("reject")}
-              </Button>
-              <Button type="button" size="sm" loading={pendingId === row.id} onClick={() => review(row.id, "confirmed")}>
-                {t("confirm")}
-              </Button>
-            </div>
+            <TableActionsMenu
+              triggerLabel={t("columns.actions")}
+              actions={[
+                {
+                  label: t("confirm"),
+                  disabled: pendingId === row.id,
+                  onClick: () => review(row.id, "confirmed"),
+                },
+                {
+                  label: t("reject"),
+                  variant: "destructive",
+                  disabled: pendingId === row.id,
+                  onClick: () => review(row.id, "rejected"),
+                },
+              ]}
+            />
           ) : null
         }
       />

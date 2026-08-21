@@ -41,6 +41,11 @@ section for the complete route list.
   queue.
 - As a student, I see my own subscription invoice history/status
   (read-only — I never review my own bill) on my dashboard.
+- As an Admin, I record a manual cash subscription payment in one action
+  (student, teacher, offering, amount) — the system creates or reuses the
+  subscription and creates a `confirmed` invoice for the current period in
+  a single transaction, so there's no separate subscribe-then-generate-
+  then-confirm dance for the common cash-payment case (TASK-3402).
 
 ## Data
 `teacherOfferings`, `subscriptions`, and `subscriptionInvoices` — see
@@ -76,8 +81,12 @@ teacher to review an invoice server-side.
 ## UI
 - **Admin**: `TeacherManager`'s "Offerings" row action manages a
   teacher's priced `(subject, stage)` offerings; `StudentManager`'s
-  "Subscriptions" row action sets up/cancels a student's subscriptions
-  and generates a single invoice; the `admin/subscription-invoices`
+  "Subscriptions" row action sets up/cancels a student's subscriptions,
+  generates a single invoice, and (TASK-3402) has a "Record cash payment"
+  action next to both the new-subscription picker and each existing
+  subscription row — one click creates/reuses the subscription and
+  confirms this period's invoice, instead of subscribe-then-generate-
+  then-confirm as three separate steps; the `admin/subscription-invoices`
   page (linked from the sidebar) is the center-wide pending-invoice
   review queue plus a "generate this month's invoices" bulk action.
 - **Teacher**: `SubscriptionInvoicesPanel` on `teacher/dashboard` —
@@ -103,3 +112,33 @@ teacher to review an invoice server-side.
   have an invoice for the target period instead of failing the batch.
 - Reviewing (`confirm`/`reject`) an invoice that isn't `pending` is
   rejected — the state machine is one-way, same as `payments`.
+- `manualSubscriptionPaymentService.recordCashPayment` (TASK-3402) is a
+  convenience wrapper around this same data, not a new payment model:
+  it reuses an existing active subscription for the (student, offering)
+  pair if one exists, otherwise creates one, then creates a `confirmed`
+  invoice for the period (current month by default) — both the
+  subscription lookup/create and the invoice-conflict check/create run
+  inside one Firestore transaction, so a partial failure can never leave
+  an invoice without its subscription or vice versa. Conflicts (an
+  invoice already exists for that period) and the same stage-mismatch
+  rule as `createSubscription` still apply.
+- `adminUnsubscribedStudentsService.list` (TASK-3403) surfaces every
+  student with zero `active` subscriptions — `GET /api/admin/students/
+  unsubscribed`, rendered as a follow-up list on the Admin Payments page
+  (`UnsubscribedStudentsList`). Built from
+  `subscriptionRepository.listActiveStudentIds()` (a `Set` of studentIds
+  with at least one active subscription) negated against every
+  `users` doc with `role: "student"` — deliberately checks
+  `subscriptions` only, not course `enrollments`, since this list is
+  about the teacher-subscription relationship specifically. Each row
+  links to that student's TASK-3307 profile page, where the Admin can
+  start TASK-3402's manual-subscribe flow.
+- `adminSubscriptionsDueForRenewalService.list` (TASK-3404) surfaces
+  every `active` subscription with no `confirmed` invoice for the
+  current period — `GET /api/admin/subscriptions/due-for-renewal`,
+  rendered by `DueForRenewalList` on the Admin Payments page.
+  Excludes subscriptions created within the current period: a brand-new
+  subscription needs its *first* invoice, not a *renewal*, so without
+  this exclusion every subscription set up today would wrongly appear
+  on day one. Generalizes the seed script's `leavePendingCurrentMonth`
+  pattern into `subscriptionInvoiceRepository.listConfirmedSubscriptionIdsForPeriod`.

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { Badge, Input, Select, Table } from "@/components/ui";
 import type { Column } from "@/components/ui/table";
@@ -129,7 +130,18 @@ export function CourseOverview({ initialCourses, subjects, stages }: CourseOverv
         />
       </div>
 
-      <Table columns={columns} rows={filtered} rowKey={(course) => course.courseId} emptyMessage={t("empty")} />
+      <Table
+        columns={columns}
+        rows={filtered}
+        rowKey={(course) => course.courseId}
+        emptyMessage={t("empty")}
+        rowActions={(course) => (
+          <Link href={`/${locale}/admin/courses/${course.courseId}`} className="text-primary hover:underline">
+            {t("view")}
+          </Link>
+        )}
+        actionsLabel={t("columns.actions")}
+      />
     </div>
   );
 }

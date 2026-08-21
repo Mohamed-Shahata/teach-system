@@ -119,6 +119,33 @@ export const lessonService = {
       }));
   },
 
+  /**
+   * TASK-3104 — the lesson list for the owning teacher's course
+   * preview, in the exact same shape as `listLessonsForCourseDetail`
+   * so `CourseDetailView` renders both identically.
+   * `courseService.getCourseForPreview` already does the ownership
+   * check (reused rather than duplicated, same pattern as
+   * `listLessons`/`getCourse`); `locked` here deliberately ignores the
+   * teacher's own access and simulates an unenrolled/unsubscribed
+   * student's view (`locked = !isFreePreview`) — the point of a
+   * preview is what a prospective student would see, not what the
+   * owner can already reach.
+   */
+  async listLessonsForCoursePreview(session: Session, courseId: string) {
+    await courseService.getCourseForPreview(session, courseId);
+    const lessons = await lessonRepository.listByCourse(courseId);
+    return lessons
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((lesson) => ({
+        id: lesson.id,
+        title: lesson.title,
+        order: lesson.order,
+        isFreePreview: lesson.isFreePreview,
+        locked: !lesson.isFreePreview,
+      }));
+  },
+
   async createLesson(session: Session, courseId: string, input: CreateLessonInput) {
     const course = await courseService.getCourse(session, courseId);
     const now = Date.now();

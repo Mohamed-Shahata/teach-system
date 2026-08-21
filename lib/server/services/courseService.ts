@@ -9,6 +9,7 @@ import { systemStatsRepository } from "@/lib/server/repositories/systemStatsRepo
 import { subjectRepository } from "@/lib/server/repositories/subjectRepository";
 import { educationStageRepository } from "@/lib/server/repositories/educationStageRepository";
 import { subscriptionRepository } from "@/lib/server/repositories/subscriptionRepository";
+import { userRepository } from "@/lib/server/repositories/userRepository";
 import { auditNotificationService } from "@/lib/server/services/auditNotificationService";
 import type { CreateCourseInput, UpdateCourseInput } from "@/lib/validation/course.schema";
 
@@ -98,6 +99,24 @@ export const courseService = {
    * `subscriptionRepository`'s doc comment. Non-students (teacher/admin
    * routes never call this) simply get `false`.
    */
+  /**
+   * TASK-3104 — the owning teacher's (or Admin's) course-preview read:
+   * same ownership check as `getCourse` (reused implicitly via
+   * `assertWritableByTeacher`, not `getCourse` itself, since `getCourse`
+   * is student-invisible by name only — the check is identical), but
+   * unlike `getCourse` this is reachable regardless of `status`
+   * (`draft` included — previewing before publish is the whole point).
+   */
+  async getCourseForPreview(session: Session, id: string) {
+    assertRole(session, "teacher", "admin");
+    const course = await courseRepository.findById(id);
+    if (!course) {
+      throw new NotFoundError();
+    }
+    assertWritableByTeacher(session, course);
+    return course;
+  },
+
   async hasActiveSubscriptionForCourse(
     session: Session,
     course: Pick<import("@/lib/server/repositories/courseRepository").CourseDoc, "teacherId" | "subjectId" | "stageId">,
@@ -186,6 +205,18 @@ export const courseService = {
     if (existing?.status !== "published") {
       await teacherProfileRepository.incrementStats(updated.teacherId, { totalPublishedCourses: 1 });
       await systemStatsRepository.incrementStats({ totalPublishedCourses: 1 });
+      const admins = await userRepository.listByRole("admin");
+      await auditNotificationService.notify({
+        action: "created",
+        entityType: "new_course",
+        entityId: updated.id,
+        title: {
+          en: `New course published: "${updated.title.en}"`,
+          ar: `تم نشر دورة جديدة: "${updated.title.ar ?? updated.title.en}"`,
+        },
+        recipientIds: admins.map((admin) => admin.uid),
+        link: `/admin/courses/${updated.id}`,
+      });
     }
     return updated;
   },

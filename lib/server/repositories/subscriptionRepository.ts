@@ -26,6 +26,12 @@ export interface SubscriptionDoc {
   stageId: string;
   status: SubscriptionStatus;
   createdAt: number;
+  /**
+   * TASK-3405 — the last billing `period` (`YYYY-MM`) this subscription's
+   * "renewal due" notification was sent for, so the daily sweep doesn't
+   * re-notify the same student every day for the same overdue month.
+   */
+  lastRenewalNotifiedPeriod?: string;
 }
 
 export type CreateSubscriptionDoc = Omit<SubscriptionDoc, "id">;
@@ -42,6 +48,7 @@ function toDoc(id: string, data: FirebaseFirestore.DocumentData): SubscriptionDo
     stageId: String(data.stageId),
     status: data.status as SubscriptionStatus,
     createdAt: Number(data.createdAt),
+    ...(data.lastRenewalNotifiedPeriod ? { lastRenewalNotifiedPeriod: String(data.lastRenewalNotifiedPeriod) } : {}),
   };
 }
 
@@ -83,6 +90,17 @@ export const subscriptionRepository = {
     return snap.docs.map((doc) => toDoc(doc.id, doc.data()));
   },
 
+  /**
+   * Deduplicated `studentId`s with at least one `active` subscription —
+   * TASK-3403's "no active teacher subscription" list negates this
+   * against every student to find who has none. A `Set` rather than a
+   * list since the caller only ever needs membership checks.
+   */
+  async listActiveStudentIds(): Promise<Set<string>> {
+    const snap = await adminDb.collection(COLLECTION).where("status", "==", "active").get();
+    return new Set(snap.docs.map((doc) => String(doc.data().studentId)));
+  },
+
   async findActiveByStudentAndOffering(studentId: string, offeringId: string): Promise<SubscriptionDoc | null> {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -106,5 +124,10 @@ export const subscriptionRepository = {
     if (!existing) throw new NotFoundError();
     await adminDb.collection(COLLECTION).doc(id).update({ status });
     return { ...existing, status };
+  },
+
+  /** TASK-3405 — records that the renewal-due notification fired for `period`, so the daily sweep skips it next run. */
+  async markRenewalNotified(id: string, period: string): Promise<void> {
+    await adminDb.collection(COLLECTION).doc(id).update({ lastRenewalNotifiedPeriod: period });
   },
 };

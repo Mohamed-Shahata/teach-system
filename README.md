@@ -31,7 +31,7 @@ fully bilingual (English/Arabic, LTR/RTL), with light/dark themes.
 | 17 | Deployment | Not Started |
 | 18 | MVP Finalization | Not Started |
 
-Full breakdown: [`docs/tasks/README.md`](./docs/tasks/README.md).
+Full breakdown: [`tasks/README.md`](./tasks/README.md).
 
 ## Tech stack
 

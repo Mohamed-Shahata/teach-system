@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { assertRole } from "@/lib/auth/guards";
@@ -46,7 +47,15 @@ export default async function TeacherCourseDetailPage({
           { label: course.title.en || course.title.ar },
         ]}
       />
-      <h1 className="text-2xl font-semibold text-foreground">{course.title.en || course.title.ar}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold text-foreground">{course.title.en || course.title.ar}</h1>
+        <Link
+          href={`/${locale}/teacher/courses/${courseId}/preview`}
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          {t("teacherDashboard.courses.preview.linkLabel")}
+        </Link>
+      </div>
       <LessonManager courseId={courseId} initialLessons={lessons} />
       <QuizManager courseId={courseId} initialQuizzes={quizzes} />
       <CourseStudentsPanel courseId={courseId} initialStudents={students} />

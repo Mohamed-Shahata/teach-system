@@ -1,6 +1,7 @@
 import "server-only";
 import { adminDb } from "@/lib/server/firebaseAdmin";
 import { NotFoundError } from "@/lib/errors";
+import { createMemoryCache } from "@/lib/server/cache/memoryCache";
 
 export interface LocalizedText {
   en: string;
@@ -18,6 +19,9 @@ export type UpdateSubjectDoc = Partial<Pick<SubjectDoc, "name">>;
 
 const COLLECTION = "subjects";
 
+/** TASK-3602: near-static reference data, re-read on every request from at least seven services — see `memoryCache.ts`. */
+const listCache = createMemoryCache<SubjectDoc[]>(5 * 60 * 1000);
+
 function toDoc(id: string, data: FirebaseFirestore.DocumentData): SubjectDoc {
   return {
     id,
@@ -33,8 +37,12 @@ function toDoc(id: string, data: FirebaseFirestore.DocumentData): SubjectDoc {
  */
 export const subjectRepository = {
   async list(): Promise<SubjectDoc[]> {
+    const cached = listCache.get();
+    if (cached) return cached;
     const snap = await adminDb.collection(COLLECTION).get();
-    return snap.docs.map((doc) => toDoc(doc.id, doc.data())).sort((a, b) => a.name.en.localeCompare(b.name.en));
+    const subjects = snap.docs.map((doc) => toDoc(doc.id, doc.data())).sort((a, b) => a.name.en.localeCompare(b.name.en));
+    listCache.set(subjects);
+    return subjects;
   },
 
   async findById(id: string): Promise<SubjectDoc | null> {
@@ -45,6 +53,7 @@ export const subjectRepository = {
   async create(subject: CreateSubjectDoc): Promise<SubjectDoc> {
     const ref = adminDb.collection(COLLECTION).doc();
     await ref.create(subject);
+    listCache.invalidate();
     return { id: ref.id, ...subject };
   },
 
@@ -52,6 +61,7 @@ export const subjectRepository = {
     const existing = await this.findById(id);
     if (!existing) throw new NotFoundError();
     await adminDb.collection(COLLECTION).doc(id).update(patch);
+    listCache.invalidate();
     return { ...existing, ...patch };
   },
 
@@ -59,6 +69,7 @@ export const subjectRepository = {
     const existing = await this.findById(id);
     if (!existing) throw new NotFoundError();
     await adminDb.collection(COLLECTION).doc(id).delete();
+    listCache.invalidate();
     return existing;
   },
 };

@@ -21,11 +21,17 @@ export function Breadcrumb({ items, linkComponent: Link }: BreadcrumbProps) {
             <li key={i} className="flex items-center gap-1">
               {item.href && !isLast ? (
                 Link ? (
-                  <Link href={item.href} className="hover:text-foreground hover:underline">
+                  <Link
+                    href={item.href}
+                    className="rounded-sm hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
                     {item.label}
                   </Link>
                 ) : (
-                  <a href={item.href} className="hover:text-foreground hover:underline">
+                  <a
+                    href={item.href}
+                    className="rounded-sm hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
                     {item.label}
                   </a>
                 )

@@ -39,6 +39,16 @@ export const paymentService = {
     return paymentRepository.listByTeacher(session, status);
   },
 
+  /**
+   * TASK-3307 — Admin-facing read of one student's full payment history,
+   * for the Admin account page (mirrors `subscriptionService.
+   * listForStudent`'s existing admin-only, studentId-keyed shape).
+   */
+  async listForStudentAdmin(session: Session, studentId: string) {
+    assertRole(session, "admin");
+    return paymentRepository.listByStudent(studentId);
+  },
+
   async getPayment(session: Session, id: string) {
     const payment = await paymentRepository.findById(id);
     if (!payment) throw new NotFoundError();

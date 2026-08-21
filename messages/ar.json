@@ -248,7 +248,22 @@
         "thumbnailSize": "لازم الصورة تكون 5 ميجابايت أو أقل.",
         "thumbnailUpload": "تعذّر رفع الصورة. حاول تاني."
       },
-      "manageLessons": "إدارة الدروس"
+      "manageLessons": "إدارة الدروس",
+      "preview": {
+        "linkLabel": "معاينة كطالب",
+        "banner": "دي معاينة فقط — الطلاب هيشوفوا نفس العرض ده بعد النشر. مفيش أي بيانات هنا بتتحفظ كتسجيل أو محاولة حقيقية.",
+        "breadcrumbCourses": "الكورسات",
+        "breadcrumbPreview": "معاينة",
+        "lessonsHeading": "الدروس",
+        "lessonCount": "{count} {count, plural, one {درس} other {دروس}}",
+        "free": "مجاني",
+        "priceLabel": "السعر",
+        "lockedBadge": "مقفول",
+        "freePreviewBadge": "معاينة مجانية",
+        "goToLesson": "اذهب إلى الدرس",
+        "noLessons": "لا توجد دروس منشورة بعد.",
+        "noDescription": "لا يوجد وصف بعد."
+      }
     },
     "lessons": {
       "title": "الدروس",
@@ -963,7 +978,42 @@
       "editDescription": "قم بتحديث بيانات هذا المعلم.",
       "viewStudents": "عرض الطلاب",
       "studentsPageTitle": "طلاب {name}",
-      "viewReviews": "عرض التقييمات"
+      "viewReviews": "عرض التقييمات",
+      "viewProfile": "عرض الملف",
+      "profile": {
+        "status": {
+          "active": "نشط",
+          "deactivated": "معطل"
+        },
+        "stats": {
+          "courses": "الدورات",
+          "students": "الطلاب",
+          "enrollments": "الاشتراكات",
+          "joined": "تاريخ الانضمام"
+        },
+        "viewStudents": "عرض الطلاب",
+        "viewReviews": "عرض التقييمات",
+        "profileTitle": "الملف العام",
+        "profileEmptyTitle": "لا يوجد ملف عام بعد",
+        "profileEmptyDescription": "لم يقم هذا المعلم بإعداد ملفه العام بعد (نبذة، عنوان، روابط التواصل).",
+        "yearsOfExperience": "{years} سنوات خبرة",
+        "offeringsTitle": "الأسعار",
+        "offeringsEmpty": "لم تتم إضافة أسعار بعد.",
+        "columns": {
+          "subject": "المادة",
+          "stage": "المرحلة الدراسية",
+          "price": "السعر الشهري (جنيه)",
+          "course": "الدورة",
+          "status": "الحالة",
+          "enrollments": "الاشتراكات"
+        },
+        "coursesTitle": "الدورات",
+        "coursesEmpty": "لم ينشئ هذا المعلم أي دورة بعد.",
+        "courseStatus": {
+          "draft": "مسودة",
+          "published": "منشورة"
+        }
+      }
     },
     "students": {
       "title": "الطلاب",
@@ -1019,6 +1069,7 @@
       "noOfferingsForStage": "مفيش معلمين حاطين سعر لمرحلة الطالب دي لسه.",
       "generateInvoice": "إنشاء فاتورة الشهر ده",
       "invoiceGenerated": "تم إنشاء الفاتورة",
+      "payCash": "تسجيل دفع كاش (الشهر ده)",
       "invoiceStatus": {
         "pending": "في انتظار الدفع",
         "confirmed": "مدفوعة",
@@ -1026,12 +1077,56 @@
       },
       "edit": "تعديل",
       "editTitle": "تعديل حساب الطالب",
-      "editDescription": "قم بتحديث بيانات هذا الطالب."
+      "editDescription": "قم بتحديث بيانات هذا الطالب.",
+      "viewProfile": "عرض الملف",
+      "profile": {
+        "status": {
+          "active": "نشط",
+          "deactivated": "معطل"
+        },
+        "age": "العمر",
+        "stage": "المرحلة الدراسية",
+        "stats": {
+          "enrollments": "إجمالي الاشتراكات",
+          "active": "الاشتراكات النشطة"
+        },
+        "coursesTitle": "الدورات المسجل بها",
+        "coursesEmpty": "لم يسجل هذا الطالب في أي دورة بعد.",
+        "columns": {
+          "course": "الدورة",
+          "status": "الحالة",
+          "progress": "التقدم",
+          "enrolledOn": "تاريخ التسجيل",
+          "teacher": "المعلم",
+          "amount": "المبلغ",
+          "date": "التاريخ"
+        },
+        "enrollmentStatus": {
+          "active": "نشط",
+          "completed": "مكتمل",
+          "cancelled": "ملغي"
+        },
+        "subscriptionsTitle": "الاشتراكات",
+        "subscriptionsEmpty": "هذا الطالب غير مشترك مع أي معلم بعد.",
+        "subscriptionStatus": {
+          "active": "نشط",
+          "cancelled": "ملغي"
+        },
+        "paymentsTitle": "سجل المدفوعات",
+        "paymentsEmpty": "لا توجد مدفوعات بعد.",
+        "paymentStatus": {
+          "pending": "قيد الانتظار",
+          "succeeded": "تم بنجاح",
+          "confirmed": "مؤكد",
+          "rejected": "مرفوض"
+        }
+      }
     },
     "analytics": {
       "title": "التحليلات",
       "subtitle": "الإيرادات والنمو في السنتر كله.",
       "refresh": "تحديث",
+      "export": "تصدير إلى Excel",
       "currency": "جنيه",
       "cards": {
         "totalStudents": "إجمالي الطلاب",
@@ -1044,26 +1139,48 @@
         "growth": "نمو الاشتراكات"
       },
       "pendingNote": "{count, plural, one {فيه فاتورة واحدة لسه في انتظار التأكيد ومش محسوبة.} other {فيه # فاتورة لسه في انتظار التأكيد ومش محسوبة.}}",
+      "breakdowns": {
+        "teachers": "المعلمون حسب عدد الطلاب النشطين",
+        "subjects": "المواد حسب عدد الطلاب النشطين",
+        "stages": "الطلاب حسب المرحلة الدراسية",
+        "empty": "لا توجد بيانات بعد."
+      },
       "errors": {
         "load": "تعذّر تحميل التحليلات. حاول تاني."
+      },
+      "filters": {
+        "rangeLabel": "الفترة الزمنية",
+        "granularity": {
+          "month": "شهر",
+          "year": "سنة",
+          "5year": "5 سنوات"
+        }
       }
     },
     "payments": {
       "title": "المدفوعات",
-      "subtitle": "كل المدفوعات في كل كورسات كل المدرّسين، لأغراض الدعم وحل النزاعات. للعرض فقط — التأكيد/الرفض بيفضل شغل المدرّس صاحب الكورس.",
+      "subtitle": "كل مدفوعات الكورسات وفواتير الاشتراكات في كل حاجة خاصة بكل المدرّسين، لأغراض الدعم وحل النزاعات. للعرض فقط — التأكيد/الرفض بيفضل شغل المدرّس صاحب الكورس أو طابور مراجعة الفواتير.",
       "empty": "لا توجد مدفوعات.",
       "columns": {
         "student": "الطالب",
-        "course": "الكورس",
+        "course": "الكورس / المادة",
         "teacher": "المدرّس",
+        "type": "النوع",
         "method": "طريقة الدفع",
         "amount": "المبلغ",
         "status": "الحالة"
       },
+      "sources": {
+        "payment": "دفعة كورس",
+        "subscriptionInvoice": "فاتورة اشتراك"
+      },
       "filters": {
         "all": "كل الحالات",
-        "status": "فلترة حسب الحالة"
+        "status": "فلترة حسب الحالة",
+        "search": "بحث بالطالب أو المدرّس",
+        "searchPlaceholder": "بحث بالطالب أو المدرّس…"
       },
+      "linkToInvoiceQueue": "مراجعة فواتير الاشتراكات ←",
       "status": {
         "pending": "قيد الانتظار",
         "succeeded": "تم بنجاح",
@@ -1075,10 +1192,24 @@
         "fawry": "فوري",
         "vodafoneCash": "فودافون كاش",
         "bankTransfer": "تحويل بنكي",
+        "cash": "كاش",
         "other": "أخرى"
       },
       "errors": {
         "list": "تعذّر تحميل المدفوعات. حاول تاني."
+      },
+      "unsubscribed": {
+        "title": "طلاب بدون اشتراك فعّال",
+        "subtitle": "طلاب مسجلين لم يتم ربطهم بمعلم بعد.",
+        "empty": "كل الطلاب لديهم اشتراك فعّال.",
+        "viewProfile": "عرض الملف →"
+      },
+      "dueForRenewal": {
+        "title": "اشتراكات مستحقة للتجديد",
+        "subtitle": "اشتراكات فعّالة بدون دفعة مؤكدة هذا الشهر.",
+        "empty": "لا توجد اشتراكات مستحقة للتجديد.",
+        "withTeacher": "مع {teacher}",
+        "viewProfile": "عرض الملف →"
       }
     },
     "settings": {
@@ -1118,7 +1249,8 @@
         "subject": "المادة",
         "stage": "المرحلة",
         "status": "الحالة",
-        "enrollments": "عدد المسجَّلين"
+        "enrollments": "عدد المسجَّلين",
+        "actions": "الإجراءات"
       },
       "filters": {
         "allTeachers": "كل المعلمين",
@@ -1128,7 +1260,22 @@
       },
       "statusDraft": "مسودة",
       "statusPublished": "منشور",
-      "empty": "لا توجد كورسات مطابقة لهذه الفلاتر."
+      "empty": "لا توجد كورسات مطابقة لهذه الفلاتر.",
+      "view": "عرض",
+      "detail": {
+        "breadcrumbCourses": "الكورسات",
+        "lessonsHeading": "الدروس",
+        "lessonCount": "{count} {count, plural, one {درس} other {دروس}}",
+        "free": "مجاني",
+        "priceLabel": "السعر",
+        "statusDraft": "مسودة",
+        "statusPublished": "منشور",
+        "lockedBadge": "مقفول",
+        "freePreviewBadge": "معاينة مجانية",
+        "goToLesson": "اذهب إلى الدرس",
+        "noLessons": "لا توجد دروس منشورة بعد.",
+        "noDescription": "لا يوجد وصف بعد."
+      }
     },
     "reviews": {
       "pageTitle": "تقييمات {name}",
@@ -1171,6 +1318,18 @@
         "confirm": "تعذّر تأكيد الفاتورة. حاول تاني.",
         "reject": "تعذّر رفض الفاتورة. حاول تاني.",
         "generate": "تعذّر توليد الفواتير. حاول تاني."
+      }
+    },
+    "recentActivity": {
+      "studentsTitle": "الطلاب الجدد",
+      "studentsEmpty": "لا يوجد طلاب بعد.",
+      "paymentsTitle": "آخر المدفوعات",
+      "paymentsEmpty": "لا توجد مدفوعات بعد.",
+      "status": {
+        "pending": "قيد الانتظار",
+        "succeeded": "تم بنجاح",
+        "confirmed": "مؤكد",
+        "rejected": "مرفوض"
       }
     }
   },

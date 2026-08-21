@@ -75,3 +75,33 @@ describe("lessonProgressRepository.listByStudentForLessons", () => {
     expect(result).toEqual([{ id: "student-1_lesson-1", ...rawProgressData }]);
   });
 });
+
+describe("lessonProgressRepository.listByStudentsForLessons", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns [] without calling getAll when either list is empty", async () => {
+    expect(await lessonProgressRepository.listByStudentsForLessons([], ["lesson-1"])).toEqual([]);
+    expect(await lessonProgressRepository.listByStudentsForLessons(["student-1"], [])).toEqual([]);
+    expect(getAll).not.toHaveBeenCalled();
+  });
+
+  it("TASK-3603: issues exactly one getAll across the full student x lesson cross-product, not one per student", async () => {
+    getAll.mockResolvedValue([
+      { exists: true, id: "student-1_lesson-1", data: () => rawProgressData },
+      { exists: false, id: "student-1_lesson-2" },
+      { exists: false, id: "student-2_lesson-1" },
+      { exists: false, id: "student-2_lesson-2" },
+    ]);
+
+    const result = await lessonProgressRepository.listByStudentsForLessons(
+      ["student-1", "student-2"],
+      ["lesson-1", "lesson-2"],
+    );
+
+    expect(getAll).toHaveBeenCalledTimes(1);
+    expect(doc).toHaveBeenCalledTimes(4);
+    expect(doc).toHaveBeenCalledWith("student-1_lesson-1");
+    expect(doc).toHaveBeenCalledWith("student-2_lesson-2");
+    expect(result).toEqual([{ id: "student-1_lesson-1", ...rawProgressData }]);
+  });
+});

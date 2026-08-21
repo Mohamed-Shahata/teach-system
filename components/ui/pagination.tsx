@@ -17,7 +17,8 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
         aria-label="Previous page"
         className={cn(
           "rounded-md border border-border px-2 py-1 text-sm rtl:rotate-180",
-          "disabled:opacity-40 disabled:pointer-events-none hover:bg-surface-muted"
+          "disabled:opacity-40 disabled:pointer-events-none hover:bg-surface-muted",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         )}
       >
         ‹
@@ -32,7 +33,8 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
         aria-label="Next page"
         className={cn(
           "rounded-md border border-border px-2 py-1 text-sm rtl:rotate-180",
-          "disabled:opacity-40 disabled:pointer-events-none hover:bg-surface-muted"
+          "disabled:opacity-40 disabled:pointer-events-none hover:bg-surface-muted",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         )}
       >
         ›

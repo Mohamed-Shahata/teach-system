@@ -69,6 +69,29 @@ requirement is the `Authorization` header on every call.
 > one less third-party dependency) if/when the project moves to Vercel
 > Pro, which removes the daily-only limit.
 
+### Second scheduled endpoint: subscription renewal notifications (TASK-3405)
+
+`app/api/cron/subscription-renewal-notifications/route.ts` needs to be
+hit once a day — it notifies students whose subscription just became
+due for renewal (TASK-3404's condition: an active subscription with no
+confirmed invoice for the current period). Unlike the per-minute
+class-notifications job above, a daily cadence is exactly what this
+needs (Vercel Hobby's daily-only limit isn't even a constraint here),
+so set it up the same way on cron-job.org:
+
+1. **URL:** `https://<your-production-domain>/api/cron/subscription-renewal-notifications`
+2. **Schedule:** once a day, e.g. `0 6 * * *` (06:00 UTC).
+3. **Request method:** `GET`.
+4. Same **Advanced → Headers** `Authorization: Bearer <CRON_SECRET>` as
+   the class-notifications job above — both routes share the same
+   `CRON_SECRET` env var.
+5. Confirm `{ "ok": true, "notified": <n> }` responses in the run log.
+
+The route is idempotent per day via `subscriptions.lastRenewalNotifiedPeriod`
+(set after each successful notify), so re-running it, or running it more
+than once a day, never double-notifies a student for the same billing
+period.
+
 ## Environment variables
 
 Configured per-environment in the Vercel dashboard (Production, Preview,

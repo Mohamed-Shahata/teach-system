@@ -46,12 +46,12 @@ Status: Not Started | In Progress | Blocked | Done
 | 27 | Student Reviews & Ratings for Teachers | Done |
 | 28 | Exam Results Export (PDF / Excel) | Done |
 | 29 | Teacher Subscriptions & Offerings | Done |
-| 30 | Notifications UX & Delivery Coverage | In Progress |
-| 31 | Teacher Profile & Preview Tools | In Progress |
+| 30 | Notifications UX & Delivery Coverage | Done |
+| 31 | Teacher Profile & Preview Tools | Done |
 | 32 | Student Profile, My Courses & Teachers Directory Revamp | Done |
-| 33 | Admin Overview, Analytics & Reporting | Not Started |
-| 34 | Admin Manual Payments & Subscription Oversight | Not Started |
-| 35 | Consolidated Table Action Menus | Not Started |
+| 33 | Admin Overview, Analytics & Reporting | Done |
+| 34 | Admin Manual Payments & Subscription Oversight | Done |
+| 35 | Consolidated Table Action Menus | Done |
 | 36 | Caching Strategy & Performance | Not Started |
 | 15 | Security | In Progress |
 | 16 | Testing | In Progress |
@@ -583,3 +583,275 @@ Before starting any task, follow `development/ai-agent-workflow.md`.
 > is clean. Phase 32 stays `In Progress`: TASK-3205 (student weekly
 > schedule page) is next — its dependencies (Phase 6, Phase 29) are
 > both satisfied.
+
+> TASK-3104 (course preview before publish) is now `Done`, completing
+> Phase 31: `courseService.getCourseForPreview` (owner/Admin-gated,
+> status-agnostic) and `lessonService.listLessonsForCoursePreview`
+> (locks every lesson except `isFreePreview`, ignoring the teacher's
+> own access) back a new `teacher/courses/[courseId]/preview` page. It
+> renders through a new shared `CourseDetailView` component, extracted
+> from TASK-3204's student page with no markup changes, so preview and
+> real student view render identically off the same data shape. A
+> "Preview as a student" link was added to the course editor page. See
+> `phase-31-teacher-profile-and-preview.md`'s TASK-3104 note for the
+> full detail, including why verification was reviewed by hand (no
+> network/`node_modules` in this sandbox, same constraint TASK-3203/
+> TASK-3204 hit) and translation-key parity (1000/1000, checked
+> manually). Phase 31 moves to `Done`. Next: Phase 30
+> (Notifications UX & Delivery Coverage, `In Progress`), Phase 15/16/18
+> (`In Progress`), Phase 11 (Enrollment, `In Progress`), or Phase 33-36
+> (`Not Started`) — pick whichever unblocks what you want to ship next.
+
+> TASK-3306 (Admin can open a course and view its content) is now
+> `Done`, moving Phase 33 to `In Progress`: no new service code was
+> needed — `courseService.getCourseForStudent` and
+> `lessonService.listLessonsForCourseDetail` already accepted an
+> `admin` session (added alongside TASK-3204) and already resolve
+> every lesson unlocked for one, so the new `admin/courses/[courseId]`
+> page just reuses those reads plus the shared `CourseDetailView`
+> (TASK-3104) a third time. A "View" row action was added to the
+> existing Admin course-overview table. See
+> `phase-33-admin-insights.md`'s TASK-3306 note for the full detail,
+> including the explicit scope note on per-lesson video/file/exam
+> content being deferred. Verification reviewed by hand (no network in
+> this sandbox). Phase 33 stays `In Progress`: TASK-3307 (Admin can
+> open a teacher's/student's profile page) has no unmet dependency and
+> is next; TASK-3301–3305 remain `Not Started` and form a separate
+> chain (3304/3305 depend on 3302/3303).
+
+> TASK-3307 (Admin can open a teacher's/student's account/profile page)
+> is now `Done`: new `admin/teachers/[teacherId]` and `admin/students/
+> [studentId]` pages give the Admin a read-only view of everything a
+> teacher/student sees about themselves — profile, courses/offerings for
+> a teacher; enrollments/subscriptions/payment history for a student —
+> built almost entirely from reads other tasks already made
+> Admin-allowed. Two small new reads were added: `teacherProfileService
+> .getProfileForAdmin` (returns `null` instead of throwing when a
+> teacher has no profile doc yet, so the page still renders) and
+> `paymentService.listForStudentAdmin`. A "View profile" row action was
+> added to both `TeacherManager` and `StudentManager`. See
+> `phase-33-admin-insights.md`'s TASK-3307 note for the full detail,
+> including the deliberate edge case around a student with zero
+> enrollments and the translation-parity check (1068/1068 keys match).
+> Verification reviewed by hand (no network in this sandbox, same
+> constraint recent sessions in this phase have hit). Phase 33 moves to
+> `In Progress`: TASK-3301–3305 remain `Not Started` and form a separate
+> chain (3304/3305 depend on 3302/3303) — pick whichever unblocks what
+> you want to ship next.
+
+> TASK-3301 (Overview page — actionable summary cards) is now `Done`:
+> the Admin overview page gets two new mini-lists above the audit
+> notifications panel — "recently joined students" and "recent
+> payments" (merging `payments` and `subscriptionInvoices`, sorted by
+> recency, capped at 5 each) — via a new `adminOverviewService
+> .getRecentActivity`, built entirely from reads other tasks already
+> made center-wide/Admin-allowed. Each row links to the relevant
+> student's new TASK-3307 account page. No new API route: the overview
+> page already calls its services directly, same as Phase 19's stats
+> cards. See `phase-33-admin-insights.md`'s TASK-3301 note for the full
+> detail, including why the linked-detail-page acceptance criteria's
+> "TASK-3305/3306" pointer was treated as a stale reference to
+> TASK-3306/3307. Verification reviewed by hand (no network in this
+> sandbox, same constraint recent sessions in this phase have hit).
+> Phase 33 stays `In Progress`: TASK-3302 (Analytics — monthly revenue
+> breakdown) is next — its dependencies are all satisfied;
+> TASK-3303/3304/3305 remain `Not Started` and form the rest of the
+> analytics chain.
+
+> TASK-3302 (Analytics — monthly revenue breakdown) is now `Done`:
+> `analyticsRepository.monthlyRevenue` and `.totalConfirmedRevenue` now
+> combine both payment models — confirmed `subscriptionInvoices`
+> (unchanged, bucketed by their own `period`) plus one-off `payments` in
+> a terminal successful status (`succeeded`/`confirmed`), bucketed by
+> `createdAt` — instead of subscription invoices alone. No service/route/
+> component changes needed; `AdminAnalyticsOverview`'s existing chart and
+> total-revenue card pick this up automatically. See
+> `phase-33-admin-insights.md`'s TASK-3302 note for the full detail,
+> including the new `analyticsRepository.test.ts` (didn't exist before).
+> Full verification ran for real this session: `npm install`,
+> `npx vitest run` (114 files / 786 tests, all passing, up from 765),
+> `npx eslint` clean on changed files, `npx tsc --noEmit` only the same
+> pre-existing, unrelated failures noted in prior sessions. Phase 33
+> stays `In Progress`: TASK-3303 (teacher/subject/stage breakdowns) is
+> next — its dependencies (Phase 19, Phase 29) are satisfied.
+
+> TASK-3303 (Analytics — teacher/subject/stage breakdowns) is now
+> `Done`: three new `analyticsRepository` aggregations
+> (`activeStudentCountsByTeacher`, `activeStudentCountsBySubject`,
+> `activeStudentIds`) union active enrollments + active subscriptions
+> per teacher/subject, and expose the raw active-student id set for a
+> stage grouping the service layer joins via `userRepository`. Three new
+> ranked-list cards render below `AdminAnalyticsOverview`'s existing
+> charts. See `phase-33-admin-insights.md`'s TASK-3303 note for the full
+> detail, including a pre-existing (not this task's) `next build`
+> TypeScript failure in `teacher-account-view.tsx` flagged for later
+> cleanup. Full verification ran for real this session: `npm install`,
+> `npx vitest run` (114 files / 791 tests, all passing, up from 786),
+> `npx eslint` clean on changed files, `check-translations` (1093 keys
+> in sync), `check-rtl`/`check-contrast` clean. Phase 33 stays
+> `In Progress`: TASK-3304 (universal date-range filter) is next — both
+> its dependencies (TASK-3302, TASK-3303) are now `Done`.
+
+> TASK-3401 (Admin "Payments" section — combined view) is now `Done`,
+> moving Phase 34 to `In Progress`: `adminPaymentsOverviewService
+> .listAll` merges course `payments` and subscription
+> `subscriptionInvoices` into one recency-sorted, status-normalized list
+> behind the existing `admin/payments` page/route (updated in place, no
+> new page). See `phase-34-admin-manual-payments.md`'s TASK-3401 note for
+> the full detail, including the full verification run (803/803 tests,
+> clean lint). Phase 34 stays `In Progress`: TASK-3402 (manual cash
+> subscription payment, one action) is next — no unmet dependency.
+
+> TASK-3305 (Analytics — Excel export) is now `Done`, moving Phase 33 to
+> `Done`: `analyticsExportService` reuses `analyticsService.getOverview`
+> directly (same read the on-screen page's route calls) so the exported
+> `.xlsx` can't drift from the filtered view, then writes six sheets —
+> `Summary`, `Revenue`, `Subscription Growth`, `Teachers`, `Subjects`,
+> `Stages` — via a new `GET /api/admin/analytics/export?granularity=`
+> route (same file-download shape as Phase 28's exam export) and an
+> "Export to Excel" link on `AdminAnalyticsOverview`. See
+> `phase-33-admin-insights.md`'s TASK-3305 note for the full detail,
+> including the full verification run (800/800 tests, clean lint,
+> `next build` compiling with only the same pre-existing, unrelated
+> `teacher-account-view.tsx` type mismatch noted in TASK-3303/3304).
+> All seven of this phase's tasks (TASK-3301–3307) are now `Done`. Next:
+> Phase 34 (Admin Manual Payments), Phase 35 (Table Action Menus), Phase
+> 36 (Caching/Performance) — all `Not Started` — or Phase 11/15/16/18
+> (`In Progress`); pick whichever unblocks what you want to ship next.
+
+> TASK-3304 (Analytics — universal date-range filter) is now `Done`:
+> `analyticsRepository.buildRange(granularity)` resolves one
+> `{ since, until, bucketKeys }` window for `month` (daily buckets),
+> `year` (monthly buckets), or `5year` (yearly buckets), threaded
+> through `monthlyRevenue`, `monthlySubscriptionGrowth`, and all three
+> TASK-3303 breakdowns so one filter drives every chart on the page —
+> the headline `totalRevenue`/`activeSubscriptions` figures stay
+> all-time, unaffected by the filter. `GET /api/admin/analytics
+> ?granularity=` (new `analytics.schema.ts`) defaults to `year`; the UI
+> gained a three-way toggle. See `phase-33-admin-insights.md`'s
+> TASK-3304 note for full detail. Full verification ran for real this
+> session: `npm install`, `npx vitest run` (114 files / 797 tests, up
+> from 791), `npx eslint` clean on changed files, `npx tsc --noEmit`/
+> `npx next build` show only the same pre-existing, unrelated
+> `teacher-account-view.tsx` failure noted in TASK-3303, `check-
+> translations` (1097 keys in sync). Phase 33 stays `In Progress`:
+> TASK-3305 (Excel export) is next — its dependencies (3302, 3303,
+> 3304) are all now `Done`.
+
+> TASK-3402 (Admin records a manual cash subscription payment — one
+> action: pay + invoice + subscribe) is now `Done`: new
+> `manualSubscriptionPaymentService.recordCashPayment` wraps the
+> existing-subscription-or-create + confirmed-invoice-for-period write in
+> one `adminDb.runTransaction` (all reads before any writes), exposed via
+> `POST /api/admin/payments/manual-subscription`; `StudentManager`'s
+> Subscriptions dialog gets a "Record cash payment" button next to both
+> the new-subscription picker and each existing subscription row. See
+> `phase-34-admin-manual-payments.md`'s TASK-3402 note for the full
+> detail, including why the transaction lives in a new service rather
+> than composing the existing `subscriptionService`/
+> `subscriptionInvoiceService` calls, and why verification was reviewed
+> by hand this session (no network available to run `npm install`/
+> `npx vitest`).
+>
+> TASK-3403 ("Students with no active teacher subscription" list) is now
+> `Done`: `subscriptionRepository.listActiveStudentIds()` returns a `Set`
+> of every studentId with an `active` subscription; new
+> `adminUnsubscribedStudentsService.list` negates that set against every
+> `role: "student"` user, exposed via `GET /api/admin/students/
+> unsubscribed`. Deliberately checks `subscriptions` only, not course
+> `enrollments` — this list is about the teacher-subscription
+> relationship specifically, a separate concern per
+> `subscriptionRepository`'s own doc comment. Rendered by new
+> `UnsubscribedStudentsList` on the Admin Payments page, alongside the
+> existing payments table; each row links to that student's TASK-3307
+> profile page, where the Admin can start TASK-3402's manual-subscribe
+> flow. See `phase-34-admin-manual-payments.md`'s TASK-3403 note for full
+> detail. Verified this session: `npx vitest run` (819/820 — the one
+> failure is `manualSubscriptionPaymentService.test.ts`, pre-existing
+> and unrelated, confirmed failing standalone too), ESLint clean on all
+> changed files, `tsc --noEmit` shows only the same pre-existing
+> unrelated errors, and `check-translations`/`check-rtl-ltr` both pass.
+>
+> Phase 34 stays `In Progress`: TASK-3404 ("Subscriptions due for
+> renewal" list) is next.
+
+> TASK-3404 ("Subscriptions due for renewal" list) is now `Done`:
+> `subscriptionInvoiceRepository.listConfirmedSubscriptionIdsForPeriod`
+> returns a `Set<subscriptionId>` of confirmed invoices for a period;
+> new `adminSubscriptionsDueForRenewalService.list` negates that against
+> every active subscription, additionally excluding subscriptions
+> created within the current period (a brand-new subscription needs a
+> first invoice, not a renewal). Exposed via `GET /api/admin/
+> subscriptions/due-for-renewal`, rendered by new `DueForRenewalList` on
+> the Admin Payments page, below TASK-3403's list; each row links to
+> that student's TASK-3307 profile page → TASK-3402's manual-subscribe
+> flow. See `phase-34-admin-manual-payments.md`'s TASK-3404 note for
+> full detail. Verified: `npx vitest run` (821/822 — the one pre-existing
+> unrelated failure noted above), ESLint clean, `tsc --noEmit` unchanged,
+> `check-translations`/`check-rtl-ltr` both pass.
+>
+> **Phase 34 is now `In Progress`** — TASK-3401 through TASK-3404 are
+> complete; TASK-3405 (student notifications for payment confirmed and
+> renewal due) is the only remaining task in this phase.
+
+> TASK-3501 (Shared `TableActionsMenu` component) is now `Done`, moving
+> Phase 35 to `In Progress`: `components/ui/table-actions-menu.tsx` — one
+> kebab trigger per row opening a config-driven action dropdown (icon,
+> disabled, destructive-variant support), fully keyboard-navigable. See
+> `phase-35-table-action-menus.md`'s TASK-3501 note for the full detail,
+> including why keyboard-nav logic was factored into a pure
+> `nextActiveIndex()` function with its own unit tests (no jsdom in this
+> repo, so the component itself isn't render-tested).
+>
+> TASK-3502 (migrate every existing table to it) is now `Done` too —
+> **Phase 35 is complete**. Six `Table` `rowActions` sites with a genuine
+> multi-button column were migrated: `admin/teacher-manager.tsx`,
+> `admin/student-manager.tsx`, `admin/center-config-manager.tsx` (both
+> its stage and subject tables), `admin/subscription-invoices-queue.tsx`,
+> and `teacher/course-manager.tsx` (its `Switch` publish-toggle stayed
+> outside the menu — a persistent status control, not a discrete
+> action). Six other `rowActions` sites already had only one button or
+> none at all and were left unchanged, as out of this task's scope. See
+> `phase-35-table-action-menus.md`'s TASK-3502 note for the full file
+> list and reasoning. Verification reviewed by hand this session (no
+> `node_modules`/network in this sandbox). Next: Phase 11/15/16/18
+> (`In Progress`) or Phase 36 (`Not Started`) — pick whichever unblocks
+> what you want to ship next.
+
+> **Table corrections, this session:** Phase 34 was marked
+> `In Progress` here but all five of its tasks (TASK-3401–3405) were
+> already `Done` in `phase-34-admin-manual-payments.md` — stale row,
+> now fixed.
+>
+> TASK-3004 (Admin notified when a teacher publishes a course) is now
+> `Done`, closing **Phase 30**: `courseService.publishCourse` fans out a
+> `new_course` notification to every Admin on the draft→published
+> transition only, linking to TASK-3306's `/admin/courses/{id}` page.
+> See `phase-30-notifications-ux.md`'s TASK-3004 note for the full
+> detail. Next: Phase 11/15/16/18 (`In Progress`) or Phase 36
+> (`Not Started`) — pick whichever unblocks what you want to ship next.
+
+> TASK-3405 (student notifications for payment confirmed and renewal
+> due) is now `Done` — **Phase 34 is complete.** Two independent pieces:
+> (a) `subscriptionInvoiceService.confirmInvoice` and TASK-3402's
+> `manualSubscriptionPaymentService.recordCashPayment` both now call
+> `auditNotificationService.notify` to tell the student "Payment
+> confirmed"; (b) a new daily sweep
+> (`lib/server/jobs/subscriptionRenewalNotificationsJob.ts`, triggered
+> by `app/api/cron/subscription-renewal-notifications/route.ts`, same
+> `CRON_SECRET`-gated external-cron pattern as TASK-2001's
+> `class-notifications`) notifies students whose subscription just
+> became due for renewal, reusing TASK-3404's exact "who's due" query
+> (factored out into shared `subscriptionRenewalQuery.ts` so the Admin
+> list and this sweep never disagree) and guarding against repeat
+> notifications via a new `lastRenewalNotifiedPeriod` field on
+> `subscriptions/{id}`. Also fixed a genuine pre-existing test bug along
+> the way: `manualSubscriptionPaymentService.test.ts`'s transaction
+> mocks were missing Firestore's `.empty` field, which made one test
+> fail every run — fixed and green now. See
+> `phase-34-admin-manual-payments.md`'s TASK-3405 note for full detail.
+> Verified: `npx vitest run` — **843/843 passing** (no more known
+> failures anywhere in the suite), ESLint clean, `tsc --noEmit` shows
+> only the same pre-existing unrelated errors from before this phase,
+> `check-translations`/`check-rtl-ltr` both pass. Next up: Phase 35
+> (Table Action Menus) or Phase 36, per the phase order above.

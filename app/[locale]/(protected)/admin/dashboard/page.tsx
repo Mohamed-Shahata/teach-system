@@ -1,9 +1,13 @@
+import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/session";
 import { assertRole } from "@/lib/auth/guards";
 import { systemStatsService } from "@/lib/server/services/systemStatsService";
 import { notificationService } from "@/lib/server/services/notificationService";
+import { adminOverviewService } from "@/lib/server/services/adminOverviewService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/states";
+import { Badge } from "@/components/ui/badge";
 import { AuditNotificationsPanel } from "@/components/layout/audit-notifications-panel";
 
 /**
@@ -14,7 +18,8 @@ import { AuditNotificationsPanel } from "@/components/layout/audit-notifications
  * `teacher/dashboard/page.tsx` (TASK-702), just center-wide instead of
  * per-teacher.
  */
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({ params }: PageProps<"/[locale]/admin/dashboard">) {
+  const { locale } = await params;
   const t = await getTranslations("adminDashboard");
   const format = await getFormatter();
   const session = await requireSession();
@@ -22,6 +27,7 @@ export default async function AdminDashboardPage() {
 
   const stats = await systemStatsService.getStats(session);
   const auditNotifications = await notificationService.listMyAuditNotifications(session);
+  const { recentStudents, recentPayments } = await adminOverviewService.getRecentActivity(session);
   const cards = [
     {
       key: "teachers",
@@ -120,6 +126,72 @@ export default async function AdminDashboardPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-5">
+          <h2 className="mb-3 text-base font-semibold text-foreground">{t("recentActivity.studentsTitle")}</h2>
+          {recentStudents.length === 0 ? (
+            <EmptyState title={t("recentActivity.studentsEmpty")} />
+          ) : (
+            <ul className="flex flex-col divide-y divide-border">
+              {recentStudents.map((student) => (
+                <li key={student.uid}>
+                  <Link
+                    href={`/${locale}/admin/students/${student.uid}`}
+                    className="flex items-center justify-between gap-3 py-2.5 text-sm transition-colors hover:bg-surface-muted"
+                  >
+                    <div>
+                      <p className="font-medium text-foreground">{student.displayName}</p>
+                      <p className="text-foreground/60">{student.email}</p>
+                    </div>
+                    <span className="shrink-0 tabular-nums text-foreground/60">
+                      {format.dateTime(new Date(student.createdAt), { dateStyle: "medium" })}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="mb-3 text-base font-semibold text-foreground">{t("recentActivity.paymentsTitle")}</h2>
+          {recentPayments.length === 0 ? (
+            <EmptyState title={t("recentActivity.paymentsEmpty")} />
+          ) : (
+            <ul className="flex flex-col divide-y divide-border">
+              {recentPayments.map((payment) => (
+                <li key={`${payment.source}-${payment.id}`}>
+                  <Link
+                    href={`/${locale}/admin/students/${payment.studentId}`}
+                    className="flex items-center justify-between gap-3 py-2.5 text-sm transition-colors hover:bg-surface-muted"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground tabular-nums">
+                        {payment.amount} {payment.currency}
+                      </span>
+                      <Badge
+                        variant={
+                          payment.status === "pending"
+                            ? "info"
+                            : payment.status === "rejected"
+                              ? "warning"
+                              : "success"
+                        }
+                      >
+                        {t(`recentActivity.status.${payment.status}`)}
+                      </Badge>
+                    </div>
+                    <span className="shrink-0 tabular-nums text-foreground/60">
+                      {format.dateTime(new Date(payment.createdAt), { dateStyle: "medium" })}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </div>
 
       <AuditNotificationsPanel initialNotifications={auditNotifications} />

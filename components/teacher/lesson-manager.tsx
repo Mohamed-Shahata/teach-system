@@ -496,6 +496,7 @@ export function LessonManager({ courseId, initialLessons }: LessonManagerProps) 
                   onDrop={onVideoDrop}
                   className={cn(
                     "relative flex h-24 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border-2 border-dashed text-center transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     isDraggingVideo ? "border-primary bg-primary/5" : "border-border bg-surface hover:border-primary/50",
                   )}
                 >

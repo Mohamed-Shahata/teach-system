@@ -36,6 +36,11 @@ vi.mock("@/lib/server/repositories/subscriptionRepository", () => ({
   subscriptionRepository: { listByStudent: listSubscriptionsByStudent },
 }));
 
+const listByRole = vi.fn();
+vi.mock("@/lib/server/repositories/userRepository", () => ({
+  userRepository: { listByRole },
+}));
+
 const auditNotify = vi.fn();
 vi.mock("@/lib/server/services/auditNotificationService", () => ({
   auditNotificationService: { notify: auditNotify },
@@ -64,11 +69,18 @@ describe("courseService", () => {
     findById.mockResolvedValue(null);
     findByTeacherAndSlug.mockResolvedValue(null);
     create.mockImplementation(async (course) => ({ id: "course-1", ...course }));
-    update.mockImplementation(async (_session, id, patch) => ({ id, teacherId: "teacher-1", status: "draft", ...patch }));
+    update.mockImplementation(async (_session, id, patch) => ({
+      id,
+      teacherId: "teacher-1",
+      status: "draft",
+      title: { en: "Course", ar: "دورة" },
+      ...patch,
+    }));
     deleteCourse.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "draft" });
     incrementStats.mockResolvedValue(undefined);
     subjectFindById.mockResolvedValue({ id: "physics", name: { en: "Physics", ar: "فيزياء" }, createdAt: 1 });
     stageFindById.mockResolvedValue({ id: "secondary-3", order: 12, name: { en: "Grade 3", ar: "3" }, category: "secondary" });
+    listByRole.mockResolvedValue([]);
   });
 
   it("creates a draft course with a per-teacher slug and increments totalCourses", async () => {
@@ -155,6 +167,35 @@ describe("courseService", () => {
     expect(incrementStats).toHaveBeenCalledWith("teacher-1", { totalPublishedCourses: 1 });
   });
 
+  it("notifies every Admin when a course transitions from draft to published (TASK-3004)", async () => {
+    findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "draft" });
+    listByRole.mockResolvedValue([
+      { uid: "admin-1" },
+      { uid: "admin-2" },
+    ]);
+
+    await courseService.publishCourse(makeSession("teacher"), "course-1");
+
+    expect(listByRole).toHaveBeenCalledWith("admin");
+    expect(auditNotify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: "new_course",
+        entityId: "course-1",
+        recipientIds: ["admin-1", "admin-2"],
+        link: "/admin/courses/course-1",
+      }),
+    );
+  });
+
+  it("does not notify Admins when a course is already published (no draft-to-published transition)", async () => {
+    findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "published" });
+
+    await courseService.publishCourse(makeSession("teacher"), "course-1");
+
+    expect(listByRole).not.toHaveBeenCalled();
+    expect(auditNotify).not.toHaveBeenCalled();
+  });
+
   it("decrements published counter only when unpublishing a published course", async () => {
     findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "published" });
 
@@ -199,6 +240,44 @@ describe("courseService", () => {
     );
   });
 
+  describe("getCourseForPreview (TASK-3104)", () => {
+    it("returns a draft course for its owning teacher", async () => {
+      findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "draft" });
+
+      const course = await courseService.getCourseForPreview(makeSession("teacher", "teacher-1"), "course-1");
+
+      expect(course).toEqual({ id: "course-1", teacherId: "teacher-1", status: "draft" });
+    });
+
+    it("returns the course for an admin regardless of ownership", async () => {
+      findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "draft" });
+
+      const course = await courseService.getCourseForPreview(makeSession("admin"), "course-1");
+
+      expect(course).toEqual({ id: "course-1", teacherId: "teacher-1", status: "draft" });
+    });
+
+    it("throws ForbiddenError for another teacher's course", async () => {
+      findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-2", status: "draft" });
+
+      await expect(
+        courseService.getCourseForPreview(makeSession("teacher", "teacher-1"), "course-1"),
+      ).rejects.toBeInstanceOf(ForbiddenError);
+    });
+
+    it("throws NotFoundError for a missing course", async () => {
+      await expect(
+        courseService.getCourseForPreview(makeSession("teacher", "teacher-1"), "missing"),
+      ).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it("rejects a student session", async () => {
+      await expect(
+        courseService.getCourseForPreview(makeSession("student", "student-1"), "course-1"),
+      ).rejects.toBeInstanceOf(ForbiddenError);
+    });
+  });
+
   it("returns course metadata for a student without an ownership check", async () => {
     findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "published" });
 
@@ -217,6 +296,14 @@ describe("courseService", () => {
     await expect(
       courseService.getCourseForStudent(makeSession("teacher"), "course-1"),
     ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("allows getCourseForStudent for an admin session (TASK-3306)", async () => {
+    findById.mockResolvedValue({ id: "course-1", teacherId: "teacher-1", status: "draft" });
+
+    const course = await courseService.getCourseForStudent(makeSession("admin"), "course-1");
+
+    expect(course).toEqual({ id: "course-1", teacherId: "teacher-1", status: "draft" });
   });
 
   it("rejects non-teacher sessions", async () => {

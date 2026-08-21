@@ -61,6 +61,7 @@ export function DashboardShell({ sidebar, displayName, children, topbarTitle, av
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                 className={cn(
                   "flex h-9 w-full items-center gap-2 rounded-xl text-foreground/60 transition-colors hover:bg-surface-muted hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   collapsed ? "justify-center" : "justify-start px-3"
                 )}
               >

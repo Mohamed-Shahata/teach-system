@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Alert, Button, Dialog, EmptyState, Input, Pagination, Select, Table } from "@/components/ui";
+import { TableActionsMenu } from "@/components/ui/table-actions-menu";
 import type { Column } from "@/components/ui/table";
 import type { EducationStageDoc, EducationStageCategory } from "@/lib/server/repositories/educationStageRepository";
 import type { SubjectDoc } from "@/lib/server/repositories/subjectRepository";
@@ -236,14 +237,13 @@ export function CenterConfigManager({ initialStages, initialSubjects }: CenterCo
               rowKey={(stage) => stage.id}
               actionsLabel={tCommon("actions")}
               rowActions={(stage) => (
-                <div className="flex items-center justify-end gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => openEditStage(stage)}>
-                    {t("edit")}
-                  </Button>
-                  <Button type="button" variant="destructive" size="sm" onClick={() => setStageDeleteTarget(stage)}>
-                    {t("delete")}
-                  </Button>
-                </div>
+                <TableActionsMenu
+                  triggerLabel={tCommon("actions")}
+                  actions={[
+                    { label: t("edit"), onClick: () => openEditStage(stage) },
+                    { label: t("delete"), variant: "destructive", onClick: () => setStageDeleteTarget(stage) },
+                  ]}
+                />
               )}
             />
             {stageTotalPages > 1 && (
@@ -274,14 +274,13 @@ export function CenterConfigManager({ initialStages, initialSubjects }: CenterCo
               rowKey={(subject) => subject.id}
               actionsLabel={tCommon("actions")}
               rowActions={(subject) => (
-                <div className="flex items-center justify-end gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => openEditSubject(subject)}>
-                    {t("edit")}
-                  </Button>
-                  <Button type="button" variant="destructive" size="sm" onClick={() => setSubjectDeleteTarget(subject)}>
-                    {t("delete")}
-                  </Button>
-                </div>
+                <TableActionsMenu
+                  triggerLabel={tCommon("actions")}
+                  actions={[
+                    { label: t("edit"), onClick: () => openEditSubject(subject) },
+                    { label: t("delete"), variant: "destructive", onClick: () => setSubjectDeleteTarget(subject) },
+                  ]}
+                />
               )}
             />
             {subjectTotalPages > 1 && (

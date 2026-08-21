@@ -79,6 +79,35 @@ export const teacherProfileService = {
     };
   },
 
+  /**
+   * TASK-3307 — Admin-facing read of one teacher's profile (bio,
+   * headline, experience, socials, avatar), for the Admin account page.
+   * Same shape as `getMyProfile` but keyed by an explicit `teacherId`
+   * instead of `session.uid`, since the caller here is never the teacher
+   * themselves. Returns `null` instead of throwing when no
+   * `teacherProfiles` doc exists yet, so the Admin page can render the
+   * rest of the account (auth/stats/offerings/courses) without a 404.
+   */
+  async getProfileForAdmin(session: Session, teacherId: string): Promise<MyTeacherProfile | null> {
+    assertRole(session, "admin");
+    const profile = await teacherProfileRepository.findByTeacherId(teacherId);
+    if (!profile) return null;
+
+    return {
+      teacherId: profile.teacherId,
+      slug: profile.slug,
+      displayName: profile.displayName,
+      isPublic: profile.isPublic,
+      bio: profile.bio,
+      headline: profile.headline,
+      yearsOfExperience: profile.yearsOfExperience,
+      specialization: profile.specialization,
+      socialLinks: profile.socialLinks,
+      avatarUrl: profile.avatarUrl,
+      completeness: computeCompleteness(profile),
+    };
+  },
+
   async updateMyProfile(session: Session, input: UpdateTeacherProfileDetailsInput): Promise<MyTeacherProfile> {
     assertRole(session, "teacher");
     const existing = await teacherProfileRepository.findByTeacherId(session.uid);

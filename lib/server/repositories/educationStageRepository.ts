@@ -1,6 +1,7 @@
 import "server-only";
 import { adminDb } from "@/lib/server/firebaseAdmin";
 import { NotFoundError } from "@/lib/errors";
+import { createMemoryCache } from "@/lib/server/cache/memoryCache";
 
 export interface LocalizedText {
   en: string;
@@ -21,6 +22,9 @@ export type UpdateEducationStageDoc = Partial<Omit<EducationStageDoc, "id">>;
 
 const COLLECTION = "educationStages";
 
+/** TASK-3602: near-static reference data, re-read on every request from at least seven services — see `memoryCache.ts`. */
+const listCache = createMemoryCache<EducationStageDoc[]>(5 * 60 * 1000);
+
 function toDoc(id: string, data: FirebaseFirestore.DocumentData): EducationStageDoc {
   return {
     id,
@@ -40,8 +44,12 @@ function toDoc(id: string, data: FirebaseFirestore.DocumentData): EducationStage
  */
 export const educationStageRepository = {
   async list(): Promise<EducationStageDoc[]> {
+    const cached = listCache.get();
+    if (cached) return cached;
     const snap = await adminDb.collection(COLLECTION).get();
-    return snap.docs.map((doc) => toDoc(doc.id, doc.data())).sort((a, b) => a.order - b.order);
+    const stages = snap.docs.map((doc) => toDoc(doc.id, doc.data())).sort((a, b) => a.order - b.order);
+    listCache.set(stages);
+    return stages;
   },
 
   async findById(id: string): Promise<EducationStageDoc | null> {
@@ -52,6 +60,7 @@ export const educationStageRepository = {
   async create(stage: CreateEducationStageDoc): Promise<EducationStageDoc> {
     const ref = adminDb.collection(COLLECTION).doc();
     await ref.create(stage);
+    listCache.invalidate();
     return { id: ref.id, ...stage };
   },
 
@@ -59,6 +68,7 @@ export const educationStageRepository = {
     const existing = await this.findById(id);
     if (!existing) throw new NotFoundError();
     await adminDb.collection(COLLECTION).doc(id).update(patch);
+    listCache.invalidate();
     return { ...existing, ...patch };
   },
 
@@ -66,6 +76,7 @@ export const educationStageRepository = {
     const existing = await this.findById(id);
     if (!existing) throw new NotFoundError();
     await adminDb.collection(COLLECTION).doc(id).delete();
+    listCache.invalidate();
     return existing;
   },
 };

@@ -248,7 +248,22 @@
         "thumbnailSize": "Image must be 5 MB or smaller.",
         "thumbnailUpload": "Could not upload the image. Please try again."
       },
-      "manageLessons": "Manage lessons"
+      "manageLessons": "Manage lessons",
+      "preview": {
+        "linkLabel": "Preview as a student",
+        "banner": "This is a preview — students see the same view once you publish. Nothing here is saved as a real attempt or enrollment.",
+        "breadcrumbCourses": "Courses",
+        "breadcrumbPreview": "Preview",
+        "lessonsHeading": "Lessons",
+        "lessonCount": "{count} {count, plural, one {lesson} other {lessons}}",
+        "free": "Free",
+        "priceLabel": "Price",
+        "lockedBadge": "Locked",
+        "freePreviewBadge": "Free preview",
+        "goToLesson": "Go to lesson",
+        "noLessons": "No lessons published yet.",
+        "noDescription": "No description yet."
+      }
     },
     "lessons": {
       "title": "Lessons",
@@ -963,7 +978,42 @@
       "editDescription": "Update this teacher's details.",
       "viewStudents": "View students",
       "studentsPageTitle": "{name}'s students",
-      "viewReviews": "View reviews"
+      "viewReviews": "View reviews",
+      "viewProfile": "View profile",
+      "profile": {
+        "status": {
+          "active": "Active",
+          "deactivated": "Deactivated"
+        },
+        "stats": {
+          "courses": "Courses",
+          "students": "Students",
+          "enrollments": "Enrollments",
+          "joined": "Joined"
+        },
+        "viewStudents": "View students",
+        "viewReviews": "View reviews",
+        "profileTitle": "Public profile",
+        "profileEmptyTitle": "No public profile yet",
+        "profileEmptyDescription": "This teacher hasn't set up their public profile (bio, headline, socials).",
+        "yearsOfExperience": "{years} years of experience",
+        "offeringsTitle": "Pricing",
+        "offeringsEmpty": "No prices added yet.",
+        "columns": {
+          "subject": "Subject",
+          "stage": "Grade level",
+          "price": "Monthly price (EGP)",
+          "course": "Course",
+          "status": "Status",
+          "enrollments": "Enrollments"
+        },
+        "coursesTitle": "Courses",
+        "coursesEmpty": "This teacher hasn't created any courses yet.",
+        "courseStatus": {
+          "draft": "Draft",
+          "published": "Published"
+        }
+      }
     },
     "students": {
       "title": "Students",
@@ -1019,6 +1069,7 @@
       "noOfferingsForStage": "No teacher has priced this student's grade level yet.",
       "generateInvoice": "Generate this month's invoice",
       "invoiceGenerated": "Invoice generated",
+      "payCash": "Record cash payment (this month)",
       "invoiceStatus": {
         "pending": "Awaiting payment",
         "confirmed": "Paid",
@@ -1026,12 +1077,56 @@
       },
       "edit": "Edit",
       "editTitle": "Edit student account",
-      "editDescription": "Update this student's details."
+      "editDescription": "Update this student's details.",
+      "viewProfile": "View profile",
+      "profile": {
+        "status": {
+          "active": "Active",
+          "deactivated": "Deactivated"
+        },
+        "age": "Age",
+        "stage": "Grade level",
+        "stats": {
+          "enrollments": "Total enrollments",
+          "active": "Active enrollments"
+        },
+        "coursesTitle": "Enrolled courses",
+        "coursesEmpty": "This student isn't enrolled in any course yet.",
+        "columns": {
+          "course": "Course",
+          "status": "Status",
+          "progress": "Progress",
+          "enrolledOn": "Enrolled on",
+          "teacher": "Teacher",
+          "amount": "Amount",
+          "date": "Date"
+        },
+        "enrollmentStatus": {
+          "active": "Active",
+          "completed": "Completed",
+          "cancelled": "Cancelled"
+        },
+        "subscriptionsTitle": "Subscriptions",
+        "subscriptionsEmpty": "This student isn't subscribed to any teacher yet.",
+        "subscriptionStatus": {
+          "active": "Active",
+          "cancelled": "Cancelled"
+        },
+        "paymentsTitle": "Payment history",
+        "paymentsEmpty": "No payments yet.",
+        "paymentStatus": {
+          "pending": "Pending",
+          "succeeded": "Succeeded",
+          "confirmed": "Confirmed",
+          "rejected": "Rejected"
+        }
+      }
     },
     "analytics": {
       "title": "Analytics",
       "subtitle": "Revenue and growth across the whole center.",
       "refresh": "Refresh",
+      "export": "Export to Excel",
       "currency": "EGP",
       "cards": {
         "totalStudents": "Total students",
@@ -1044,26 +1139,48 @@
         "growth": "Subscription growth"
       },
       "pendingNote": "{count, plural, one {# invoice is still awaiting confirmation and isn't counted yet.} other {# invoices are still awaiting confirmation and aren't counted yet.}}",
+      "breakdowns": {
+        "teachers": "Teachers by active students",
+        "subjects": "Subjects by active students",
+        "stages": "Students by education stage",
+        "empty": "No data yet."
+      },
       "errors": {
         "load": "Couldn't load analytics. Please try again."
+      },
+      "filters": {
+        "rangeLabel": "Date range",
+        "granularity": {
+          "month": "Month",
+          "year": "Year",
+          "5year": "5 Years"
+        }
       }
     },
     "payments": {
       "title": "Payments",
-      "subtitle": "Every payment across every teacher's courses, for support and dispute handling. Read-only — confirm/reject stays with the owning teacher.",
+      "subtitle": "Every course payment and subscription invoice across every teacher, for support and dispute handling. Read-only — confirm/reject stays with the owning teacher or the invoices queue.",
       "empty": "No payments found.",
       "columns": {
         "student": "Student",
-        "course": "Course",
+        "course": "Course / Subject",
         "teacher": "Teacher",
+        "type": "Type",
         "method": "Method",
         "amount": "Amount",
         "status": "Status"
       },
+      "sources": {
+        "payment": "Course payment",
+        "subscriptionInvoice": "Subscription invoice"
+      },
       "filters": {
         "all": "All statuses",
-        "status": "Filter by status"
+        "status": "Filter by status",
+        "search": "Search by student or teacher",
+        "searchPlaceholder": "Search by student or teacher…"
       },
+      "linkToInvoiceQueue": "Review subscription invoices →",
       "status": {
         "pending": "Pending",
         "succeeded": "Succeeded",
@@ -1075,10 +1192,24 @@
         "fawry": "Fawry",
         "vodafoneCash": "Vodafone Cash",
         "bankTransfer": "Bank transfer",
+        "cash": "Cash",
         "other": "Other"
       },
       "errors": {
         "list": "Couldn't load payments. Please try again."
+      },
+      "unsubscribed": {
+        "title": "Students with no active subscription",
+        "subtitle": "Registered students who never got set up with a teacher.",
+        "empty": "Every student has an active subscription.",
+        "viewProfile": "View profile →"
+      },
+      "dueForRenewal": {
+        "title": "Subscriptions due for renewal",
+        "subtitle": "Active subscriptions with no confirmed payment yet this month.",
+        "empty": "No subscriptions are due for renewal.",
+        "withTeacher": "With {teacher}",
+        "viewProfile": "View profile →"
       }
     },
     "settings": {
@@ -1118,7 +1249,8 @@
         "subject": "Subject",
         "stage": "Stage",
         "status": "Status",
-        "enrollments": "Enrollments"
+        "enrollments": "Enrollments",
+        "actions": "Actions"
       },
       "filters": {
         "allTeachers": "All teachers",
@@ -1128,7 +1260,22 @@
       },
       "statusDraft": "Draft",
       "statusPublished": "Published",
-      "empty": "No courses match these filters."
+      "empty": "No courses match these filters.",
+      "view": "View",
+      "detail": {
+        "breadcrumbCourses": "Courses",
+        "lessonsHeading": "Lessons",
+        "lessonCount": "{count} {count, plural, one {lesson} other {lessons}}",
+        "free": "Free",
+        "priceLabel": "Price",
+        "statusDraft": "Draft",
+        "statusPublished": "Published",
+        "lockedBadge": "Locked",
+        "freePreviewBadge": "Free preview",
+        "goToLesson": "Go to lesson",
+        "noLessons": "No lessons published yet.",
+        "noDescription": "No description yet."
+      }
     },
     "reviews": {
       "pageTitle": "{name}'s reviews",
@@ -1171,6 +1318,18 @@
         "confirm": "Couldn't confirm this invoice. Please try again.",
         "reject": "Couldn't reject this invoice. Please try again.",
         "generate": "Couldn't generate invoices. Please try again."
+      }
+    },
+    "recentActivity": {
+      "studentsTitle": "Recently joined students",
+      "studentsEmpty": "No students yet.",
+      "paymentsTitle": "Recent payments",
+      "paymentsEmpty": "No payments yet.",
+      "status": {
+        "pending": "Pending",
+        "succeeded": "Succeeded",
+        "confirmed": "Confirmed",
+        "rejected": "Rejected"
       }
     }
   },

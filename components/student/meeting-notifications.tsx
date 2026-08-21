@@ -86,7 +86,7 @@ export function MeetingNotifications({ initialNotifications }: MeetingNotificati
                   }
                 : undefined
             }
-            className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 [&[role=button]]:cursor-pointer"
+            className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 [&[role=button]]:cursor-pointer [&[role=button]]:focus-visible:outline-none [&[role=button]]:focus-visible:ring-2 [&[role=button]]:focus-visible:ring-primary"
           >
             <div className="flex items-center gap-2">
               {!notification.read && <Badge variant="info">{t("new")}</Badge>}

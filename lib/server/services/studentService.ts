@@ -187,35 +187,43 @@ export const studentService = {
 
     const users = await userRepository.findByIds(enrollments.map((e) => e.studentId));
 
-    const results = await Promise.all(
-      enrollments.map(async (enrollment) => {
-        const watchDocs = await lessonProgressRepository.listByStudentForLessons(
-          enrollment.studentId,
-          lessons.map((lesson) => lesson.id),
-        );
-        const watchByLessonId = new Map(watchDocs.map((doc) => [doc.lessonId, doc]));
-
-        const lessonsProgress: CourseLessonProgress[] = lessons.map((lesson) => {
-          const completed = enrollment.progress.completedLessonIds.includes(lesson.id);
-          const doc = watchByLessonId.get(lesson.id);
-          const percent = completed
-            ? 100
-            : doc
-              ? watchPercent(doc.videoDurationSeconds, doc.watchedSeconds)
-              : 0;
-          return { lessonId: lesson.id, lessonTitle: lesson.title, completed, watchPercent: percent };
-        });
-
-        const user = users.get(enrollment.studentId);
-        return {
-          studentId: enrollment.studentId,
-          displayName: user?.displayName ?? enrollment.studentId,
-          email: user?.email ?? "",
-          overallPercent: enrollment.progress.percent,
-          lessons: lessonsProgress,
-        };
-      }),
+    // TASK-3603: one batched read across every enrolled student × lesson
+    // pair, instead of the old one-`getAll`-per-student N+1.
+    const lessonIds = lessons.map((lesson) => lesson.id);
+    const allWatchDocs = await lessonProgressRepository.listByStudentsForLessons(
+      enrollments.map((e) => e.studentId),
+      lessonIds,
     );
+    const watchByStudentId = new Map<string, Map<string, (typeof allWatchDocs)[number]>>();
+    for (const doc of allWatchDocs) {
+      const forStudent = watchByStudentId.get(doc.studentId) ?? new Map();
+      forStudent.set(doc.lessonId, doc);
+      watchByStudentId.set(doc.studentId, forStudent);
+    }
+
+    const results = enrollments.map((enrollment) => {
+      const watchByLessonId = watchByStudentId.get(enrollment.studentId) ?? new Map();
+
+      const lessonsProgress: CourseLessonProgress[] = lessons.map((lesson) => {
+        const completed = enrollment.progress.completedLessonIds.includes(lesson.id);
+        const doc = watchByLessonId.get(lesson.id);
+        const percent = completed
+          ? 100
+          : doc
+            ? watchPercent(doc.videoDurationSeconds, doc.watchedSeconds)
+            : 0;
+        return { lessonId: lesson.id, lessonTitle: lesson.title, completed, watchPercent: percent };
+      });
+
+      const user = users.get(enrollment.studentId);
+      return {
+        studentId: enrollment.studentId,
+        displayName: user?.displayName ?? enrollment.studentId,
+        email: user?.email ?? "",
+        overallPercent: enrollment.progress.percent,
+        lessons: lessonsProgress,
+      };
+    });
 
     return results.sort((a, b) => a.displayName.localeCompare(b.displayName));
   },

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Alert,
@@ -15,6 +15,7 @@ import {
   Table,
   Textarea,
 } from "@/components/ui";
+import { TableActionsMenu } from "@/components/ui/table-actions-menu";
 import type { Column } from "@/components/ui/table";
 import type { CourseDoc } from "@/lib/server/repositories/courseRepository";
 import type { SubjectDoc } from "@/lib/server/repositories/subjectRepository";
@@ -98,6 +99,7 @@ function toRequestBody(form: FormState) {
 export function CourseManager({ initialCourses, subjects, stages }: CourseManagerProps) {
   const t = useTranslations("teacherDashboard.courses");
   const locale = useLocale();
+  const router = useRouter();
   // A teacher normally has a single assigned subject, so `subjects` here is
   // already narrowed to just that one (see the courses page) -- default the
   // form to it instead of making the teacher pick from a list of one.
@@ -305,24 +307,23 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
           actionsLabel={t("columns.actions")}
           rowActions={(course) => (
             <div className="flex items-center justify-end gap-2">
-              <Link
-                href={`/${locale}/teacher/courses/${course.id}`}
-                className="text-sm text-primary hover:underline"
-              >
-                {t("manageLessons")}
-              </Link>
               <Switch
                 checked={course.status === "published"}
                 onCheckedChange={() => togglePublish(course)}
                 disabled={pendingAction === "publish" && pendingCourseId === course.id}
                 label={course.status === "published" ? t("unpublish") : t("publish")}
               />
-              <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(course)}>
-                {t("edit")}
-              </Button>
-              <Button type="button" variant="destructive" size="sm" onClick={() => setDeleteTarget(course)}>
-                {t("delete")}
-              </Button>
+              <TableActionsMenu
+                triggerLabel={t("columns.actions")}
+                actions={[
+                  {
+                    label: t("manageLessons"),
+                    onClick: () => router.push(`/${locale}/teacher/courses/${course.id}`),
+                  },
+                  { label: t("edit"), onClick: () => openEditDialog(course) },
+                  { label: t("delete"), variant: "destructive", onClick: () => setDeleteTarget(course) },
+                ]}
+              />
             </div>
           )}
         />
@@ -360,6 +361,7 @@ export function CourseManager({ initialCourses, subjects, stages }: CourseManage
               onDrop={onThumbnailDrop}
               className={cn(
                 "relative flex h-24 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border-2 border-dashed text-center transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 isDraggingOver ? "border-primary bg-primary/5" : "border-border bg-surface hover:border-primary/50"
               )}
             >

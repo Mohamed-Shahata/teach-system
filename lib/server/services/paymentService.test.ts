@@ -58,6 +58,29 @@ const pendingManualPayment = {
   updatedAt: 1,
 };
 
+describe("paymentService.listForStudentAdmin", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("rejects a non-admin session", async () => {
+    await expect(paymentService.listForStudentAdmin(makeSession("teacher"), "student-1")).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    expect(listByStudent).not.toHaveBeenCalled();
+  });
+
+  it("returns the student's full payment history for an admin session", async () => {
+    const payments = [{ id: "payment-1", studentId: "student-1" }];
+    listByStudent.mockResolvedValue(payments);
+
+    const result = await paymentService.listForStudentAdmin(makeSession("admin"), "student-1");
+
+    expect(listByStudent).toHaveBeenCalledWith("student-1");
+    expect(result).toBe(payments);
+  });
+});
+
 describe("paymentService.createPayment", () => {
   beforeEach(() => {
     vi.clearAllMocks();

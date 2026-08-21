@@ -95,6 +95,21 @@ export const subscriptionInvoiceRepository = {
     return snap.docs.map((doc) => toDoc(doc.id, doc.data())).sort((a, b) => b.createdAt - a.createdAt);
   },
 
+  /**
+   * Deduplicated `subscriptionId`s with a `confirmed` invoice for a given
+   * `period` — TASK-3404's "due for renewal" list negates this against
+   * every active subscription to find who hasn't paid for the current
+   * month yet.
+   */
+  async listConfirmedSubscriptionIdsForPeriod(period: string): Promise<Set<string>> {
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .where("period", "==", period)
+      .where("status", "==", "confirmed")
+      .get();
+    return new Set(snap.docs.map((doc) => String(doc.data().subscriptionId)));
+  },
+
   async create(invoice: CreateSubscriptionInvoiceDoc): Promise<SubscriptionInvoiceDoc> {
     const ref = adminDb.collection(COLLECTION).doc();
     await ref.create(invoice);

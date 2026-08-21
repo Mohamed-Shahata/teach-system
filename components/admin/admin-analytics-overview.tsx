@@ -16,16 +16,39 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import type { AnalyticsOverview } from "@/lib/server/services/analyticsService";
+import type { AnalyticsGranularity } from "@/lib/server/repositories/analyticsRepository";
+import type { LocalizedText } from "@/lib/server/repositories/subjectRepository";
 
 interface AdminAnalyticsOverviewProps {
   initialOverview: AnalyticsOverview;
 }
 
-/** `"2026-08"` -> a short localized month label, e.g. `"Aug"` / `"أغسطس"`. */
-function monthLabel(period: string, locale: string): string {
-  const [year, month] = period.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, 1));
-  return new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(date);
+const GRANULARITIES: AnalyticsGranularity[] = ["month", "year", "5year"];
+
+/** Same fallback pattern as `course-overview.tsx`/`teacher-manager.tsx`: prefer the active locale, fall back to the other. */
+function localizedText(name: LocalizedText, locale: string): string {
+  return (locale === "ar" ? name.ar : name.en) || name.en || name.ar;
+}
+
+/**
+ * TASK-3304 — bucket key -> short localized axis label. The key's own
+ * shape tells us the granularity: `YYYY-MM-DD` (month view, day label),
+ * `YYYY-MM` (year view, month label), or `YYYY` (5year view, year label)
+ * — see `analyticsRepository.buildRange`/`periodOf` for where these are produced.
+ */
+function bucketLabel(period: string, locale: string): string {
+  const parts = period.split("-").map(Number);
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return new Intl.DateTimeFormat(locale, { day: "numeric", timeZone: "UTC" }).format(date);
+  }
+  if (parts.length === 2) {
+    const [year, month] = parts;
+    const date = new Date(Date.UTC(year, month - 1, 1));
+    return new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(date);
+  }
+  return period;
 }
 
 /**
@@ -43,11 +66,11 @@ export function AdminAnalyticsOverview({ initialOverview }: AdminAnalyticsOvervi
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  async function refresh() {
+  async function refresh(granularity: AnalyticsGranularity = overview.granularity) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/analytics");
+      const res = await fetch(`/api/admin/analytics?granularity=${granularity}`);
       if (!res.ok) throw new Error("analytics");
       const body = (await res.json()) as { overview: AnalyticsOverview };
       setOverview(body.overview);
@@ -59,11 +82,11 @@ export function AdminAnalyticsOverview({ initialOverview }: AdminAnalyticsOvervi
   }
 
   const revenueData = overview.monthlyRevenue.map((point) => ({
-    label: monthLabel(point.period, locale),
+    label: bucketLabel(point.period, locale),
     value: point.value,
   }));
   const growthData = overview.subscriptionGrowth.map((point) => ({
-    label: monthLabel(point.period, locale),
+    label: bucketLabel(point.period, locale),
     value: point.value,
   }));
 
@@ -81,14 +104,40 @@ export function AdminAnalyticsOverview({ initialOverview }: AdminAnalyticsOvervi
           <h1 className="text-xl font-semibold text-foreground">{t("title")}</h1>
           <p className="text-sm text-foreground/60">{t("subtitle")}</p>
         </div>
-        <button
-          type="button"
-          onClick={refresh}
-          disabled={loading}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground/70 hover:bg-background disabled:opacity-50"
-        >
-          {loading ? "…" : t("refresh")}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-border p-0.5" role="group" aria-label={t("filters.rangeLabel")}>
+            {GRANULARITIES.map((g) => (
+              <button
+                key={g}
+                type="button"
+                disabled={loading}
+                aria-pressed={overview.granularity === g}
+                onClick={() => refresh(g)}
+                className={`rounded px-2.5 py-1 text-xs font-medium disabled:opacity-50 ${
+                  overview.granularity === g
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground/60 hover:bg-background"
+                }`}
+              >
+                {t(`filters.granularity.${g}`)}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => refresh()}
+            disabled={loading}
+            className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground/70 hover:bg-background disabled:opacity-50"
+          >
+            {loading ? "…" : t("refresh")}
+          </button>
+          <a
+            href={`/api/admin/analytics/export?granularity=${overview.granularity}`}
+            className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground/70 hover:bg-background"
+          >
+            {t("export")}
+          </a>
+        </div>
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}
@@ -152,6 +201,68 @@ export function AdminAnalyticsOverview({ initialOverview }: AdminAnalyticsOvervi
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("breakdowns.teachers")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {overview.teacherBreakdown.length === 0 ? (
+              <p className="text-sm text-foreground/50">{t("breakdowns.empty")}</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {overview.teacherBreakdown.map((row) => (
+                  <li key={row.id} className="flex items-center justify-between text-sm">
+                    <span className="text-foreground/80">{row.label}</span>
+                    <span className="font-medium text-foreground">{format.number(row.count)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("breakdowns.subjects")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {overview.subjectBreakdown.length === 0 ? (
+              <p className="text-sm text-foreground/50">{t("breakdowns.empty")}</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {overview.subjectBreakdown.map((row) => (
+                  <li key={row.id} className="flex items-center justify-between text-sm">
+                    <span className="text-foreground/80">{localizedText(row.name, locale)}</span>
+                    <span className="font-medium text-foreground">{format.number(row.count)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("breakdowns.stages")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {overview.stageBreakdown.length === 0 ? (
+              <p className="text-sm text-foreground/50">{t("breakdowns.empty")}</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {overview.stageBreakdown.map((row) => (
+                  <li key={row.id} className="flex items-center justify-between text-sm">
+                    <span className="text-foreground/80">{localizedText(row.name, locale)}</span>
+                    <span className="font-medium text-foreground">{format.number(row.count)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>
